@@ -20,7 +20,7 @@ serve(async (req) => {
 
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("SUGGESTION_EMAIL_FROM") || "BIH <no-reply@bih.org>";
+    const fromEmail = Deno.env.get("SUGGESTION_EMAIL_FROM") || Deno.env.get("SUGGESTED_EMAIL_FROM") || "BIH <no-reply@bih.org>";
 
     if (!resendApiKey) {
       return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY" }), {

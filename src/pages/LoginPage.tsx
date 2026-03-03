@@ -69,7 +69,7 @@ const LoginPage = () => {
           <CardHeader>
             <CardTitle>Account Login</CardTitle>
             <CardDescription>
-              Login to continue to your BIH experience. Demo admin credentials: admin@bih.org / Admin@123
+              Login to continue to your BIH experience.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -114,7 +114,7 @@ const LoginPage = () => {
             )}
 
             <p className="text-sm text-muted-foreground">
-              Don’t have an account? <Link className="text-primary underline" to="/register">Create one</Link>
+              Don't have an account? <Link className="text-primary underline" to="/register">Create one</Link>
             </p>
           </CardContent>
         </Card>

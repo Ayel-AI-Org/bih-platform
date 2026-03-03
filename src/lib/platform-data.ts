@@ -71,7 +71,7 @@ type MediaRow = {
   image_url: string;
 };
 
-type ProfileJoin = { full_name: string; email: string } | null;
+type ProfileJoin = { full_name?: string; email?: string } | Array<{ full_name?: string; email?: string }> | null;
 
 type RegistrationBase = {
   email: string;
@@ -132,6 +132,25 @@ const mapMedia = (row: MediaRow): MediaArticle => ({
   publishedAt: row.published_at,
   imageUrl: row.image_url,
 });
+
+const normalizeProfile = (profile: ProfileJoin) => {
+  if (!profile) {
+    return { fullName: "", email: "" };
+  }
+
+  if (Array.isArray(profile)) {
+    const first = profile[0];
+    return {
+      fullName: first?.full_name ?? "",
+      email: first?.email ?? "",
+    };
+  }
+
+  return {
+    fullName: profile.full_name ?? "",
+    email: profile.email ?? "",
+  };
+};
 
 const buildContextualProjectImageUrl = (payload: {
   title: string;
@@ -642,16 +661,20 @@ export async function getVolunteers() {
     availability: string;
     created_at: string;
     profiles: ProfileJoin;
-  }) => ({
+  }) => {
+    const profile = normalizeProfile(item.profiles);
+
+    return ({
     id: item.user_id,
-    fullName: item.profiles?.full_name ?? "",
-    email: item.profiles?.email ?? "",
+    fullName: profile.fullName,
+    email: profile.email,
     phone: item.phone,
     location: item.location,
     skills: item.skills,
     availability: item.availability,
     createdAt: item.created_at,
-  } satisfies VolunteerProfile));
+  } satisfies VolunteerProfile);
+  });
 }
 
 export async function getNgos() {
@@ -670,17 +693,21 @@ export async function getNgos() {
     focus_area: string;
     registration_number: string;
     created_at: string;
-    profiles: { email: string } | null;
-  }) => ({
+    profiles: ProfileJoin;
+  }) => {
+    const profile = normalizeProfile(item.profiles);
+
+    return ({
     id: item.user_id,
     organizationName: item.organization_name,
     contactPerson: item.contact_person,
-    email: item.profiles?.email ?? "",
+    email: profile.email,
     phone: item.phone,
     focusArea: item.focus_area,
     registrationNumber: item.registration_number,
     createdAt: item.created_at,
-  } satisfies NgoProfile));
+  } satisfies NgoProfile);
+  });
 }
 
 export async function getDonors() {
@@ -698,15 +725,19 @@ export async function getDonors() {
     interests: string;
     created_at: string;
     profiles: ProfileJoin;
-  }) => ({
+  }) => {
+    const profile = normalizeProfile(item.profiles);
+
+    return ({
     id: item.user_id,
-    fullName: item.profiles?.full_name ?? "",
-    email: item.profiles?.email ?? "",
+    fullName: profile.fullName,
+    email: profile.email,
     phone: item.phone,
     donorType: item.donor_type,
     interests: item.interests,
     createdAt: item.created_at,
-  } satisfies DonorProfile));
+  } satisfies DonorProfile);
+  });
 }
 
 export async function getSuggestions() {

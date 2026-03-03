@@ -57,17 +57,6 @@ const resolveGroqProvider = (): ProviderConfig | null => {
     };
   }
 
-  const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
-  if (openAiApiKey) {
-    return {
-      name: "openai",
-      kind: "openai-compatible",
-      apiKey: openAiApiKey,
-      endpoint: "https://api.openai.com/v1/chat/completions",
-      model: Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini",
-    };
-  }
-
   return null;
 };
 
@@ -244,10 +233,9 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({
       reply: localFallbackReply,
-      liveAiError: error instanceof Error ? error.message : "Unknown error",
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

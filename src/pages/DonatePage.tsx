@@ -148,7 +148,7 @@ const DonatePage = () => {
         });
 
         toast({
-          title: "Payment successful",
+          title: "Payment successful, thank you for your support!",
           description: `Donation recorded with reference ${reference}.`,
         });
       };
@@ -238,12 +238,6 @@ const DonatePage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
-                Mobile Money now uses Paystack checkout in test mode.
-                <br />
-                Click <span className="font-medium text-foreground">Complete donation</span> to open Paystack and finish payment.
               </div>
 
               {selectedProjectTitle ? (

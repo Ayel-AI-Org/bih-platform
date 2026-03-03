@@ -45,7 +45,8 @@ where email = 'admin@bih.org';
 	- `supabase functions deploy suggestion-decision-email`
 	- Set function secrets:
 		- `RESEND_API_KEY`
-		- `SUGGESTION_EMAIL_FROM` (e.g. `BIH <no-reply@yourdomain.com>`)
+		- `SUGGESTION_EMAIL_FROM` (preferred, e.g. `BIH <no-reply@yourdomain.com>`)
+		- `SUGGESTED_EMAIL_FROM` (legacy fallback supported)
 9. Deploy AI edge functions:
 	- `supabase functions deploy project-polish`
 	- `supabase functions deploy ai-chat-assistant`
