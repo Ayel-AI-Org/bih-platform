@@ -89,6 +89,7 @@ create table if not exists media_articles (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   summary text not null,
+  content text not null,
   author text not null,
   category text not null,
   published_at date not null,

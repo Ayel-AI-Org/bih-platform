@@ -74,11 +74,13 @@ const ProjectDetailsPage = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link to={`/donate?projectId=${project.id}&projectTitle=${encodeURIComponent(project.title)}`}>
-                Support this project
-              </Link>
-            </Button>
+            {project.status !== "completed" ? (
+              <Button asChild>
+                <Link to={`/donate?projectId=${project.id}&projectTitle=${encodeURIComponent(project.title)}`}>
+                  Support this project
+                </Link>
+              </Button>
+            ) : null}
             <Button variant="outline" asChild>
               <Link to="/projects">Back to project list</Link>
             </Button>

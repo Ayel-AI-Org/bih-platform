@@ -94,6 +94,7 @@ export interface MediaArticle {
   id: string;
   title: string;
   summary: string;
+  content: string;
   author: string;
   category: string;
   publishedAt: string;

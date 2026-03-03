@@ -15,9 +15,9 @@ const Footer = () => {
               lasting, measurable change across the region.
             </p>
             <div className="space-y-2 text-sm text-primary-foreground/70">
-              <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> info@bridgeforimpact.org</div>
-              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> +1 (234) 567-890</div>
-              <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Community Center, Main Street</div>
+              <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> bridgeforimpacthub@gmail.com</div>
+              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> +233 (0) 53 880 9478</div>
+              <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> University of Ghana, Legon Campus</div>
             </div>
           </div>
 

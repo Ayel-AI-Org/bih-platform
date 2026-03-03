@@ -65,6 +65,7 @@ type MediaRow = {
   id: string;
   title: string;
   summary: string;
+  content?: string;
   author: string;
   category: string;
   published_at: string;
@@ -127,6 +128,7 @@ const mapMedia = (row: MediaRow): MediaArticle => ({
   id: row.id,
   title: row.title,
   summary: row.summary,
+  content: row.content?.trim() ? row.content : row.summary,
   author: row.author,
   category: row.category,
   publishedAt: row.published_at,
@@ -778,12 +780,51 @@ export async function getDonations() {
 export async function getMediaArticles() {
   const { data, error } = await supabase
     .from("media_articles")
+    .select("id, title, summary, content, author, category, published_at, image_url")
+    .order("published_at", { ascending: false });
+
+  if (!error) {
+    return (data as MediaRow[]).map(mapMedia);
+  }
+
+  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+    throw new Error(error.message);
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("media_articles")
     .select("id, title, summary, author, category, published_at, image_url")
     .order("published_at", { ascending: false });
 
-  throwIfError(error);
+  throwIfError(fallbackError);
 
-  return (data as MediaRow[]).map(mapMedia);
+  return (fallbackData as MediaRow[]).map(mapMedia);
+}
+
+export async function getMediaArticleById(articleId: string) {
+  const { data, error } = await supabase
+    .from("media_articles")
+    .select("id, title, summary, content, author, category, published_at, image_url")
+    .eq("id", articleId)
+    .maybeSingle();
+
+  if (!error) {
+    return data ? mapMedia(data as MediaRow) : undefined;
+  }
+
+  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+    throw new Error(error.message);
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("media_articles")
+    .select("id, title, summary, author, category, published_at, image_url")
+    .eq("id", articleId)
+    .maybeSingle();
+
+  throwIfError(fallbackError);
+
+  return fallbackData ? mapMedia(fallbackData as MediaRow) : undefined;
 }
 
 export function exportRowsToCsv(filename: string, rows: Record<string, string | number>[]) {
