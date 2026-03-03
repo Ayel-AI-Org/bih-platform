@@ -1,50 +1,18 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Clock, Users, ArrowRight } from "lucide-react";
+import { MapPin, Users, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { getProjects } from "@/lib/platform-data";
+import type { Project } from "@/types/models";
 import { Button } from "@/components/ui/button";
 
 type ProjectStatus = "proposed" | "ongoing" | "completed";
-
-interface Project {
-  title: string;
-  description: string;
-  location: string;
-  status: ProjectStatus;
-  partners: string;
-  image: string;
-}
 
 const statusStyles: Record<ProjectStatus, string> = {
   proposed: "bg-accent/15 text-accent",
   ongoing: "bg-primary/15 text-primary",
   completed: "bg-muted text-muted-foreground",
 };
-
-const projects: Project[] = [
-  {
-    title: "Clean Water Initiative",
-    description: "Providing sustainable clean water access to 5 rural communities through borehole drilling and maintenance training.",
-    location: "Northern Region",
-    status: "ongoing",
-    partners: "WaterAid, Local Council",
-    image: "https://images.unsplash.com/photo-1594398901394-4e34939a02d0?w=600&q=80",
-  },
-  {
-    title: "Youth Skills Training",
-    description: "Digital literacy and vocational training program empowering 200+ young people with marketable skills.",
-    location: "Urban District",
-    status: "proposed",
-    partners: "Tech4Good, UNICEF",
-    image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&q=80",
-  },
-  {
-    title: "Community Health Outreach",
-    description: "Free health screenings and wellness education reaching 10,000 community members across 15 villages.",
-    location: "Eastern Province",
-    status: "completed",
-    partners: "Red Cross, Ministry of Health",
-    image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&q=80",
-  },
-];
 
 const container = {
   hidden: {},
@@ -57,6 +25,17 @@ const item = {
 };
 
 const ProjectsSection = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    const run = async () => {
+      const items = await getProjects();
+      setProjects(items.slice(0, 3));
+    };
+
+    run();
+  }, []);
+
   return (
     <section className="py-24 bg-background" id="projects">
       <div className="container">
@@ -82,13 +61,13 @@ const ProjectsSection = () => {
         >
           {projects.map((project) => (
             <motion.div
-              key={project.title}
+              key={project.id}
               variants={item}
               className="group rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="relative h-52 overflow-hidden">
                 <img
-                  src={project.image}
+                  src={project.imageUrl}
                   alt={project.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -101,10 +80,12 @@ const ProjectsSection = () => {
                 <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{project.description}</p>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                   <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{project.location}</span>
-                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{project.partners}</span>
+                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{project.partners.join(", ")}</span>
                 </div>
-                <Button variant="ghost" size="sm" className="px-0 text-primary hover:text-primary/80">
-                  Learn More <ArrowRight className="w-4 h-4 ml-1" />
+                <Button variant="ghost" size="sm" className="px-0 text-primary hover:text-primary/80" asChild>
+                  <Link to={`/projects/${project.id}`}>
+                    Learn More <ArrowRight className="w-4 h-4 ml-1" />
+                  </Link>
                 </Button>
               </div>
             </motion.div>
@@ -112,8 +93,8 @@ const ProjectsSection = () => {
         </motion.div>
 
         <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            View All Projects
+          <Button variant="outline" size="lg" asChild>
+            <Link to="/projects">View All Projects</Link>
           </Button>
         </div>
       </div>

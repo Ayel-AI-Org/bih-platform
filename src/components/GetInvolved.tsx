@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { HandHeart, Building2, Users, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const roles = [
@@ -8,18 +9,21 @@ const roles = [
     title: "Volunteer",
     description: "Lend your time and skills to community projects. Make a tangible difference on the ground.",
     cta: "Sign Up as Volunteer",
+    href: "/register/volunteer",
   },
   {
     icon: Building2,
     title: "NGO / Organization",
     description: "Register your organization, list projects, and connect with donors and volunteers.",
     cta: "Register Organization",
+    href: "/register/ngo",
   },
   {
     icon: HandHeart,
     title: "Donor / Philanthropist",
     description: "Support initiatives that matter. Track your impact with full transparency and reporting.",
     cta: "Start Giving",
+    href: "/register/donor",
   },
 ];
 
@@ -55,8 +59,10 @@ const GetInvolved = () => {
               </div>
               <h3 className="text-xl font-serif text-foreground mb-3">{role.title}</h3>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{role.description}</p>
-              <Button variant="default" size="sm">
-                {role.cta} <ArrowRight className="w-4 h-4 ml-1" />
+              <Button variant="default" size="sm" asChild>
+                <Link to={role.href}>
+                  {role.cta} <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
               </Button>
             </motion.div>
           ))}

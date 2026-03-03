@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Heart, Users, Building2, HandHeart } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import { Button } from "@/components/ui/button";
 
@@ -32,12 +33,14 @@ const Hero = () => {
             Together, we make change visible, actionable, and lasting.
           </p>
           <div className="flex flex-wrap gap-4">
-            <Button variant="hero" size="lg" className="text-base px-8 py-6">
-              <Heart className="w-5 h-5 mr-2" />
-              Donate Now
+            <Button variant="hero" size="lg" className="text-base px-8 py-6" asChild>
+              <Link to="/donate">
+                <Heart className="w-5 h-5 mr-2" />
+                Donate Now
+              </Link>
             </Button>
-            <Button variant="hero-outline" size="lg" className="text-base px-8 py-6">
-              Get Involved
+            <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
+              <Link to="/register">Get Involved</Link>
             </Button>
           </div>
         </motion.div>
