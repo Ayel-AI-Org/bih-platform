@@ -1,73 +1,110 @@
-# Welcome to your Lovable project
+# Bridge for Impact Hub (BIH) – Phase 1
 
-## Project info
+Front-facing web platform for BIH to connect volunteers, NGOs, donors, and the public.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Start Here
 
-## How can I edit this code?
+- Product/operator manual: [USER_MANUAL.md](USER_MANUAL.md)
+- Backend schema and policies: [supabase/schema.sql](supabase/schema.sql)
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- Vite + React + TypeScript
+- React Router
+- Tailwind CSS + shadcn/ui
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Run Locally
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Supabase Backend Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Create a Supabase project.
+2. In Supabase SQL Editor, run [supabase/schema.sql](supabase/schema.sql).
+3. Copy [.env.example](.env.example) to `.env` and set:
+	- `VITE_SUPABASE_URL`
+	- `VITE_SUPABASE_ANON_KEY`
+	- `VITE_PAYSTACK_PUBLIC_KEY`
+4. In Supabase Auth settings:
+	- Turn off email confirmation for easiest local testing (optional)
+	- Create an admin user in Auth (or register one through app)
+5. Promote admin user by setting role in SQL:
 
-**Use GitHub Codespaces**
+```sql
+update profiles
+set role = 'admin'
+where email = 'admin@bih.org';
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+6. If your DB already exists, run [supabase/suggestion-upgrade.sql](supabase/suggestion-upgrade.sql) to add richer project-suggestion review fields.
+7. If some already-approved suggestions do not appear under projects, run [supabase/approved-suggestions-backfill.sql](supabase/approved-suggestions-backfill.sql).
+8. Deploy the decision email edge function:
+	- `supabase functions deploy suggestion-decision-email`
+	- Set function secrets:
+		- `RESEND_API_KEY`
+		- `SUGGESTION_EMAIL_FROM` (e.g. `BIH <no-reply@yourdomain.com>`)
+9. Deploy AI edge functions:
+	- `supabase functions deploy project-polish`
+	- `supabase functions deploy ai-chat-assistant`
+	- Ensure [supabase/config.toml](supabase/config.toml) is applied so public chatbot invoke works (`verify_jwt = false` for AI functions)
+	- Set function secret (choose one provider):
+		- `GEMINI_API_KEY` (recommended if you already have Gemini)
+		- `GROQ_API_KEY` (recommended quick alternative)
+		- or `OPENAI_API_KEY`
+	- Optional model overrides:
+		- `GEMINI_MODEL`
+		- `GROQ_MODEL`
+		- `OPENAI_MODEL`
 
-## What technologies are used for this project?
+Production build:
 
-This project is built with:
+```sh
+npm run build
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Implemented Phase 1 Features
 
-## How can I deploy this project?
+### Public Pages
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- Home: `/`
+- Projects listing: `/projects`
+- Project details: `/projects/:projectId`
+- Project suggestion form: `/suggest-project`
+- Donation page: `/donate`
+- Media/articles: `/media`
+- AI chatbot assistant is available site-wide via floating chat button
 
-## Can I connect a custom domain to my Lovable project?
+### Registration & Login
 
-Yes, you can!
+- Registration chooser: `/register`
+- Volunteer sign-up: `/register/volunteer`
+- NGO sign-up: `/register/ngo`
+- Donor sign-up: `/register/donor`
+- Login: `/login`
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Admin Hub
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Dashboard: `/admin`
+- View and export volunteers, NGOs, donors, suggestions, donations
+- Approve/reject project suggestions (approved items become proposed projects)
+- Admin decision emails are sent to project submitters (via Supabase edge function)
+- Approved project descriptions are polished by AI before publishing (with fallback to original text)
+
+## Demo Admin Credentials
+
+- Email: `admin@bih.org`
+- Password: `Admin@123`
+
+## Data Storage (Current MVP)
+
+- Phase 1 now uses Supabase (Postgres + Auth + RLS) for production-style backend flows.
+- `projects` and `media_articles` are public-read tables.
+- Registration, suggestions, donations, and admin dashboard datasets are stored in Supabase tables.
+
+## Notes
+
+- Donation “auto-confirmation email” is currently represented as a stored status (`sent`) in DB mode.
+- Lint currently reports a few pre-existing scaffold issues in shared UI files unrelated to this Phase 1 implementation.
