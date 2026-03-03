@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Bridge for Impact Hub Social Card</title>
+  <desc id="desc">Bridge for Impact Hub branded social preview image</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1F5B42"/>
+      <stop offset="100%" stop-color="#123A2A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <g opacity="0.14" stroke="#F4E8D3" fill="none">
+    <path d="M40 520h1120" stroke-width="8"/>
+    <path d="M140 520c0-130 105-235 235-235s235 105 235 235" stroke-width="10"/>
+    <path d="M590 520c0-130 105-235 235-235s235 105 235 235" stroke-width="10"/>
+  </g>
+
+  <g transform="translate(100,120)">
+    <rect width="88" height="88" rx="20" fill="#1F5B42" stroke="#F4E8D3" stroke-opacity="0.35"/>
+    <path d="M14 62h60" stroke="#F4E8D3" stroke-width="6" stroke-linecap="round"/>
+    <path d="M18 62c0-14 10-24 26-24s26 10 26 24" fill="none" stroke="#D7962A" stroke-width="6" stroke-linecap="round"/>
+    <path d="M26 62V47M44 62V40M62 62V47" stroke="#F4E8D3" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="44" cy="30" r="5" fill="#D7962A"/>
+  </g>
+
+  <text x="210" y="180" fill="#F4E8D3" font-family="DM Serif Display, Georgia, serif" font-size="66" font-weight="600">
+    Bridge for Impact Hub
+  </text>
+  <text x="210" y="236" fill="#D7962A" font-family="DM Sans, Arial, sans-serif" font-size="34" font-weight="600">
+    Volunteers • NGOs • Donors • Communities
+  </text>
+
+  <text x="100" y="560" fill="#F4E8D3" font-family="DM Sans, Arial, sans-serif" font-size="30">
+    Central platform for project visibility, collaboration, and transparent giving.
+  </text>
+</svg>
