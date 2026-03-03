@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { label: "About", href: "#about" },
-  { label: "Projects", href: "#projects" },
-  { label: "Get Involved", href: "#get-involved" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "/" },
+  { label: "Projects", href: "/projects" },
+  { label: "Suggest Project", href: "/suggest-project" },
+  { label: "Media", href: "/media" },
 ];
 
 const Navbar = () => {
@@ -15,23 +16,30 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-md border-b border-primary-foreground/10">
       <div className="container flex items-center justify-between h-16">
-        <a href="#" className="text-xl font-serif text-primary-foreground tracking-tight">
+        <Link to="/" className="text-xl font-serif text-primary-foreground tracking-tight">
           Bridge for <span className="text-accent">Impact</span>
-        </a>
+        </Link>
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a
+            <NavLink
               key={link.label}
-              href={link.href}
-              className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+              to={link.href}
+              className={({ isActive }) =>
+                `text-sm transition-colors ${
+                  isActive ? "text-primary-foreground" : "text-primary-foreground/80 hover:text-primary-foreground"
+                }`
+              }
             >
               {link.label}
-            </a>
+            </NavLink>
           ))}
-          <Button variant="hero" size="sm">
-            Donate
+          <Button variant="hero" size="sm" asChild>
+            <Link to="/donate">Donate</Link>
+          </Button>
+          <Button variant="hero-outline" size="sm" asChild>
+            <Link to="/login">Login</Link>
           </Button>
         </div>
 
@@ -49,18 +57,29 @@ const Navbar = () => {
       {open && (
         <div className="md:hidden bg-primary border-t border-primary-foreground/10 pb-4">
           {navLinks.map((link) => (
-            <a
+            <NavLink
               key={link.label}
-              href={link.href}
-              className="block px-6 py-3 text-primary-foreground/80 hover:text-primary-foreground text-sm"
+              to={link.href}
+              className={({ isActive }) =>
+                `block px-6 py-3 text-sm ${
+                  isActive ? "text-primary-foreground" : "text-primary-foreground/80 hover:text-primary-foreground"
+                }`
+              }
               onClick={() => setOpen(false)}
             >
               {link.label}
-            </a>
+            </NavLink>
           ))}
-          <div className="px-6 pt-2">
-            <Button variant="hero" size="sm" className="w-full">
-              Donate
+          <div className="px-6 pt-2 space-y-2">
+            <Button variant="hero" size="sm" className="w-full" asChild>
+              <Link to="/donate" onClick={() => setOpen(false)}>
+                Donate
+              </Link>
+            </Button>
+            <Button variant="hero-outline" size="sm" className="w-full" asChild>
+              <Link to="/login" onClick={() => setOpen(false)}>
+                Login
+              </Link>
             </Button>
           </div>
         </div>

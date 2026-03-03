@@ -1,4 +1,5 @@
 import { Heart, Mail, MapPin, Phone } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -23,20 +24,20 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">Quick Links</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><a href="#about" className="hover:text-primary-foreground transition-colors">About Us</a></li>
-              <li><a href="#projects" className="hover:text-primary-foreground transition-colors">Projects</a></li>
-              <li><a href="#get-involved" className="hover:text-primary-foreground transition-colors">Get Involved</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Media & Articles</a></li>
+              <li><Link to="/" className="hover:text-primary-foreground transition-colors">Home</Link></li>
+              <li><Link to="/projects" className="hover:text-primary-foreground transition-colors">Projects</Link></li>
+              <li><Link to="/suggest-project" className="hover:text-primary-foreground transition-colors">Suggest Project</Link></li>
+              <li><Link to="/media" className="hover:text-primary-foreground transition-colors">Media & Articles</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">For Partners</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Register as NGO</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Volunteer Sign-up</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Donor Portal</a></li>
-              <li><a href="#" className="hover:text-primary-foreground transition-colors">Suggest a Project</a></li>
+              <li><Link to="/register/ngo" className="hover:text-primary-foreground transition-colors">Register as NGO</Link></li>
+              <li><Link to="/register/volunteer" className="hover:text-primary-foreground transition-colors">Volunteer Sign-up</Link></li>
+              <li><Link to="/register/donor" className="hover:text-primary-foreground transition-colors">Donor Portal</Link></li>
+              <li><Link to="/donate" className="hover:text-primary-foreground transition-colors">Donate</Link></li>
             </ul>
           </div>
         </div>
