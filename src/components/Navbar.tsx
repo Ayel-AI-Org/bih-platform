@@ -17,7 +17,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-md border-b border-primary-foreground/10">
       <div className="container flex items-center justify-between h-16">
         <Link to="/" className="text-xl font-serif text-primary-foreground tracking-tight">
-          Bridge for <span className="text-accent">Impact</span>
+          Bridge for <span className="text-accent">Impact</span> Hub (BIH)
         </Link>
 
         {/* Desktop */}
