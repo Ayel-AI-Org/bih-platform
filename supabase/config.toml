@@ -1,0 +1,8 @@
+[functions.ai-chat-assistant]
+verify_jwt = false
+
+[functions.project-polish]
+verify_jwt = false
+
+[functions.suggestion-decision-email]
+verify_jwt = true
