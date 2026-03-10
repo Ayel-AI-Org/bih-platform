@@ -56,7 +56,7 @@ const About = () => {
               />
             </div>
             <div className="absolute -bottom-6 -left-6 bg-accent text-accent-foreground rounded-xl px-6 py-4 shadow-lg">
-              <div className="text-3xl font-bold font-serif">5+</div>
+              <div className="text-3xl font-bold font-serif">2+</div>
               <div className="text-sm font-medium">Years of Impact</div>
             </div>
           </motion.div>

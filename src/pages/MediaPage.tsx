@@ -10,6 +10,7 @@ const MediaPage = () => {
   const [articles, setArticles] = useState<MediaArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedArticle, setSelectedArticle] = useState<MediaArticle | null>(null);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   useEffect(() => {
     const run = async () => {
@@ -23,6 +24,10 @@ const MediaPage = () => {
 
     run();
   }, []);
+
+  useEffect(() => {
+    setActiveSlideIndex(0);
+  }, [selectedArticle?.id]);
 
   return (
     <section className="py-16">
@@ -40,8 +45,8 @@ const MediaPage = () => {
         ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => (
-            <Card key={article.id} className="overflow-hidden">
-              <img src={article.imageUrl} alt={article.title} className="h-48 w-full object-cover" />
+            <Card key={article.id} className="overflow-hidden cursor-pointer transition-transform hover:-translate-y-1" onClick={() => setSelectedArticle(article)}>
+              <img src={article.imageUrls[0] ?? article.imageUrl} alt={article.title} className="h-48 w-full object-cover" />
               <CardHeader className="space-y-3">
                 <Badge variant="outline">{article.category}</Badge>
                 <CardTitle className="text-2xl">{article.title}</CardTitle>
@@ -54,13 +59,7 @@ const MediaPage = () => {
                 <p>
                   <span className="font-medium text-foreground">Published:</span> {new Date(article.publishedAt).toLocaleDateString()}
                 </p>
-                <Button
-                  variant="link"
-                  className="px-0 text-primary"
-                  onClick={() => setSelectedArticle(article)}
-                >
-                  Read more
-                </Button>
+                <Button variant="link" className="px-0 text-primary">Read more</Button>
               </CardContent>
             </Card>
           ))}
@@ -72,10 +71,45 @@ const MediaPage = () => {
             {selectedArticle ? (
               <div className="space-y-5">
                 <img
-                  src={selectedArticle.imageUrl}
+                  src={selectedArticle.imageUrls[activeSlideIndex] ?? selectedArticle.imageUrl}
                   alt={selectedArticle.title}
                   className="h-56 w-full object-cover rounded-md border"
                 />
+                {selectedArticle.imageUrls.length > 1 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveSlideIndex((prev) => (prev === 0 ? selectedArticle.imageUrls.length - 1 : prev - 1))}
+                      >
+                        Previous
+                      </Button>
+                      <p className="text-xs text-muted-foreground">Image {activeSlideIndex + 1} of {selectedArticle.imageUrls.length}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveSlideIndex((prev) => (prev + 1) % selectedArticle.imageUrls.length)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedArticle.imageUrls.map((imageUrl, index) => (
+                        <button
+                          key={`${selectedArticle.id}-slide-${index}`}
+                          type="button"
+                          onClick={() => setActiveSlideIndex(index)}
+                          className={`overflow-hidden rounded border ${activeSlideIndex === index ? "ring-2 ring-primary" : ""}`}
+                        >
+                          <img src={imageUrl} alt={`${selectedArticle.title} slide ${index + 1}`} className="h-16 w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <DialogHeader className="space-y-3">
                   <Badge variant="outline" className="w-fit">{selectedArticle.category}</Badge>
                   <DialogTitle className="text-2xl md:text-3xl">{selectedArticle.title}</DialogTitle>
@@ -90,6 +124,16 @@ const MediaPage = () => {
                     <p key={`${selectedArticle.id}-paragraph-${index}`}>{paragraph}</p>
                   ))}
                 </div>
+
+                {selectedArticle.fullStoryUrl ? (
+                  <div className="pt-1">
+                    <Button asChild>
+                      <a href={selectedArticle.fullStoryUrl} target="_blank" rel="noreferrer">
+                        Read Full Story Source
+                      </a>
+                    </Button>
+                  </div>
+                ) : null}
 
                 <div className="space-y-3 pt-2">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">More on this topic</h3>

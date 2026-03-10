@@ -14,6 +14,12 @@ const statusStyles: Record<ProjectStatus, string> = {
   completed: "bg-muted text-muted-foreground",
 };
 
+const statusLabel: Record<ProjectStatus, string> = {
+  proposed: "Pending",
+  ongoing: "Ongoing",
+  completed: "Completed",
+};
+
 const container = {
   hidden: {},
   show: { transition: { staggerChildren: 0.15 } },
@@ -71,8 +77,8 @@ const ProjectsSection = () => {
                   alt={project.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusStyles[project.status]}`}>
-                  {project.status}
+                <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[project.status]}`}>
+                  {statusLabel[project.status]}
                 </span>
               </div>
               <div className="p-6">

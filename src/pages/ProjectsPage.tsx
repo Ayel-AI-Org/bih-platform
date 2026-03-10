@@ -14,6 +14,12 @@ const statusTone: Record<ProjectStatus, "default" | "secondary" | "outline"> = {
   completed: "secondary",
 };
 
+const statusLabel: Record<ProjectStatus, string> = {
+  proposed: "pending",
+  ongoing: "ongoing",
+  completed: "completed",
+};
+
 const ProjectsPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +52,7 @@ const ProjectsPage = () => {
             <CardHeader className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-2xl">{project.title}</CardTitle>
-                <Badge variant={statusTone[project.status]} className="capitalize">{project.status}</Badge>
+                <Badge variant={statusTone[project.status]} className="capitalize">{statusLabel[project.status]}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">{project.description}</p>
             </CardHeader>
@@ -71,7 +77,7 @@ const ProjectsPage = () => {
           <p className="text-sm font-semibold text-accent uppercase tracking-widest">Projects</p>
           <h1 className="text-3xl md:text-5xl mt-3 mb-3">Project visibility and tracking</h1>
           <p className="text-muted-foreground max-w-2xl">
-            Browse proposed, ongoing, and completed BIH projects with timeline, location, and partner details.
+            Browse pending, ongoing, and completed BIH projects with timeline, location, and partner details.
           </p>
         </div>
 
@@ -80,7 +86,7 @@ const ProjectsPage = () => {
         ) : (
         <Tabs defaultValue="ongoing" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="proposed">Proposed</TabsTrigger>
+            <TabsTrigger value="proposed">Pending</TabsTrigger>
             <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
