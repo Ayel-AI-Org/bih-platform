@@ -36,14 +36,24 @@ const LoginPage = () => {
 
     try {
       const session = await login(form.email, form.password);
+      if (session.role !== "admin") {
+        await logout();
+        setExistingSession(null);
+        toast({
+          title: "Admin access only",
+          description: "This login page is reserved for BIH administrators.",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+
       toast({ title: "Login successful", description: `Welcome back, ${session.name}.` });
       setExistingSession(session);
 
       const redirectPath = typeof location.state === "object" && location.state && "from" in location.state
         ? String((location.state as { from?: string }).from)
-        : session.role === "admin"
-          ? "/admin"
-          : "/projects";
+        : "/admin";
 
       navigate(redirectPath);
     } catch (error) {
@@ -67,9 +77,9 @@ const LoginPage = () => {
       <div className="container max-w-xl">
         <Card>
           <CardHeader>
-            <CardTitle>Account Login</CardTitle>
+            <CardTitle>Admin Login</CardTitle>
             <CardDescription>
-              Login to continue to your BIH experience.
+              This login is for BIH administrators only.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -81,11 +91,18 @@ const LoginPage = () => {
                   Signed in as <span className="font-medium">{existingSession.name}</span> ({existingSession.role})
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild>
-                    <Link to={existingSession.role === "admin" ? "/admin" : "/projects"}>Continue</Link>
-                  </Button>
+                  {existingSession.role === "admin" ? (
+                    <Button asChild>
+                      <Link to="/admin">Continue</Link>
+                    </Button>
+                  ) : null}
                   <Button variant="outline" onClick={handleLogout}>Logout</Button>
                 </div>
+                {existingSession.role !== "admin" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Non-admin accounts cannot use this route. Public login is coming soon.
+                  </p>
+                ) : null}
               </div>
             ) : (
               <form onSubmit={onSubmit} className="space-y-4">
@@ -114,7 +131,7 @@ const LoginPage = () => {
             )}
 
             <p className="text-sm text-muted-foreground">
-              Don't have an account? <Link className="text-primary underline" to="/register">Create one</Link>
+              Public login for volunteers, NGOs, and donors is coming soon.
             </p>
           </CardContent>
         </Card>

@@ -18,19 +18,19 @@ const DonorSignupPage = () => {
     phone: "",
     donorType: "individual" as "individual" | "organization",
     interests: "",
-    password: "",
   });
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     try {
-      await registerDonor(form);
+      const generatedPassword = `BIH-${Math.random().toString(36).slice(2, 12)}!Aa1`;
+      await registerDonor({ ...form, password: generatedPassword });
       toast({
-        title: "Donor profile created",
-        description: "Your donor details are now available for BIH engagement workflows.",
+        title: "Application submitted",
+        description: "Your donor registration is pending admin approval. You will receive an email once approved.",
       });
-      navigate("/login");
+      navigate("/register");
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -80,13 +80,8 @@ const DonorSignupPage = () => {
                 <Label htmlFor="interests">Areas of interest</Label>
                 <Textarea id="interests" required value={form.interests} onChange={(event) => setForm((prev) => ({ ...prev, interests: event.target.value }))} placeholder="e.g. education, emergency response, women empowerment" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required minLength={8} value={form.password} onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))} />
-              </div>
-
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button type="submit">Create donor account</Button>
+                <Button type="submit">Submit donor registration</Button>
                 <Button type="button" variant="outline" asChild>
                   <Link to="/register">Back to registration options</Link>
                 </Button>
