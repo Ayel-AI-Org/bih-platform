@@ -4,5 +4,11 @@ verify_jwt = false
 [functions.project-polish]
 verify_jwt = false
 
+[functions.registration-create-user]
+verify_jwt = false
+
+[functions.registration-decision-email]
+verify_jwt = true
+
 [functions.suggestion-decision-email]
 verify_jwt = true
