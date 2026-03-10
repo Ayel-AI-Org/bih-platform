@@ -1,4 +1,5 @@
 # Bridge for Impact Hub (BIH) – Phase 1
+[**Click to visit public site**](https://bridge-for-impact.vercel.app/)
 
 Front-facing web platform for BIH to connect volunteers, NGOs, donors, and the public.
 
@@ -93,11 +94,6 @@ npm run build
 - Approve/reject project suggestions (approved items become proposed projects)
 - Admin decision emails are sent to project submitters (via Supabase edge function)
 - Approved project descriptions are polished by AI before publishing (with fallback to original text)
-
-## Demo Admin Credentials
-
-- Email: `admin@bih.org`
-- Password: `Admin@123`
 
 ## Data Storage (Current MVP)
 
