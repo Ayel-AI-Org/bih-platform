@@ -1,7 +1,21 @@
 import { Heart, Mail, MapPin, Phone } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { logout } from "@/lib/platform-data";
 
 const Footer = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAdminDashboard = location.pathname === "/admin";
+
+  const handleAdminFooterAction = async () => {
+    if (!isAdminDashboard) {
+      return;
+    }
+
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <footer className="bg-primary text-primary-foreground pt-16 pb-8" id="contact">
       <div className="container">
@@ -42,11 +56,30 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/10 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-primary-foreground/50">
+        <div className="border-t border-primary-foreground/10 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-primary-foreground/50 gap-2">
           <p>© 2026 Bridge for Impact Hub. All rights reserved.</p>
           <p className="flex items-center gap-1 mt-2 md:mt-0">
             Made with <Heart className="w-3 h-3 text-accent" /> for communities everywhere
           </p>
+          {isAdminDashboard ? (
+            <button
+              type="button"
+              onClick={handleAdminFooterAction}
+              className="w-full md:w-auto text-right text-xs font-semibold uppercase tracking-wide text-primary-foreground/90 hover:text-primary-foreground transition-colors"
+              aria-label="Logout"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              state={{ from: "/admin" }}
+              className="w-full md:w-auto text-right text-[10px] tracking-wide uppercase opacity-35 hover:opacity-65 transition-opacity"
+              aria-label="Login as admin"
+            >
+              Login as admin
+            </Link>
+          )}
         </div>
       </div>
     </footer>

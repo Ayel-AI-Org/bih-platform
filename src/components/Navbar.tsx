@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -12,6 +12,12 @@ const navLinks = [
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const isAdminDashboard = location.pathname === "/admin";
+
+  const showLoginComingSoon = () => {
+    window.alert("Login for volunteers, NGOs, and donors is coming soon. To log in as an Admin, check the footer for the link");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-md border-b border-primary-foreground/10">
@@ -35,12 +41,16 @@ const Navbar = () => {
               {link.label}
             </NavLink>
           ))}
-          <Button variant="hero" size="sm" asChild>
-            <Link to="/donate">Donate</Link>
-          </Button>
-          <Button variant="hero-outline" size="sm" asChild>
-            <Link to="/login">Login</Link>
-          </Button>
+          {!isAdminDashboard ? (
+            <>
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/donate">Donate</Link>
+              </Button>
+              <Button variant="hero-outline" size="sm" type="button" onClick={showLoginComingSoon}>
+                Login
+              </Button>
+            </>
+          ) : null}
         </div>
 
         {/* Mobile toggle */}
@@ -70,18 +80,27 @@ const Navbar = () => {
               {link.label}
             </NavLink>
           ))}
-          <div className="px-6 pt-2 space-y-2">
-            <Button variant="hero" size="sm" className="w-full" asChild>
-              <Link to="/donate" onClick={() => setOpen(false)}>
-                Donate
-              </Link>
-            </Button>
-            <Button variant="hero-outline" size="sm" className="w-full" asChild>
-              <Link to="/login" onClick={() => setOpen(false)}>
+          {!isAdminDashboard ? (
+            <div className="px-6 pt-2 space-y-2">
+              <Button variant="hero" size="sm" className="w-full" asChild>
+                <Link to="/donate" onClick={() => setOpen(false)}>
+                  Donate
+                </Link>
+              </Button>
+              <Button
+                variant="hero-outline"
+                size="sm"
+                className="w-full"
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  showLoginComingSoon();
+                }}
+              >
                 Login
-              </Link>
-            </Button>
-          </div>
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
     </nav>

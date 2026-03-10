@@ -80,7 +80,12 @@ const AiChatbot = () => {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {!open ? (
-        <Button type="button" onClick={() => setOpen(true)} className="rounded-full h-12 w-12 p-0" aria-label="Open BIH chat assistant">
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-full h-12 w-12 p-0 bg-accent text-accent-foreground hover:bg-accent/90"
+          aria-label="Open BIH chat assistant"
+        >
           <MessageCircle className="h-5 w-5" />
         </Button>
       ) : (
