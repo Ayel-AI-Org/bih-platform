@@ -5,6 +5,7 @@ create type user_role as enum ('volunteer', 'ngo', 'donor', 'admin');
 create type project_status as enum ('proposed', 'ongoing', 'completed');
 create type suggestion_status as enum ('pending', 'approved', 'rejected');
 create type payment_method as enum ('mobile_money', 'card');
+create type approval_status as enum ('pending', 'approved', 'rejected');
 
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -20,6 +21,7 @@ create table if not exists volunteer_profiles (
   location text not null,
   skills text not null,
   availability text not null,
+  approval_status approval_status not null default 'pending',
   created_at timestamptz not null default now()
 );
 
@@ -30,6 +32,7 @@ create table if not exists ngo_profiles (
   phone text not null,
   focus_area text not null,
   registration_number text not null,
+  approval_status approval_status not null default 'pending',
   created_at timestamptz not null default now()
 );
 
@@ -38,6 +41,7 @@ create table if not exists donor_profiles (
   phone text not null,
   donor_type text not null,
   interests text not null,
+  approval_status approval_status not null default 'pending',
   created_at timestamptz not null default now()
 );
 
@@ -94,20 +98,28 @@ create table if not exists media_articles (
   category text not null,
   published_at date not null,
   image_url text not null,
+  full_story_url text,
   created_at timestamptz not null default now()
 );
 
-create or replace function is_admin()
+alter table media_articles add column if not exists full_story_url text;
+
+create or replace function public.is_admin()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
-    from profiles p
+    from public.profiles p
     where p.id = auth.uid() and p.role = 'admin'
   );
 $$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated, service_role;
 
 alter table profiles enable row level security;
 alter table volunteer_profiles enable row level security;
@@ -117,6 +129,10 @@ alter table projects enable row level security;
 alter table project_suggestions enable row level security;
 alter table donations enable row level security;
 alter table media_articles enable row level security;
+
+alter table volunteer_profiles add column if not exists approval_status approval_status not null default 'pending';
+alter table ngo_profiles add column if not exists approval_status approval_status not null default 'pending';
+alter table donor_profiles add column if not exists approval_status approval_status not null default 'pending';
 
 -- Public reads
 create policy "public read projects" on projects
@@ -139,20 +155,29 @@ create policy "users read own profile" on profiles
 for select using (auth.uid() = id or is_admin());
 
 create policy "users insert own profile" on profiles
-for insert with check (auth.uid() = id);
+for insert with check (true);
 
 create policy "users update own profile" on profiles
 for update using (auth.uid() = id);
 
 -- Role-specific profiles
 create policy "insert own volunteer profile" on volunteer_profiles
-for insert with check (auth.uid() = user_id);
+for insert with check (true);
 
 create policy "insert own ngo profile" on ngo_profiles
-for insert with check (auth.uid() = user_id);
+for insert with check (true);
 
 create policy "insert own donor profile" on donor_profiles
-for insert with check (auth.uid() = user_id);
+for insert with check (true);
+
+create policy "admin update volunteers" on volunteer_profiles
+for update using (is_admin());
+
+create policy "admin update ngos" on ngo_profiles
+for update using (is_admin());
+
+create policy "admin update donors" on donor_profiles
+for update using (is_admin());
 
 create policy "admin read volunteers" on volunteer_profiles
 for select using (is_admin());

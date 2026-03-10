@@ -6,6 +6,8 @@ export type SuggestionStatus = "pending" | "approved" | "rejected";
 
 export type PaymentMethod = "mobile_money" | "card";
 
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
 export interface AuthUser {
   id: string;
   role: UserRole;
@@ -23,6 +25,7 @@ export interface VolunteerProfile {
   location: string;
   skills: string;
   availability: string;
+  approvalStatus: ApprovalStatus;
   createdAt: string;
 }
 
@@ -34,6 +37,7 @@ export interface NgoProfile {
   phone: string;
   focusArea: string;
   registrationNumber: string;
+  approvalStatus: ApprovalStatus;
   createdAt: string;
 }
 
@@ -44,6 +48,7 @@ export interface DonorProfile {
   phone: string;
   donorType: "individual" | "organization";
   interests: string;
+  approvalStatus: ApprovalStatus;
   createdAt: string;
 }
 
@@ -99,6 +104,8 @@ export interface MediaArticle {
   category: string;
   publishedAt: string;
   imageUrl: string;
+  imageUrls: string[];
+  fullStoryUrl?: string;
 }
 
 export interface Session {

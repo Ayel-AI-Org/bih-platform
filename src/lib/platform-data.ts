@@ -1,4 +1,5 @@
 import {
+  type ApprovalStatus,
   type Donation,
   type DonorProfile,
   type MediaArticle,
@@ -16,6 +17,12 @@ function throwIfError(error: { message: string } | null) {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+function isApprovalStatusMissingColumnError(error: { message: string }) {
+  const message = error.message.toLowerCase();
+  return message.includes("approval_status")
+    && (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find"));
 }
 
 type ProjectRow = {
@@ -70,16 +77,68 @@ type MediaRow = {
   category: string;
   published_at: string;
   image_url: string;
+  full_story_url?: string | null;
 };
 
 type ProfileJoin = { full_name?: string; email?: string } | Array<{ full_name?: string; email?: string }> | null;
 
-type RegistrationBase = {
-  email: string;
-  password: string;
-  role: Session["role"];
-  fullName: string;
-};
+type RegistrationFunctionPayload =
+  | {
+    role: "volunteer";
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+    location: string;
+    preferredContactChannels: string[];
+    nationality: string;
+    cityRegion: string;
+    availabilityBlocks: string[];
+    startDate: string;
+    commitmentDuration: string;
+    canTravel: boolean;
+    maxTravelDistanceKm?: number;
+    primarySkillCategories: string[];
+    yearsOfExperience: string;
+    languagesSpoken: string;
+    pastExperience: string;
+    targetCommunities: string;
+    dataPrivacyConsent: boolean;
+    skills: string;
+    availability: string;
+  }
+  | {
+    role: "ngo";
+    organizationName: string;
+    contactPerson: string;
+    email: string;
+    password: string;
+    phone: string;
+    preferredContactChannels: string[];
+    alternateContact: string;
+    cityRegion: string;
+    yearEstablished: string;
+    legalStatus: string;
+    registrationAuthority: string;
+    missionStatement: string;
+    programsRunning: string;
+    primaryBeneficiaries: string;
+    geographicCoverage: string;
+    teamSize: string;
+    pastExperience: string;
+    targetCommunities: string;
+    focusArea: string;
+    registrationNumber: string;
+  }
+  | {
+    role: "donor";
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+    donorType: "individual" | "organization";
+    interests: string;
+  };
 
 const mapProject = (row: ProjectRow): Project => ({
   id: row.id,
@@ -124,16 +183,39 @@ const mapDonation = (row: DonationRow): Donation => ({
   confirmationEmailStatus: row.confirmation_email_status,
 });
 
-const mapMedia = (row: MediaRow): MediaArticle => ({
-  id: row.id,
-  title: row.title,
-  summary: row.summary,
-  content: row.content?.trim() ? row.content : row.summary,
-  author: row.author,
-  category: row.category,
-  publishedAt: row.published_at,
-  imageUrl: row.image_url,
-});
+const parseMediaImageUrls = (value: string): string[] => {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) {
+      const urls = parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+      if (urls.length > 0) {
+        return urls.slice(0, 3);
+      }
+    }
+  } catch {
+    // Backward compatibility: legacy rows store a single image URL string.
+  }
+
+  return value.trim() ? [value] : [];
+};
+
+const mapMedia = (row: MediaRow): MediaArticle => {
+  const imageUrls = parseMediaImageUrls(row.image_url);
+  const fallbackUrl = "https://source.unsplash.com/1600x900/?community,story";
+
+  return {
+    id: row.id,
+    title: row.title,
+    summary: row.summary,
+    content: row.content?.trim() ? row.content : row.summary,
+    author: row.author,
+    category: row.category,
+    publishedAt: row.published_at,
+    imageUrl: imageUrls[0] ?? fallbackUrl,
+    imageUrls: imageUrls.length > 0 ? imageUrls : [fallbackUrl],
+    fullStoryUrl: row.full_story_url ?? undefined,
+  };
+};
 
 const normalizeProfile = (profile: ProfileJoin) => {
   if (!profile) {
@@ -177,7 +259,81 @@ const buildContextualProjectImageUrl = (payload: {
   return `https://source.unsplash.com/1600x900/?${encodeURIComponent(query)}`;
 };
 
-const createAuthUser = async (payload: RegistrationBase) => {
+function encodeVolunteerSkills(payload: Extract<RegistrationFunctionPayload, { role: "volunteer" }>) {
+  return JSON.stringify({
+    skillsText: payload.skills,
+    primarySkillCategories: payload.primarySkillCategories,
+    yearsOfExperience: payload.yearsOfExperience,
+    languagesSpoken: payload.languagesSpoken,
+    pastExperience: payload.pastExperience,
+    targetCommunities: payload.targetCommunities,
+    preferredContactChannels: payload.preferredContactChannels,
+    nationality: payload.nationality,
+    cityRegion: payload.cityRegion,
+    dataPrivacyConsent: payload.dataPrivacyConsent,
+  });
+}
+
+function encodeVolunteerAvailability(payload: Extract<RegistrationFunctionPayload, { role: "volunteer" }>) {
+  return JSON.stringify({
+    availabilityText: payload.availability,
+    availabilityBlocks: payload.availabilityBlocks,
+    startDate: payload.startDate,
+    commitmentDuration: payload.commitmentDuration,
+    canTravel: payload.canTravel,
+    maxTravelDistanceKm: payload.maxTravelDistanceKm ?? null,
+  });
+}
+
+function encodeNgoFocusArea(payload: Extract<RegistrationFunctionPayload, { role: "ngo" }>) {
+  return JSON.stringify({
+    focusAreaText: payload.focusArea,
+    preferredContactChannels: payload.preferredContactChannels,
+    alternateContact: payload.alternateContact,
+    cityRegion: payload.cityRegion,
+    yearEstablished: payload.yearEstablished,
+    legalStatus: payload.legalStatus,
+    registrationAuthority: payload.registrationAuthority,
+    missionStatement: payload.missionStatement,
+    programsRunning: payload.programsRunning,
+    primaryBeneficiaries: payload.primaryBeneficiaries,
+    geographicCoverage: payload.geographicCoverage,
+    teamSize: payload.teamSize,
+    pastExperience: payload.pastExperience,
+    targetCommunities: payload.targetCommunities,
+  });
+}
+
+async function invokeFunctionWithErrorDetails<T>(functionName: string, body: unknown): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(functionName, { body });
+
+  if (!error) {
+    return data as T;
+  }
+
+  let detail = error.message;
+  const errorWithContext = error as { context?: { json?: () => Promise<{ error?: string }> } };
+
+  if (errorWithContext.context?.json) {
+    try {
+      const contextBody = await errorWithContext.context.json();
+      if (contextBody?.error) {
+        detail = contextBody.error;
+      }
+    } catch {
+      detail = error.message;
+    }
+  }
+
+  throw new Error(detail);
+}
+
+const createAuthUser = async (payload: {
+  email: string;
+  password: string;
+  role: Session["role"];
+  fullName: string;
+}) => {
   const { data, error } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
@@ -196,7 +352,12 @@ const createAuthUser = async (payload: RegistrationBase) => {
   return userId;
 };
 
-const upsertProfile = async (payload: Omit<RegistrationBase, "password"> & { userId: string }) => {
+const upsertProfile = async (payload: {
+  userId: string;
+  role: Session["role"];
+  fullName: string;
+  email: string;
+}) => {
   const { error } = await supabase.from("profiles").upsert({
     id: payload.userId,
     role: payload.role,
@@ -206,6 +367,173 @@ const upsertProfile = async (payload: Omit<RegistrationBase, "password"> & { use
 
   throwIfError(error);
 };
+
+function shouldUseLocalRegistrationFallback(errorMessage: string) {
+  const message = errorMessage.toLowerCase();
+  return message.includes("registration-create-user")
+    || message.includes("failed to send a request to the edge function")
+    || message.includes("edge function returned a non-2xx")
+    || message.includes("not found")
+    || message.includes("no route matched");
+}
+
+async function submitRegistrationApplicationLocally(payload: RegistrationFunctionPayload) {
+  if (payload.role === "volunteer") {
+    const encodedSkills = encodeVolunteerSkills(payload);
+    const encodedAvailability = encodeVolunteerAvailability(payload);
+
+    const userId = await createAuthUser({
+      email: payload.email,
+      password: payload.password,
+      role: "volunteer",
+      fullName: payload.fullName,
+    });
+
+    await upsertProfile({
+      userId,
+      role: "volunteer",
+      fullName: payload.fullName,
+      email: payload.email,
+    });
+
+    const { error } = await supabase.from("volunteer_profiles").upsert({
+      user_id: userId,
+      phone: payload.phone,
+      location: payload.cityRegion || payload.location,
+      skills: encodedSkills,
+      availability: encodedAvailability,
+      approval_status: "pending" as ApprovalStatus,
+    });
+
+    if (!error) {
+      return;
+    }
+
+    if (isApprovalStatusMissingColumnError(error)) {
+      const { error: fallbackError } = await supabase.from("volunteer_profiles").upsert({
+        user_id: userId,
+        phone: payload.phone,
+        location: payload.cityRegion || payload.location,
+        skills: encodedSkills,
+        availability: encodedAvailability,
+      });
+
+      throwIfError(fallbackError);
+      return;
+    }
+
+    throw new Error(error.message);
+  }
+
+  if (payload.role === "ngo") {
+    const encodedFocusArea = encodeNgoFocusArea(payload);
+
+    const userId = await createAuthUser({
+      email: payload.email,
+      password: payload.password,
+      role: "ngo",
+      fullName: payload.organizationName,
+    });
+
+    await upsertProfile({
+      userId,
+      role: "ngo",
+      fullName: payload.organizationName,
+      email: payload.email,
+    });
+
+    const { error } = await supabase.from("ngo_profiles").upsert({
+      user_id: userId,
+      organization_name: payload.organizationName,
+      contact_person: payload.contactPerson,
+      phone: payload.phone,
+      focus_area: encodedFocusArea,
+      registration_number: payload.registrationNumber,
+      approval_status: "pending" as ApprovalStatus,
+    });
+
+    if (!error) {
+      return;
+    }
+
+    if (isApprovalStatusMissingColumnError(error)) {
+      const { error: fallbackError } = await supabase.from("ngo_profiles").upsert({
+        user_id: userId,
+        organization_name: payload.organizationName,
+        contact_person: payload.contactPerson,
+        phone: payload.phone,
+        focus_area: encodedFocusArea,
+        registration_number: payload.registrationNumber,
+      });
+
+      throwIfError(fallbackError);
+      return;
+    }
+
+    throw new Error(error.message);
+  }
+
+  const userId = await createAuthUser({
+    email: payload.email,
+    password: payload.password,
+    role: "donor",
+    fullName: payload.fullName,
+  });
+
+  await upsertProfile({
+    userId,
+    role: "donor",
+    fullName: payload.fullName,
+    email: payload.email,
+  });
+
+  const { error } = await supabase.from("donor_profiles").upsert({
+    user_id: userId,
+    phone: payload.phone,
+    donor_type: payload.donorType,
+    interests: payload.interests,
+    approval_status: "pending" as ApprovalStatus,
+  });
+
+  if (!error) {
+    return;
+  }
+
+  if (isApprovalStatusMissingColumnError(error)) {
+    const { error: fallbackError } = await supabase.from("donor_profiles").upsert({
+      user_id: userId,
+      phone: payload.phone,
+      donor_type: payload.donorType,
+      interests: payload.interests,
+    });
+
+    throwIfError(fallbackError);
+    return;
+  }
+
+  throw new Error(error.message);
+}
+
+async function submitRegistrationApplication(payload: RegistrationFunctionPayload) {
+  try {
+    await invokeFunctionWithErrorDetails<{ success: boolean }>("registration-create-user", payload);
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error;
+    }
+
+    if (!shouldUseLocalRegistrationFallback(error.message)) {
+      throw error;
+    }
+
+    try {
+      await submitRegistrationApplicationLocally(payload);
+    } finally {
+      // MVP behavior: registration is submission-only, never an implicit login.
+      await supabase.auth.signOut();
+    }
+  }
+}
 
 const resolveSessionProfile = async (userId: string, fallbackName: string, fallbackEmail: string) => {
   const { data: profile, error } = await supabase
@@ -235,33 +563,48 @@ export async function registerVolunteer(payload: {
   email: string;
   phone: string;
   location: string;
+  preferredContactChannels: string[];
+  nationality: string;
+  cityRegion: string;
+  availabilityBlocks: string[];
+  startDate: string;
+  commitmentDuration: string;
+  canTravel: boolean;
+  maxTravelDistanceKm?: number;
+  primarySkillCategories: string[];
+  yearsOfExperience: string;
+  languagesSpoken: string;
+  pastExperience: string;
+  targetCommunities: string;
+  dataPrivacyConsent: boolean;
   skills: string;
   availability: string;
   password: string;
 }) {
-  const userId = await createAuthUser({
+  await submitRegistrationApplication({
+    role: "volunteer",
+    fullName: payload.fullName,
     email: payload.email,
     password: payload.password,
-    role: "volunteer",
-    fullName: payload.fullName,
-  });
-
-  await upsertProfile({
-    userId,
-    role: "volunteer",
-    fullName: payload.fullName,
-    email: payload.email,
-  });
-
-  const { error } = await supabase.from("volunteer_profiles").upsert({
-    user_id: userId,
     phone: payload.phone,
     location: payload.location,
+    preferredContactChannels: payload.preferredContactChannels,
+    nationality: payload.nationality,
+    cityRegion: payload.cityRegion,
+    availabilityBlocks: payload.availabilityBlocks,
+    startDate: payload.startDate,
+    commitmentDuration: payload.commitmentDuration,
+    canTravel: payload.canTravel,
+    maxTravelDistanceKm: payload.maxTravelDistanceKm,
+    primarySkillCategories: payload.primarySkillCategories,
+    yearsOfExperience: payload.yearsOfExperience,
+    languagesSpoken: payload.languagesSpoken,
+    pastExperience: payload.pastExperience,
+    targetCommunities: payload.targetCommunities,
+    dataPrivacyConsent: payload.dataPrivacyConsent,
     skills: payload.skills,
     availability: payload.availability,
   });
-
-  throwIfError(error);
 }
 
 export async function registerNgo(payload: {
@@ -269,34 +612,46 @@ export async function registerNgo(payload: {
   contactPerson: string;
   email: string;
   phone: string;
+  preferredContactChannels: string[];
+  alternateContact: string;
+  cityRegion: string;
+  yearEstablished: string;
+  legalStatus: string;
+  registrationAuthority: string;
+  missionStatement: string;
+  programsRunning: string;
+  primaryBeneficiaries: string;
+  geographicCoverage: string;
+  teamSize: string;
+  pastExperience: string;
+  targetCommunities: string;
   focusArea: string;
   registrationNumber: string;
   password: string;
 }) {
-  const userId = await createAuthUser({
+  await submitRegistrationApplication({
+    role: "ngo",
+    organizationName: payload.organizationName,
+    contactPerson: payload.contactPerson,
     email: payload.email,
     password: payload.password,
-    role: "ngo",
-    fullName: payload.organizationName,
-  });
-
-  await upsertProfile({
-    userId,
-    role: "ngo",
-    fullName: payload.organizationName,
-    email: payload.email,
-  });
-
-  const { error } = await supabase.from("ngo_profiles").upsert({
-    user_id: userId,
-    organization_name: payload.organizationName,
-    contact_person: payload.contactPerson,
     phone: payload.phone,
-    focus_area: payload.focusArea,
-    registration_number: payload.registrationNumber,
+    preferredContactChannels: payload.preferredContactChannels,
+    alternateContact: payload.alternateContact,
+    cityRegion: payload.cityRegion,
+    yearEstablished: payload.yearEstablished,
+    legalStatus: payload.legalStatus,
+    registrationAuthority: payload.registrationAuthority,
+    missionStatement: payload.missionStatement,
+    programsRunning: payload.programsRunning,
+    primaryBeneficiaries: payload.primaryBeneficiaries,
+    geographicCoverage: payload.geographicCoverage,
+    teamSize: payload.teamSize,
+    pastExperience: payload.pastExperience,
+    targetCommunities: payload.targetCommunities,
+    focusArea: payload.focusArea,
+    registrationNumber: payload.registrationNumber,
   });
-
-  throwIfError(error);
 }
 
 export async function registerDonor(payload: {
@@ -307,25 +662,47 @@ export async function registerDonor(payload: {
   interests: string;
   password: string;
 }) {
-  const userId = await createAuthUser({
+  await submitRegistrationApplication({
+    role: "donor",
+    fullName: payload.fullName,
     email: payload.email,
     password: payload.password,
-    role: "donor",
-    fullName: payload.fullName,
-  });
-
-  await upsertProfile({
-    userId,
-    role: "donor",
-    fullName: payload.fullName,
-    email: payload.email,
-  });
-
-  const { error } = await supabase.from("donor_profiles").upsert({
-    user_id: userId,
     phone: payload.phone,
-    donor_type: payload.donorType,
+    donorType: payload.donorType,
     interests: payload.interests,
+  });
+}
+
+export async function updateRegistrationApprovalStatus(payload: {
+  role: "volunteer" | "ngo" | "donor";
+  userId: string;
+  status: ApprovalStatus;
+}) {
+  const tableMap = {
+    volunteer: "volunteer_profiles",
+    ngo: "ngo_profiles",
+    donor: "donor_profiles",
+  } as const;
+
+  const table = tableMap[payload.role];
+  const { error } = await supabase
+    .from(table)
+    .update({ approval_status: payload.status })
+    .eq("user_id", payload.userId);
+
+  throwIfError(error);
+}
+
+export async function sendRegistrationDecisionEmail(payload: {
+  to: string;
+  name: string;
+  role: "Volunteer" | "NGO" | "Donor";
+  status: ApprovalStatus;
+  adminNote?: string;
+  requestMoreInfo?: boolean;
+}) {
+  const { error } = await supabase.functions.invoke("registration-decision-email", {
+    body: payload,
   });
 
   throwIfError(error);
@@ -412,6 +789,15 @@ export async function getProjectById(projectId: string) {
 export async function getProjectsByStatus(status: ProjectStatus) {
   const allProjects = await getProjects();
   return allProjects.filter((project) => project.status === status);
+}
+
+export async function updateProjectStatus(projectId: string, status: ProjectStatus) {
+  const { error } = await supabase
+    .from("projects")
+    .update({ status })
+    .eq("id", projectId);
+
+  throwIfError(error);
 }
 
 export async function suggestProject(payload: {
@@ -650,17 +1036,31 @@ export async function createDonation(payload: {
 export async function getVolunteers() {
   const { data, error } = await supabase
     .from("volunteer_profiles")
-    .select("user_id, phone, location, skills, availability, created_at, profiles!inner(full_name, email)")
+    .select("user_id, phone, location, skills, availability, approval_status, created_at, profiles!inner(full_name, email)")
     .order("created_at", { ascending: false });
 
-  throwIfError(error);
+  if (error && !isApprovalStatusMissingColumnError(error)) {
+    throw new Error(error.message);
+  }
 
-  return (data ?? []).map((item: {
+  const rows = error
+    ? (
+      await supabase
+        .from("volunteer_profiles")
+        .select("user_id, phone, location, skills, availability, created_at, profiles!inner(full_name, email)")
+        .order("created_at", { ascending: false })
+    )
+    : { data, error: null };
+
+  throwIfError(rows.error);
+
+  return (rows.data ?? []).map((item: {
     user_id: string;
     phone: string;
     location: string;
     skills: string;
     availability: string;
+    approval_status?: ApprovalStatus;
     created_at: string;
     profiles: ProfileJoin;
   }) => {
@@ -674,6 +1074,7 @@ export async function getVolunteers() {
     location: item.location,
     skills: item.skills,
     availability: item.availability,
+    approvalStatus: item.approval_status ?? "pending",
     createdAt: item.created_at,
   } satisfies VolunteerProfile);
   });
@@ -682,18 +1083,32 @@ export async function getVolunteers() {
 export async function getNgos() {
   const { data, error } = await supabase
     .from("ngo_profiles")
-    .select("user_id, organization_name, contact_person, phone, focus_area, registration_number, created_at, profiles!inner(email)")
+    .select("user_id, organization_name, contact_person, phone, focus_area, registration_number, approval_status, created_at, profiles!inner(email)")
     .order("created_at", { ascending: false });
 
-  throwIfError(error);
+  if (error && !isApprovalStatusMissingColumnError(error)) {
+    throw new Error(error.message);
+  }
 
-  return (data ?? []).map((item: {
+  const rows = error
+    ? (
+      await supabase
+        .from("ngo_profiles")
+        .select("user_id, organization_name, contact_person, phone, focus_area, registration_number, created_at, profiles!inner(email)")
+        .order("created_at", { ascending: false })
+    )
+    : { data, error: null };
+
+  throwIfError(rows.error);
+
+  return (rows.data ?? []).map((item: {
     user_id: string;
     organization_name: string;
     contact_person: string;
     phone: string;
     focus_area: string;
     registration_number: string;
+    approval_status?: ApprovalStatus;
     created_at: string;
     profiles: ProfileJoin;
   }) => {
@@ -707,6 +1122,7 @@ export async function getNgos() {
     phone: item.phone,
     focusArea: item.focus_area,
     registrationNumber: item.registration_number,
+    approvalStatus: item.approval_status ?? "pending",
     createdAt: item.created_at,
   } satisfies NgoProfile);
   });
@@ -715,16 +1131,30 @@ export async function getNgos() {
 export async function getDonors() {
   const { data, error } = await supabase
     .from("donor_profiles")
-    .select("user_id, phone, donor_type, interests, created_at, profiles!inner(full_name, email)")
+    .select("user_id, phone, donor_type, interests, approval_status, created_at, profiles!inner(full_name, email)")
     .order("created_at", { ascending: false });
 
-  throwIfError(error);
+  if (error && !isApprovalStatusMissingColumnError(error)) {
+    throw new Error(error.message);
+  }
 
-  return (data ?? []).map((item: {
+  const rows = error
+    ? (
+      await supabase
+        .from("donor_profiles")
+        .select("user_id, phone, donor_type, interests, created_at, profiles!inner(full_name, email)")
+        .order("created_at", { ascending: false })
+    )
+    : { data, error: null };
+
+  throwIfError(rows.error);
+
+  return (rows.data ?? []).map((item: {
     user_id: string;
     phone: string;
     donor_type: "individual" | "organization";
     interests: string;
+    approval_status?: ApprovalStatus;
     created_at: string;
     profiles: ProfileJoin;
   }) => {
@@ -737,6 +1167,7 @@ export async function getDonors() {
     phone: item.phone,
     donorType: item.donor_type,
     interests: item.interests,
+    approvalStatus: item.approval_status ?? "pending",
     createdAt: item.created_at,
   } satisfies DonorProfile);
   });
@@ -780,7 +1211,7 @@ export async function getDonations() {
 export async function getMediaArticles() {
   const { data, error } = await supabase
     .from("media_articles")
-    .select("id, title, summary, content, author, category, published_at, image_url")
+    .select("id, title, summary, content, author, category, published_at, image_url, full_story_url")
     .order("published_at", { ascending: false });
 
   if (!error) {
@@ -801,10 +1232,52 @@ export async function getMediaArticles() {
   return (fallbackData as MediaRow[]).map(mapMedia);
 }
 
+export async function createMediaArticle(payload: {
+  title: string;
+  summary: string;
+  content: string;
+  author: string;
+  category: string;
+  publishedAt: string;
+  imageUrls: string[];
+  fullStoryUrl?: string;
+}) {
+  const imageUrls = payload.imageUrls.filter((item) => item.trim().length > 0).slice(0, 3);
+  const storedImageValue = JSON.stringify(imageUrls);
+
+  const { error } = await supabase.from("media_articles").insert({
+    title: payload.title,
+    summary: payload.summary,
+    content: payload.content,
+    author: payload.author,
+    category: payload.category,
+    published_at: payload.publishedAt,
+    image_url: storedImageValue,
+    full_story_url: payload.fullStoryUrl || null,
+  });
+
+  if (error && error.message.includes("full_story_url") && error.message.includes("does not exist")) {
+    const { error: fallbackError } = await supabase.from("media_articles").insert({
+      title: payload.title,
+      summary: payload.summary,
+      content: payload.content,
+      author: payload.author,
+      category: payload.category,
+      published_at: payload.publishedAt,
+      image_url: storedImageValue,
+    });
+
+    throwIfError(fallbackError);
+    return;
+  }
+
+  throwIfError(error);
+}
+
 export async function getMediaArticleById(articleId: string) {
   const { data, error } = await supabase
     .from("media_articles")
-    .select("id, title, summary, content, author, category, published_at, image_url")
+    .select("id, title, summary, content, author, category, published_at, image_url, full_story_url")
     .eq("id", articleId)
     .maybeSingle();
 
