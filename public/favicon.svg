@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">Bridge for Impact Hub Favicon</title>
-  <desc id="desc">Stylized bridge with impact dot in BIH colors</desc>
-  <rect width="64" height="64" rx="14" fill="#1F5B42"/>
-  <path d="M10 44h44" stroke="#F4E8D3" stroke-width="4" stroke-linecap="round"/>
-  <path d="M14 44c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="#D7962A" stroke-width="4" stroke-linecap="round"/>
-  <path d="M20 44V34M32 44V28M44 44V34" stroke="#F4E8D3" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="32" cy="20" r="4" fill="#D7962A"/>
-</svg>
