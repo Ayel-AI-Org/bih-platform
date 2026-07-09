@@ -172,9 +172,9 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-[85vh] py-12 bg-slate-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-md border-t-4 border-[#F59E0B]">
+      <Card className="w-full max-w-md shadow-md border-t-4 border-[#D4A017]">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#F59E0B]">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#D4A017]">
             <LogIn className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl font-serif text-[#1E3A5F] font-bold">Sign In</CardTitle>

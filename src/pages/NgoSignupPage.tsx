@@ -122,7 +122,7 @@ const NgoSignupPage = () => {
 
   return (
     <div className="min-h-screen py-12 bg-slate-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-md border-t-4 border-[#F59E0B]">
+      <Card className="w-full max-w-lg shadow-md border-t-4 border-[#D4A017]">
         <CardHeader>
           <CardTitle className="text-2xl font-serif text-[#1E3A5F] font-bold">NGO Partner Registration</CardTitle>
           <CardDescription>

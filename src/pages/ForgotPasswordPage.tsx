@@ -64,9 +64,9 @@ const ForgotPasswordPage = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-md border-t-4 border-[#F59E0B]">
+      <Card className="w-full max-w-md shadow-md border-t-4 border-[#D4A017]">
         <CardHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#F59E0B]">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#D4A017]">
             <Mail className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl font-serif text-[#1E3A5F]">Forgot Password</CardTitle>

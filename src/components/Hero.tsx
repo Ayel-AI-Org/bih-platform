@@ -1,10 +1,86 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart, Users, Building2, HandHeart } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Hero = () => {
+  const [stats, setStats] = useState({
+    volunteers: null as number | string | null,
+    ngos: null as number | string | null,
+    projects: null as number | string | null,
+    lives: null as string | null,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // 1. Fetch volunteers count
+        const { count: volCount, error: volErr } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "volunteer");
+
+        // 2. Fetch ngos count
+        const { count: ngoCount, error: ngoErr } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "ngo");
+
+        // 3. Fetch completed projects count
+        const { count: projCount, error: projErr } = await supabase
+          .from("projects")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "completed");
+
+        // 4. Fetch lives impacted from settings
+        let livesValue = "—";
+        try {
+          const { data: livesData, error: livesErr } = await supabase
+            .from("settings")
+            .select("value")
+            .eq("key", "lives_impacted")
+            .single();
+
+          if (!livesErr && livesData) {
+            livesValue = livesData.value;
+          }
+        } catch {
+          // Keep as "—"
+        }
+
+        setStats({
+          volunteers: volErr ? "—" : (volCount ?? 0),
+          ngos: ngoErr ? "—" : (ngoCount ?? 0),
+          projects: projErr ? "—" : (projCount ?? 0),
+          lives: livesValue,
+        });
+      } catch (err) {
+        setStats({
+          volunteers: "—",
+          ngos: "—",
+          projects: "—",
+          lives: "—",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const statsItems = [
+    { icon: Users, label: "Volunteers", value: stats.volunteers },
+    { icon: Building2, label: "Partner NGOs", value: stats.ngos },
+    { icon: HandHeart, label: "Projects Funded", value: stats.projects },
+    { icon: Heart, label: "Lives Impacted", value: stats.lives },
+  ];
+
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
       {/* Background image with overlay */}
@@ -52,20 +128,21 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          {[
-            { icon: Users, label: "Volunteers", value: "2,500+" },
-            { icon: Building2, label: "Partner NGOs", value: "120+" },
-            { icon: HandHeart, label: "Projects Funded", value: "350+" },
-            { icon: Heart, label: "Lives Impacted", value: "50K+" },
-          ].map((stat) => (
+          {statsItems.map((stat) => (
             <div
               key={stat.label}
               className="flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-primary-foreground/10"
             >
               <stat.icon className="w-8 h-8 text-accent flex-shrink-0" />
-              <div>
-                <div className="text-xl font-bold text-primary-foreground">{stat.value}</div>
-                <div className="text-sm text-primary-foreground/70">{stat.label}</div>
+              <div className="min-w-0 flex-1">
+                {loading ? (
+                  <Skeleton className="h-6 w-16 bg-white/20" />
+                ) : (
+                  <div className="text-xl font-bold text-primary-foreground truncate">
+                    {stat.value}
+                  </div>
+                )}
+                <div className="text-sm text-primary-foreground/70 truncate">{stat.label}</div>
               </div>
             </div>
           ))}

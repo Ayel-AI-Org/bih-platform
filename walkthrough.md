@@ -1,40 +1,51 @@
-# Walkthrough: Authentication Flow Rebuild
+# Walkthrough: Public Page Audit and Fixes
 
-We have successfully rebuilt the authentication flow from scratch. We replaced the legacy admin-only login constraint with a unified, role-based password login system for all roles (Volunteer, NGO, Donor, Admin).
+We have audited all public-facing pages, replaced mock data sources with live Supabase query integrations, configured graceful empty/error states, and hooked up email confirmation Edge Functions for suggestions and donations.
 
 ---
 
 ## What Was Implemented
 
-### 1. Unified Route Guards
-* **Centralized Guards (`AuthGuards.tsx`):**
-  * **`ProtectedRoute`**: Restricts dashboard access to authenticated users with approved status. Restricts user routes based on matched role types. Prevents non-approved users from viewing dashboard pages, redirecting them to `/pending`.
-  * **`PublicRoute`**: Intercepts unauthenticated routes like `/login` or `/register` to redirect already-authenticated users back to their target dashboards or `/pending`.
-  * **`PendingRoute`**: Only allows pending/rejected accounts on the `/pending` holding page, preventing approved members from returning to it.
+### 1. Live Stats on Landing Page (Fix 1)
+* Refactored [Hero.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/components/Hero.tsx) to fetch real-time stats from Supabase:
+  * **Volunteers:** Counts rows in `profiles` where `role = 'volunteer'`.
+  * **Partner NGOs:** Counts rows in `profiles` where `role = 'ngo'`.
+  * **Projects Funded:** Counts rows in `projects` where `status = 'completed'`.
+  * **Lives Impacted:** Reads the `value` from a newly defined key-value table `public.settings` where `key = 'lives_impacted'`. Mapped SQL definition in [settings-table.sql](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/supabase/settings-table.sql).
+* Configured loading skeletons that display values once fetched, defaulting to a fallback `"—"` if any network query fails.
 
-### 2. Upgraded Pages (6 Auth Screens)
-* **Screen 1 — Role Chooser (`/register`):** Refactored using BIH brand colors (navy secondary `#1E3A5F` and gold primary `#F59E0B`) with custom layout cards for Volunteers, NGOs, and Donors.
-* **Screen 2a — Volunteer Registration (`/register/volunteer`):** Built with `react-hook-form` + `zod` schema verification. Includes multi-select skill tags, availability dropdowns, and handles sequential insertion into `profiles` and `volunteer_profiles`.
-* **Screen 2b — NGO Registration (`/register/ngo`):** Built with `react-hook-form` + `zod` schema validation. Handles insertion into `profiles` (mapping organization name to full name) and `ngo_profiles`.
-* **Screen 2c — Donor Registration (`/register/donor`):** Built with `react-hook-form` + `zod` schema validation. Includes donor type select and cause interests multi-select. Inserts records into `profiles` and `donor_profiles`.
-* **Screen 3 — Login (`/login`):** Validated email/password sign-in. Resolves user roles and queries the corresponding profiles table for `approval_status`. Triggers tailored toast notifications on error states ("Invalid email or password", "Your account is pending approval", "Your account was not approved.").
-* **Screen 4 — Pending Holding (`/pending`):** Clean page presenting user credentials (name and email) and holding text. Features a single **Sign out** button and restricts header/footer nav links.
-* **Screen 5 — Forgot Password (`/forgot-password`):** Collects email and triggers recovery link mapping to `https://www.bridgeforimpacthub.org/reset-password`. Implements standard secure validation (always reports success to protect email privacy).
-* **Screen 6 — Reset Password (`/reset-password`):** Input field verifying password length (minimum 8 characters) and matching values. Triggers `supabase.auth.updateUser` to save the new password.
+### 2. Live Featured Projects (Fix 2)
+* Refactored [ProjectsSection.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/components/ProjectsSection.tsx) to query projects directly from Supabase:
+  * Query: `select * from public.projects order by created_at desc limit 3`.
+* Added animated loading skeletons and an empty state if no project records are registered.
 
-### 3. Dashboard Placeholders
-* Created three clean placeholders rendering simple `<h1>` headings to prevent SPA route mapping compilation errors:
-  * `VolunteerDashboardPlaceholder.tsx` (`/dashboard/volunteer`)
-  * `NgoDashboardPlaceholder.tsx` (`/dashboard/ngo`)
-  * `DonorDashboardPlaceholder.tsx` (`/dashboard/donor`)
+### 3. Live Media Articles (Fix 3)
+* Refactored [MediaPage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/MediaPage.tsx) to fetch live entries from Supabase:
+  * Query: `select * from public.media_articles where is_published = true order by published_at desc`.
+* Corrected layout tag mismatches and implemented loading skeletons and an empty state panel if there are no published posts.
 
-### 4. Router Mappings (`App.tsx`)
-* Integrated the new routing structure under the site layouts, wrapped in `PublicRoute`, `PendingRoute`, and `ProtectedRoute` guards as required.
+### 4. Project Detail 404 Handling (Fix 4)
+* Refactored [ProjectDetailsPage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/ProjectDetailsPage.tsx) to render a clear, styled "Project not found" visual state if the query fails or returns null, avoiding empty pages or crashes.
+
+### 5. Project Milestones Timeline (Fix 5)
+* Integrated a milestones list inside [ProjectDetailsPage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/ProjectDetailsPage.tsx) querying `public.milestones` where `project_id` matches the active project, ordered by target date.
+* Displays milestone titles, descriptions, target dates, and a custom olive green `"Completed"` badge when applicable. Collapses invisibly if no milestones exist.
+
+### 6. Projects Catalog Empty States (Fix 6)
+* Updated [ProjectsPage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/ProjectsPage.tsx) tabs to render centered empty states `"No [status] projects at the moment."` when a category has no records.
+
+### 7. Suggestion Confirmation Email (Fix 7)
+* Created `suggestion-confirmation` Edge Function in [index.ts](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/supabase/functions/suggestion-confirmation/index.ts).
+* Connected [SuggestProjectPage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/SuggestProjectPage.tsx) to call `supabase.functions.invoke("suggestion-confirmation")` immediately following successful inserts to email the submitter via Resend.
+
+### 8. Donation Confirmation Email (Fix 8)
+* Created `donation-confirmation` Edge Function in [index.ts](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/supabase/functions/donation-confirmation/index.ts).
+* Connected [DonatePage.tsx](file:///c:/Users/Ayel-son/Desktop/BIH/bih-platform/src/pages/DonatePage.tsx) to trigger `supabase.functions.invoke("donation-confirmation")` after Paystack transactions succeed and the receipt is saved.
 
 ---
 
 ## Verification & Build Results
 
-We executed the Vite compiler check to ensure full integration and strict typing compliance across all new forms and guard files:
-* **Command run:** `npm run build`
-* **Status:** Passed successfully with zero errors.
+* **Vite Production Compiler:**
+  * **Command executed:** `npm run build`
+  * **Status:** Passed successfully with zero errors.

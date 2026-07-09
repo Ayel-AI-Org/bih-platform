@@ -32,7 +32,7 @@ const RegisterPage = () => {
     <section className="py-20 bg-slate-50 min-h-[85vh] flex items-center">
       <div className="container max-w-5xl">
         <div className="text-center mb-12 space-y-3">
-          <span className="inline-block px-3 py-1 rounded-full bg-amber-50 text-[#F59E0B] text-xs font-semibold uppercase tracking-widest border border-amber-200">
+          <span className="inline-block px-3 py-1 rounded-full bg-amber-50 text-[#D4A017] text-xs font-semibold uppercase tracking-widest border border-amber-200">
             Join the Ecosystem
           </span>
           <h1 className="text-3xl md:text-5xl font-serif text-[#1E3A5F] font-bold">Choose your pathway</h1>
@@ -47,7 +47,7 @@ const RegisterPage = () => {
             return (
               <Card key={role.title} className="border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                 <CardHeader>
-                  <div className="h-12 w-12 rounded-lg bg-amber-50 flex items-center justify-center mb-4 text-[#F59E0B]">
+                  <div className="h-12 w-12 rounded-lg bg-amber-50 flex items-center justify-center mb-4 text-[#D4A017]">
                     <Icon className="h-6 w-6" />
                   </div>
                   <CardTitle className="text-xl font-serif text-[#1E3A5F]">{role.title}</CardTitle>

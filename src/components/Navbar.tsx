@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -12,18 +12,19 @@ const navLinks = [
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
-  const location = useLocation();
-  const isAdminDashboard = location.pathname === "/admin";
-
-  const showLoginComingSoon = () => {
-    window.alert("Login for volunteers, NGOs, and donors is coming soon. To log in as an Admin, check the footer for the link");
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-md border-b border-primary-foreground/10">
       <div className="container flex items-center justify-between h-16">
-        <Link to="/" className="text-xl font-serif text-primary-foreground tracking-tight">
-          Bridge for <span className="text-accent">Impact</span> Hub (BIH)
+        <Link to="/" className="flex items-center gap-3 py-1.5">
+          <img
+            src="/BIH_logo.jpeg"
+            alt="Bridge for Impact Hub Logo"
+            className="h-12 w-12 rounded-full border-2 border-[#1E3A5F] object-cover bg-white shadow-sm"
+          />
+          <span className="text-sm sm:text-base font-serif text-primary-foreground tracking-tight hidden sm:inline-block">
+            Bridge for <span className="text-[#D4A017]">Impact</span> Hub (BIH)
+          </span>
         </Link>
 
         {/* Desktop */}
@@ -34,28 +35,24 @@ const Navbar = () => {
               to={link.href}
               className={({ isActive }) =>
                 `text-sm transition-colors ${
-                  isActive ? "text-primary-foreground" : "text-primary-foreground/80 hover:text-primary-foreground"
+                  isActive ? "text-primary-foreground font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"
                 }`
               }
             >
               {link.label}
             </NavLink>
           ))}
-          {!isAdminDashboard ? (
-            <>
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/donate">Donate</Link>
-              </Button>
-              <Button variant="hero-outline" size="sm" type="button" onClick={showLoginComingSoon}>
-                Login
-              </Button>
-            </>
-          ) : null}
+          <Button variant="hero" size="sm" asChild>
+            <Link to="/donate">Donate</Link>
+          </Button>
+          <Button variant="hero-outline" size="sm" asChild>
+            <Link to="/login">Login</Link>
+          </Button>
         </div>
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden text-primary-foreground"
+          className="md:hidden text-primary-foreground p-1"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -72,7 +69,7 @@ const Navbar = () => {
               to={link.href}
               className={({ isActive }) =>
                 `block px-6 py-3 text-sm ${
-                  isActive ? "text-primary-foreground" : "text-primary-foreground/80 hover:text-primary-foreground"
+                  isActive ? "text-primary-foreground font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"
                 }`
               }
               onClick={() => setOpen(false)}
@@ -80,27 +77,18 @@ const Navbar = () => {
               {link.label}
             </NavLink>
           ))}
-          {!isAdminDashboard ? (
-            <div className="px-6 pt-2 space-y-2">
-              <Button variant="hero" size="sm" className="w-full" asChild>
-                <Link to="/donate" onClick={() => setOpen(false)}>
-                  Donate
-                </Link>
-              </Button>
-              <Button
-                variant="hero-outline"
-                size="sm"
-                className="w-full"
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  showLoginComingSoon();
-                }}
-              >
+          <div className="px-6 pt-2 space-y-2">
+            <Button variant="hero" size="sm" className="w-full" asChild>
+              <Link to="/donate" onClick={() => setOpen(false)}>
+                Donate
+              </Link>
+            </Button>
+            <Button variant="hero-outline" size="sm" className="w-full" asChild>
+              <Link to="/login" onClick={() => setOpen(false)}>
                 Login
-              </Button>
-            </div>
-          ) : null}
+              </Link>
+            </Button>
+          </div>
         </div>
       )}
     </nav>

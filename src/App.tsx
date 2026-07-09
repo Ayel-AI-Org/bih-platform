@@ -17,13 +17,17 @@ import LoginPage from "./pages/LoginPage";
 import SuggestProjectPage from "./pages/SuggestProjectPage";
 import DonatePage from "./pages/DonatePage";
 import MediaPage from "./pages/MediaPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PendingPage from "./pages/PendingPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import VolunteerDashboardPlaceholder from "./pages/dashboard/VolunteerDashboardPlaceholder";
 import NgoDashboardPlaceholder from "./pages/dashboard/NgoDashboardPlaceholder";
 import DonorDashboardPlaceholder from "./pages/dashboard/DonorDashboardPlaceholder";
+import AdminLayout from "@/components/layout/AdminLayout";
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminProjectsPage from "./pages/admin/AdminProjectsPage";
+import AdminDonationsPage from "./pages/admin/AdminDonationsPage";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute, PublicRoute, PendingRoute } from "@/components/layout/AuthGuards";
 
@@ -82,14 +86,20 @@ const App = () => {
               <Route path="/suggest-project" element={<SuggestProjectPage />} />
               <Route path="/donate" element={<DonatePage />} />
               <Route path="/media" element={<MediaPage />} />
-              
-              {/* Protected Administrator Dashboard */}
-              <Route path="/admin" element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDashboardPage />
-                </ProtectedRoute>
-              } />
             </Route>
+
+            {/* Protected Administrator Dashboard (Outside public SiteLayout) */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<AdminOverviewPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="projects" element={<AdminProjectsPage />} />
+              <Route path="donations" element={<AdminDonationsPage />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

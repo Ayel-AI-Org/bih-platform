@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Users } from "lucide-react";
-import { getProjects } from "@/lib/platform-data";
-import type { Project, ProjectStatus } from "@/types/models";
+import { MapPin, Users, AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import type { ProjectStatus } from "@/types/models";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const statusTone: Record<ProjectStatus, "default" | "secondary" | "outline"> = {
-  proposed: "outline",
-  ongoing: "default",
-  completed: "secondary",
+interface CatalogProject {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  category: string;
+  status: ProjectStatus;
+  timeline: string;
+  imageUrl: string;
+  partners: string[];
+}
+
+const statusTone: Record<ProjectStatus, string> = {
+  proposed: "bg-[#C8601A] text-white hover:bg-[#C8601A]/90",
+  ongoing: "bg-[#1E3A5F] text-white hover:bg-[#1E3A5F]/90",
+  completed: "bg-[#6B8E3E] text-white hover:bg-[#6B8E3E]/90",
 };
 
 const statusLabel: Record<ProjectStatus, string> = {
@@ -21,49 +34,82 @@ const statusLabel: Record<ProjectStatus, string> = {
 };
 
 const ProjectsPage = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<CatalogProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const run = async () => {
+    const fetchProjects = async () => {
       try {
-        const items = await getProjects();
-        setProjects(items);
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        setProjects(
+          (data || []).map((row: any) => ({
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            location: row.location,
+            category: row.category || "",
+            status: row.status as ProjectStatus,
+            timeline: row.timeline || "",
+            imageUrl: row.image_url || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700&q=80",
+            partners: row.partners || [],
+          }))
+        );
+      } catch (err) {
+        console.error("Failed to fetch projects database:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    run();
+    fetchProjects();
   }, []);
 
   const renderList = (status: ProjectStatus) => {
     const items = projects.filter((project) => project.status === status);
 
     if (items.length === 0) {
-      return <p className="text-sm text-muted-foreground">No projects in this category yet.</p>;
+      return (
+        <div className="text-center py-16 text-muted-foreground bg-slate-50 border border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-2">
+          <AlertCircle className="h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium">No {statusLabel[status]} projects at the moment.</p>
+        </div>
+      );
     }
 
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((project) => (
-          <Card key={project.id} className="overflow-hidden">
-            <img src={project.imageUrl} alt={project.title} className="h-44 w-full object-cover" />
-            <CardHeader className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-2xl">{project.title}</CardTitle>
-                <Badge variant={statusTone[project.status]} className="capitalize">{statusLabel[project.status]}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{project.description}</p>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p className="flex gap-2"><MapPin className="h-4 w-4 mt-0.5" /> {project.location}</p>
-              <p className="flex gap-2"><Users className="h-4 w-4 mt-0.5" /> {project.partners.join(", ")}</p>
-              <p><span className="font-medium text-foreground">Timeline:</span> {project.timeline}</p>
-              <Button asChild variant="outline" className="w-full">
+          <Card key={project.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <img src={project.imageUrl} alt={project.title} className="h-44 w-full object-cover bg-slate-100" />
+              <CardHeader className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle className="text-xl font-serif text-[#1E3A5F] font-bold line-clamp-2">{project.title}</CardTitle>
+                  <Badge className={`capitalize border-none text-[9px] font-bold py-0.5 px-2 ${statusTone[project.status]}`}>
+                    {statusLabel[project.status]}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{project.description}</p>
+              </CardHeader>
+              <CardContent className="space-y-2.5 text-xs text-muted-foreground">
+                <p className="flex gap-2"><MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" /> {project.location}</p>
+                {project.partners.length > 0 && (
+                  <p className="flex gap-2"><Users className="h-4 w-4 text-slate-400 flex-shrink-0" /> {project.partners.join(", ")}</p>
+                )}
+                <p><span className="font-semibold text-slate-700">Timeline:</span> {project.timeline}</p>
+              </CardContent>
+            </div>
+            <div className="px-6 pb-6 pt-0">
+              <Button asChild variant="outline" className="w-full text-xs h-9 border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50">
                 <Link to={`/projects/${project.id}`}>View project details</Link>
               </Button>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
@@ -71,30 +117,38 @@ const ProjectsPage = () => {
   };
 
   return (
-    <section className="py-16">
+    <section className="py-16 bg-[#F5F5F5] min-h-[80vh]">
       <div className="container">
         <div className="mb-8">
           <p className="text-sm font-semibold text-accent uppercase tracking-widest">Projects</p>
-          <h1 className="text-3xl md:text-5xl mt-3 mb-3">Project visibility and tracking</h1>
-          <p className="text-muted-foreground max-w-2xl">
+          <h1 className="text-3xl md:text-5xl font-serif text-[#1E3A5F] font-bold mt-3 mb-3">Project visibility and tracking</h1>
+          <p className="text-[#2C2C2C] max-w-2xl text-sm md:text-base leading-relaxed">
             Browse pending, ongoing, and completed BIH projects with timeline, location, and partner details.
           </p>
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">Loading projects...</p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="rounded-xl overflow-hidden bg-card border border-border p-4 space-y-4">
+                <Skeleton className="h-44 w-full" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ))}
+          </div>
         ) : (
-        <Tabs defaultValue="ongoing" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="proposed">Pending</TabsTrigger>
-            <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="ongoing" className="space-y-6">
+            <TabsList className="bg-slate-100 p-1 border border-slate-200">
+              <TabsTrigger value="proposed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Pending</TabsTrigger>
+              <TabsTrigger value="ongoing" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Ongoing</TabsTrigger>
+              <TabsTrigger value="completed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Completed</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="proposed">{renderList("proposed")}</TabsContent>
-          <TabsContent value="ongoing">{renderList("ongoing")}</TabsContent>
-          <TabsContent value="completed">{renderList("completed")}</TabsContent>
-        </Tabs>
+            <TabsContent value="proposed" className="mt-0">{renderList("proposed")}</TabsContent>
+            <TabsContent value="ongoing" className="mt-0">{renderList("ongoing")}</TabsContent>
+            <TabsContent value="completed" className="mt-0">{renderList("completed")}</TabsContent>
+          </Tabs>
         )}
       </div>
     </section>

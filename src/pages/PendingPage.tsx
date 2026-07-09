@@ -71,16 +71,16 @@ const PendingPage = () => {
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-        <Loader2 className="h-10 w-10 animate-spin text-[#F59E0B]" />
+        <Loader2 className="h-10 w-10 animate-spin text-[#D4A017]" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-lg border-t-4 border-[#F59E0B]">
+      <Card className="w-full max-w-md shadow-lg border-t-4 border-[#D4A017]">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-4 text-[#F59E0B]">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-4 text-[#D4A017]">
             <Clock className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl font-serif text-[#1E3A5F]">Account Under Review</CardTitle>

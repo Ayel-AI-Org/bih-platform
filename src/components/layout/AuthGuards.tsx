@@ -89,7 +89,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#F59E0B] border-t-transparent"></div>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D4A017] border-t-transparent"></div>
           <p className="text-muted-foreground text-sm font-medium animate-pulse">
             Verifying security credentials...
           </p>
@@ -157,7 +157,7 @@ export const PublicRoute = ({ children }: PublicRouteProps) => {
   if (status.loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#F59E0B] border-t-transparent"></div>
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D4A017] border-t-transparent"></div>
       </div>
     );
   }
@@ -206,7 +206,7 @@ export const PendingRoute = ({ children }: PendingRouteProps) => {
   if (status.loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#F59E0B] border-t-transparent"></div>
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D4A017] border-t-transparent"></div>
       </div>
     );
   }

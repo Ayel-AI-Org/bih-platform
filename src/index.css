@@ -6,50 +6,50 @@
 
 @layer base {
   :root {
-    --background: 44 45% 96%;
-    --foreground: 213 46% 24%;
+    --background: 0 0% 96%;
+    --foreground: 0 0% 17%;
 
-    --card: 42 40% 95%;
-    --card-foreground: 213 46% 24%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 17%;
 
-    --popover: 44 45% 96%;
-    --popover-foreground: 213 46% 24%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
 
-    --primary: 213 52% 28%;
-    --primary-foreground: 44 45% 96%;
+    --primary: 214 52% 24%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 85 34% 89%;
-    --secondary-foreground: 213 46% 24%;
+    --secondary: 86 39% 40%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 43 32% 91%;
-    --muted-foreground: 213 20% 42%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 38 86% 54%;
-    --accent-foreground: 213 52% 22%;
+    --accent: 44 80% 46%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 6 63% 46%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 41 24% 84%;
-    --input: 41 24% 84%;
-    --ring: 85 45% 43%;
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 214 52% 24%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 213 52% 23%;
-    --sidebar-foreground: 44 45% 96%;
-    --sidebar-primary: 38 86% 54%;
-    --sidebar-primary-foreground: 213 52% 20%;
-    --sidebar-accent: 85 45% 43%;
-    --sidebar-accent-foreground: 44 45% 96%;
-    --sidebar-border: 213 35% 30%;
-    --sidebar-ring: 38 86% 54%;
+    --sidebar-background: 214 52% 24%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 44 80% 46%;
+    --sidebar-primary-foreground: 214 52% 24%;
+    --sidebar-accent: 86 39% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 214 30% 32%;
+    --sidebar-ring: 44 80% 46%;
 
     /* Custom tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(213, 52%, 28%) 0%, hsl(85, 45%, 43%) 100%);
-    --accent-glow: 0 8px 32px -8px hsl(38, 86%, 54%, 0.4);
-    --card-shadow: 0 4px 24px -4px hsl(213, 46%, 24%, 0.08);
-    --card-hover-shadow: 0 8px 32px -4px hsl(213, 46%, 24%, 0.12);
+    --hero-gradient: linear-gradient(135deg, hsl(214, 52%, 24%) 0%, hsl(86, 39%, 40%) 100%);
+    --accent-glow: 0 8px 32px -8px hsl(44, 80%, 46%, 0.4);
+    --card-shadow: 0 4px 24px -4px hsl(0, 0%, 17%, 0.08);
+    --card-hover-shadow: 0 8px 32px -4px hsl(0, 0%, 17%, 0.12);
   }
 
   .dark {

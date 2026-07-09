@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
 
 declare global {
   interface Window {
@@ -63,6 +64,7 @@ const DonatePage = () => {
     [selectedProjectTitle],
   );
 
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -114,6 +116,7 @@ const DonatePage = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       await loadPaystackScript();
 
@@ -124,33 +127,60 @@ const DonatePage = () => {
       const txRef = `bih-${Date.now()}`;
 
       const handlePaymentSuccess = async (reference: string) => {
-        const referenceMessage = `Paystack Ref: ${reference}`;
-        const combinedMessage = form.message ? `${form.message}\n${referenceMessage}` : referenceMessage;
+        try {
+          const referenceMessage = `Paystack Ref: ${reference}`;
+          const combinedMessage = form.message ? `${form.message}\n${referenceMessage}` : referenceMessage;
 
-        await createDonation({
-          fullName: form.fullName,
-          email: form.email,
-          amount,
-          currency: form.currency,
-          paymentMethod: "mobile_money",
-          purpose: form.purpose,
-          message: combinedMessage,
-        });
+          // 1. Insert donation record into public.donations
+          await createDonation({
+            fullName: form.fullName,
+            email: form.email,
+            amount,
+            currency: form.currency,
+            paymentMethod: "mobile_money",
+            purpose: form.purpose,
+            message: combinedMessage,
+          });
 
-        setForm({
-          fullName: "",
-          email: "",
-          amount: "",
-          currency: "GHS",
-          paymentMethod: "mobile_money",
-          purpose: selectedProjectPurpose,
-          message: "",
-        });
+          // 2. Invoke Resend donation confirmation email via Edge Function
+          try {
+            await supabase.functions.invoke("donation-confirmation", {
+              body: {
+                email: form.email,
+                fullName: form.fullName,
+                currency: form.currency,
+                amount: amount,
+                purpose: form.purpose,
+                reference: reference,
+              },
+            });
+          } catch (emailErr) {
+            console.error("Failed to trigger donation email edge function:", emailErr);
+          }
 
-        toast({
-          title: "Payment successful, thank you for your support!",
-          description: `Donation recorded with reference ${reference}.`,
-        });
+          setForm({
+            fullName: "",
+            email: "",
+            amount: "",
+            currency: "GHS",
+            paymentMethod: "mobile_money",
+            purpose: selectedProjectPurpose,
+            message: "",
+          });
+
+          toast({
+            title: "Payment successful, thank you for your support!",
+            description: `Donation recorded with reference ${reference}. Confirmation email receipt triggered.`,
+          });
+        } catch (err: any) {
+          toast({
+            title: "Donation logging failed",
+            description: err.message || "Payment succeeded but database record failed.",
+            variant: "destructive",
+          });
+        } finally {
+          setSubmitting(false);
+        }
       };
 
       const paystack = window.PaystackPop.setup({
@@ -165,15 +195,10 @@ const DonatePage = () => {
           purpose: form.purpose,
         },
         callback: (response) => {
-          void handlePaymentSuccess(response.reference).catch((error) => {
-            toast({
-              title: "Donation record failed",
-              description: error instanceof Error ? error.message : "Payment succeeded but record saving failed.",
-              variant: "destructive",
-            });
-          });
+          void handlePaymentSuccess(response.reference);
         },
         onClose: () => {
+          setSubmitting(false);
           toast({
             title: "Payment cancelled",
             description: "You closed the Paystack payment window before completing payment.",
@@ -183,6 +208,7 @@ const DonatePage = () => {
 
       paystack.openIframe();
     } catch (error) {
+      setSubmitting(false);
       toast({
         title: "Donation failed",
         description: error instanceof Error ? error.message : "Something went wrong.",
@@ -192,40 +218,41 @@ const DonatePage = () => {
   };
 
   return (
-    <section className="py-16">
+    <section className="py-16 bg-[#F5F5F5] min-h-[85vh] flex items-center">
       <div className="container max-w-3xl">
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Donation & Support</CardTitle>
+            <CardTitle className="font-serif text-[#1E3A5F] text-2xl font-bold">Donation & Support</CardTitle>
             <CardDescription>
-              Secure donation form with mobile money and card support. Confirmation email is auto-recorded.
+              Secure donation form with mobile money support. Confirmation email receipt is auto-sent.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input id="fullName" required value={form.fullName} onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input id="fullName" required disabled={submitting} value={form.fullName} onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} />
+                  <Input id="email" type="email" required disabled={submitting} value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
-                  <Input id="amount" required type="number" min={1} value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
+                  <Input id="amount" required disabled={submitting} type="number" min={1} value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Input id="currency" required value={form.currency} onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))} />
+                  <Input id="currency" required disabled={submitting} value={form.currency} onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Payment method</Label>
+                  <Label>Payment Method</Label>
                   <Select
+                    disabled={submitting}
                     value={form.paymentMethod}
                     onValueChange={(value: "mobile_money" | "card") => setForm((prev) => ({ ...prev, paymentMethod: value }))}
                   >
@@ -241,23 +268,25 @@ const DonatePage = () => {
               </div>
 
               {selectedProjectTitle ? (
-                <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                  Donating in support of <span className="font-medium">{selectedProjectTitle}</span>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+                  Donating in support of <span className="font-semibold text-[#1E3A5F]">{selectedProjectTitle}</span>
                   {selectedProjectId ? <span className="text-muted-foreground"> (Ref: {selectedProjectId})</span> : null}.
                 </div>
               ) : null}
 
               <div className="space-y-2">
                 <Label htmlFor="purpose">Purpose</Label>
-                <Input id="purpose" required value={form.purpose} onChange={(event) => setForm((prev) => ({ ...prev, purpose: event.target.value }))} />
+                <Input id="purpose" required disabled={submitting} value={form.purpose} onChange={(event) => setForm((prev) => ({ ...prev, purpose: event.target.value }))} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="message">Message (optional)</Label>
-                <Textarea id="message" value={form.message} onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))} />
+                <Textarea id="message" disabled={submitting} value={form.message} onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))} />
               </div>
 
-              <Button type="submit">Complete donation</Button>
+              <Button type="submit" disabled={submitting} className="bg-[#D4A017] hover:bg-[#D4A017]/90 text-white w-full sm:w-auto font-medium">
+                {submitting ? "Processing..." : "Complete Donation"}
+              </Button>
             </form>
           </CardContent>
         </Card>
