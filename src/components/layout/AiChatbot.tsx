@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
-import { getAiChatReply } from "@/lib/platform-data";
+import { getAiChatReply } from "@/database/operations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";

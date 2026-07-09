@@ -1,12 +1,12 @@
 import { FormEvent, useState } from "react";
-import { suggestProject } from "@/lib/platform-data";
+import { suggestProject } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/database/client";
 
 const SuggestProjectPage = () => {
   const { toast } = useToast();

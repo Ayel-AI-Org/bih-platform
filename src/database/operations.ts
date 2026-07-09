@@ -10,8 +10,8 @@ import {
   type Session,
   type SuggestionStatus,
   type VolunteerProfile,
-} from "@/types/models";
-import { supabase } from "@/lib/supabase";
+} from "@/database/types";
+import { supabase } from "@/database/client";
 
 function throwIfError(error: { message: string } | null) {
   if (error) {

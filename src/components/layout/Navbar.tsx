@@ -47,7 +47,7 @@ const Navbar = () => {
               <Link to="/donate">Donate</Link>
             </Button>
             <Button variant="hero-outline" size="sm" asChild>
-              <Link to="/login">Login</Link>
+              <Link to="/login">Sign In</Link>
             </Button>
           </div>
 

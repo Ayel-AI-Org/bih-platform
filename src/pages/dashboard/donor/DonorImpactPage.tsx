@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-hook-form"; // Wait, we should use standard Link from react-router-dom!
 import { Link as RouterLink } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, CheckCircle, Info, Star } from "lucide-react";
-import type { ProjectStatus } from "@/types/models";
+import type { ProjectStatus } from "@/database/types";
 
 interface ImpactProject {
   id: string;

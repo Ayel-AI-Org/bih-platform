@@ -1,6 +1,6 @@
 import { Heart, Mail, MapPin, Phone } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { logout } from "@/lib/platform-data";
+import { logout } from "@/database/operations";
 
 const Footer = () => {
   const location = useLocation();
@@ -77,7 +77,7 @@ const Footer = () => {
               className="w-full md:w-auto text-right text-[10px] tracking-wide uppercase opacity-35 hover:opacity-65 transition-opacity"
               aria-label="Login as admin"
             >
-              Login as admin
+              login/register
             </Link>
           )}
         </div>

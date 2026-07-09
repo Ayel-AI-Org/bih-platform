@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Users, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import type { ProjectStatus } from "@/types/models";
+import { supabase } from "@/database/client";
+import type { ProjectStatus } from "@/database/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

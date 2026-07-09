@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import type { UserRole } from "@/types/models";
+import { supabase } from "@/database/client";
+import type { UserRole } from "@/database/types";
 
 export interface UserAuthStatus {
   loading: boolean;
@@ -91,7 +91,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D4A017] border-t-transparent"></div>
           <p className="text-muted-foreground text-sm font-medium animate-pulse">
-            Verifying security credentials...
+            Verifying credentials, please wait...
           </p>
         </div>
       </div>

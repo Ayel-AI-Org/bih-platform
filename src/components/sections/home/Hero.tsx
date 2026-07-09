@@ -4,7 +4,7 @@ import { Heart, Users, Building2, HandHeart } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/database/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Hero = () => {
