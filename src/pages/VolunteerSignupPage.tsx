@@ -1,259 +1,328 @@
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerVolunteer } from "@/lib/platform-data";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-const VolunteerSignupPage = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    location: "",
-    preferredContactChannels: [] as string[],
-    nationality: "",
-    cityRegion: "",
-    availabilityBlocks: [] as string[],
-    startDate: "",
-    commitmentDuration: "",
-    canTravel: false,
-    maxTravelDistanceKm: "",
-    primarySkillCategories: [] as string[],
-    yearsOfExperience: "",
-    languagesSpoken: "",
-    pastExperience: "",
-    targetCommunities: "",
-    skills: "",
-    availability: "",
-    dataPrivacyConsent: false,
+const AVAILABLE_SKILLS = [
+  "Education",
+  "Health",
+  "Construction",
+  "IT",
+  "Agriculture",
+  "Environment",
+  "Community Outreach",
+];
+
+const volunteerSchema = z
+  .object({
+    fullName: z.string().min(1, "Full name is required"),
+    email: z.string().min(1, "Email is required").email("Invalid email format"),
+    password: z.string().min(8, "Password must be at least 8 characters long"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+    phone: z.string().min(1, "Phone number is required"),
+    location: z.string().min(1, "Location is required"),
+    skills: z.array(z.string()).min(1, "Select at least one skill category"),
+    availability: z.string().min(1, "Please select availability option"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 
-  const toggleArrayValue = (key: "preferredContactChannels" | "availabilityBlocks" | "primarySkillCategories", value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: prev[key].includes(value)
-        ? prev[key].filter((item) => item !== value)
-        : [...prev[key], value],
-    }));
+type VolunteerFormValues = z.infer<typeof volunteerSchema>;
+
+const VolunteerSignupPage = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<VolunteerFormValues>({
+    resolver: zodResolver(volunteerSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      phone: "",
+      location: "",
+      skills: [],
+      availability: "",
+    },
+  });
+
+  const selectedSkills = watch("skills");
+
+  const toggleSkill = (skill: string) => {
+    const updated = selectedSkills.includes(skill)
+      ? selectedSkills.filter((s) => s !== skill)
+      : [...selectedSkills, skill];
+    setValue("skills", updated, { shouldValidate: true });
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const onSubmit = async (values: VolunteerFormValues) => {
+    setSubmitting(true);
     try {
-      const generatedPassword = `BIH-${Math.random().toString(36).slice(2, 12)}!Aa1`;
-      await registerVolunteer({
-        ...form,
-        password: generatedPassword,
-        maxTravelDistanceKm: form.maxTravelDistanceKm ? Number(form.maxTravelDistanceKm) : undefined,
+      // 1. Supabase Auth signup
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName,
+          },
+        },
       });
+
+      if (signUpError || !signUpData.user) {
+        throw new Error(signUpError?.message || "Authentication signup failed.");
+      }
+
+      const uid = signUpData.user.id;
+
+      // 2. Insert profile record
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: uid,
+        role: "volunteer",
+        full_name: values.fullName,
+        email: values.email,
+        country: "Ghana",
+      });
+
+      if (profileError) {
+        // Clean up Auth user if profile insert fails
+        await supabase.auth.signOut();
+        throw new Error(profileError.message);
+      }
+
+      // 3. Insert volunteer_profiles record
+      const { error: volunteerError } = await supabase.from("volunteer_profiles").insert({
+        user_id: uid,
+        phone: values.phone,
+        location: values.location,
+        skills: values.skills,
+        availability: values.availability,
+        approval_status: "pending",
+      });
+
+      if (volunteerError) {
+        throw new Error(volunteerError.message);
+      }
+
       toast({
-        title: "Application submitted",
-        description: "Your volunteer application is pending admin approval. You will receive an email once approved.",
+        title: "Registration submitted",
+        description: "Your volunteer application has been sent for admin review.",
       });
-      navigate("/register");
-    } catch (error) {
+
+      // Clear session local state and redirect
+      await supabase.auth.signOut();
+      navigate("/pending");
+    } catch (err: any) {
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "Something went wrong.",
+        description: err.message || "An unexpected error occurred during signup.",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <section className="py-16">
-      <div className="container max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Volunteer Sign-up</CardTitle>
-            <CardDescription>Join BIH and get connected to initiatives where your time and skills matter.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="space-y-6">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold">1. Basic Details</h3>
-                <p className="text-xs text-muted-foreground">Used by BIH admins to identify and contact you for approval.</p>
-              </div>
+    <div className="min-h-screen py-12 bg-slate-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg shadow-md border-t-4 border-[#F59E0B]">
+        <CardHeader>
+          <CardTitle className="text-2xl font-serif text-[#1E3A5F] font-bold">Volunteer Registration</CardTitle>
+          <CardDescription>
+            Join as a volunteer partner to start tracking your hours, skills, and community impact.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                disabled={submitting}
+                className={errors.fullName ? "border-destructive focus-visible:ring-destructive" : ""}
+                {...register("fullName")}
+              />
+              {errors.fullName && (
+                <p className="text-xs text-destructive font-medium mt-1">
+                  {errors.fullName.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full name</Label>
-                <Input id="fullName" required value={form.fullName} onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))} />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={form.email} onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" required value={form.phone} onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input id="location" required value={form.location} onChange={(event) => setForm((prev) => ({ ...prev, location: event.target.value }))} />
-              </div>
-              <div className="pt-2 space-y-1">
-                <h3 className="text-base font-semibold">2. ID and Verification</h3>
-                <p className="text-xs text-muted-foreground">Helps us verify location and communication preferences.</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Preferred contact channels (optional)</Label>
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {[
-                    ["phone", "Phone"],
-                    ["email", "Email"],
-                    ["whatsapp", "WhatsApp"],
-                  ].map(([value, label]) => (
-                    <label key={value} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        aria-label={`Preferred contact: ${label}`}
-                        checked={form.preferredContactChannels.includes(value)}
-                        onChange={() => toggleArrayValue("preferredContactChannels", value)}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nationality">Nationality</Label>
-                  <Input id="nationality" required value={form.nationality} onChange={(event) => setForm((prev) => ({ ...prev, nationality: event.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cityRegion">City / Region</Label>
-                  <Input id="cityRegion" required value={form.cityRegion} onChange={(event) => setForm((prev) => ({ ...prev, cityRegion: event.target.value }))} />
-                </div>
-              </div>
-              <div className="pt-2 space-y-1">
-                <h3 className="text-base font-semibold">3. Skills and Fit</h3>
-                <p className="text-xs text-muted-foreground">Tell us where you can contribute most effectively.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="skills">Skills</Label>
-                <Textarea id="skills" required value={form.skills} onChange={(event) => setForm((prev) => ({ ...prev, skills: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Primary skill categories</Label>
-                <div className="grid md:grid-cols-2 gap-2 text-sm">
-                  {["teaching", "health outreach", "logistics", "media", "tech", "project support"].map((value) => (
-                    <label key={value} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        aria-label={`Skill category: ${value}`}
-                        checked={form.primarySkillCategories.includes(value)}
-                        onChange={() => toggleArrayValue("primarySkillCategories", value)}
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="yearsOfExperience">Years of experience</Label>
-                  <Input id="yearsOfExperience" required value={form.yearsOfExperience} onChange={(event) => setForm((prev) => ({ ...prev, yearsOfExperience: event.target.value }))} placeholder="e.g. 1-2 years" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="languagesSpoken">Languages spoken</Label>
-                  <Input id="languagesSpoken" required value={form.languagesSpoken} onChange={(event) => setForm((prev) => ({ ...prev, languagesSpoken: event.target.value }))} placeholder="e.g. English, Twi" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pastExperience">Past volunteering experience</Label>
-                <Textarea id="pastExperience" required value={form.pastExperience} onChange={(event) => setForm((prev) => ({ ...prev, pastExperience: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="targetCommunities">Target communities you want to support</Label>
-                <Textarea id="targetCommunities" required value={form.targetCommunities} onChange={(event) => setForm((prev) => ({ ...prev, targetCommunities: event.target.value }))} />
-              </div>
-              <div className="pt-2 space-y-1">
-                <h3 className="text-base font-semibold">4. Commitment</h3>
-                <p className="text-xs text-muted-foreground">Set expectations for timeline, schedule, and mobility.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="availability">Availability</Label>
-                <Input id="availability" required value={form.availability} onChange={(event) => setForm((prev) => ({ ...prev, availability: event.target.value }))} placeholder="e.g. weekends, evenings" />
-              </div>
-              <div className="space-y-2">
-                <Label>Available days/time blocks</Label>
-                <div className="grid md:grid-cols-2 gap-2 text-sm">
-                  {["weekdays-morning", "weekdays-evening", "weekends-morning", "weekends-evening"].map((value) => (
-                    <label key={value} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        aria-label={`Availability block: ${value}`}
-                        checked={form.availabilityBlocks.includes(value)}
-                        onChange={() => toggleArrayValue("availabilityBlocks", value)}
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start date availability</Label>
-                  <Input id="startDate" type="date" required value={form.startDate} onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="commitmentDuration">Commitment duration</Label>
-                  <Input id="commitmentDuration" required value={form.commitmentDuration} onChange={(event) => setForm((prev) => ({ ...prev, commitmentDuration: event.target.value }))} placeholder="e.g. 3-6 months" />
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      aria-label="Can travel"
-                      checked={form.canTravel}
-                      onChange={(event) => setForm((prev) => ({ ...prev, canTravel: event.target.checked }))}
-                    />
-                    Can travel
-                  </Label>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxTravelDistanceKm">Max travel distance (km)</Label>
-                  <Input id="maxTravelDistanceKm" type="number" min={0} value={form.maxTravelDistanceKm} onChange={(event) => setForm((prev) => ({ ...prev, maxTravelDistanceKm: event.target.value }))} />
-                </div>
-              </div>
-              <div className="pt-2 space-y-1">
-                <h3 className="text-base font-semibold">5. Consent</h3>
-                <p className="text-xs text-muted-foreground">Required before BIH can process your registration request.</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    aria-label="Data privacy consent"
-                    checked={form.dataPrivacyConsent}
-                    onChange={(event) => setForm((prev) => ({ ...prev, dataPrivacyConsent: event.target.checked }))}
-                    required
-                  />
-                  I consent to BIH data/privacy policy for review and approval processing.
-                </Label>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  disabled={submitting}
+                  className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button type="submit">Submit volunteer registration</Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link to="/register">Back to registration options</Link>
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  disabled={submitting}
+                  className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("phone")}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.phone.message}
+                  </p>
+                )}
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  disabled={submitting}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  disabled={submitting}
+                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location / Area</Label>
+                <Input
+                  id="location"
+                  placeholder="e.g. Accra, Ghana"
+                  disabled={submitting}
+                  className={errors.location ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("location")}
+                />
+                {errors.location && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.location.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="availability">Availability Block</Label>
+                <Select
+                  disabled={submitting}
+                  onValueChange={(val) => setValue("availability", val, { shouldValidate: true })}
+                >
+                  <SelectTrigger className={errors.availability ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Weekdays">Weekdays</SelectItem>
+                    <SelectItem value="Weekends">Weekends</SelectItem>
+                    <SelectItem value="Both">Both (Weekdays & Weekends)</SelectItem>
+                    <SelectItem value="Flexible">Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.availability && (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    {errors.availability.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Skills & Expertise (Select all that apply)</Label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {AVAILABLE_SKILLS.map((skill) => {
+                  const isSelected = selectedSkills.includes(skill);
+                  return (
+                    <Badge
+                      key={skill}
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => !submitting && toggleSkill(skill)}
+                      className={`cursor-pointer px-3 py-1.5 text-xs transition-colors flex items-center gap-1 ${
+                        isSelected
+                          ? "bg-[#1E3A5F] text-white hover:bg-[#1E3A5F]/90"
+                          : "bg-white text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {skill}
+                      {isSelected && <Check className="h-3 w-3" />}
+                    </Badge>
+                  );
+                })}
+              </div>
+              {errors.skills && (
+                <p className="text-xs text-destructive font-medium mt-1">
+                  {errors.skills.message}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white flex items-center justify-center gap-2 mt-2"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Register as Volunteer
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center border-t py-4 bg-slate-50/50">
+          <Link to="/register" className="text-xs text-[#1E3A5F] hover:underline flex items-center gap-1.5 font-medium">
+            <ArrowLeft className="h-3 w-3" /> Back to role chooser
+          </Link>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

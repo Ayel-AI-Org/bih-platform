@@ -1,142 +1,250 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getSession, login, logout } from "@/lib/platform-data";
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2, LogIn, Lock } from "lucide-react";
+
+const loginSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const [existingSession, setExistingSession] = useState<Awaited<ReturnType<typeof getSession>>>(null);
-  const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const session = await getSession();
-        setExistingSession(session);
-      } finally {
-        setIsSessionLoading(false);
-      }
-    };
-
-    run();
-  }, []);
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const onSubmit = async (values: LoginFormValues) => {
+    setSubmitting(true);
     try {
-      const session = await login(form.email, form.password);
-      if (session.role !== "admin") {
-        await logout();
-        setExistingSession(null);
+      // 1. Supabase SignIn
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+
+      if (signInError) {
+        // Map common errors to specific user-facing toasts
+        if (signInError.message.toLowerCase().includes("invalid login credentials")) {
+          toast({
+            title: "Authentication failed",
+            description: "Invalid email or password",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw signInError;
+      }
+
+      const user = data.user;
+      if (!user) {
+        throw new Error("Unable to resolve authenticated session.");
+      }
+
+      // 2. Fetch role from public.profiles
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        await supabase.auth.signOut();
+        throw profileError;
+      }
+
+      if (!profile) {
+        await supabase.auth.signOut();
+        throw new Error("User profile record not found.");
+      }
+
+      const role = profile.role;
+
+      // 3. Admin Redirect (no approval status check needed)
+      if (role === "admin") {
         toast({
-          title: "Admin access only",
-          description: "This login page is reserved for BIH administrators.",
-          variant: "destructive",
+          title: "Welcome back",
+          description: `Administrator session active: ${profile.full_name}`,
         });
-        navigate("/");
+        const redirectPath = (location.state as any)?.from || "/admin";
+        navigate(redirectPath, { replace: true });
         return;
       }
 
-      toast({ title: "Login successful", description: `Welcome back, ${session.name}.` });
-      setExistingSession(session);
+      // 4. Resolve table mapping for public role approvals
+      const roleTableMap = {
+        volunteer: "volunteer_profiles",
+        ngo: "ngo_profiles",
+        donor: "donor_profiles",
+      };
 
-      const redirectPath = typeof location.state === "object" && location.state && "from" in location.state
-        ? String((location.state as { from?: string }).from)
-        : "/admin";
+      const tableName = roleTableMap[role as "volunteer" | "ngo" | "donor"];
+      if (!tableName) {
+        await supabase.auth.signOut();
+        throw new Error("Invalid profile role association.");
+      }
 
-      navigate(redirectPath);
-    } catch (error) {
+      const { data: roleProfile, error: roleProfileError } = await supabase
+        .from(tableName)
+        .select("approval_status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (roleProfileError) {
+        await supabase.auth.signOut();
+        throw roleProfileError;
+      }
+
+      const approvalStatus = roleProfile?.approval_status || "pending";
+
+      // 5. Apply redirect logic
+      if (approvalStatus === "pending") {
+        toast({
+          title: "Access Restricted",
+          description: "Your account is pending approval",
+          variant: "default",
+        });
+        navigate("/pending", { replace: true });
+        return;
+      }
+
+      if (approvalStatus === "rejected") {
+        toast({
+          title: "Access Denied",
+          description: "Your account was not approved.",
+          variant: "destructive",
+        });
+        navigate("/pending", { replace: true });
+        return;
+      }
+
+      if (approvalStatus === "approved") {
+        toast({
+          title: "Sign in successful",
+          description: `Welcome back, ${profile.full_name}.`,
+        });
+
+        const dashboardRedirectMap = {
+          volunteer: "/dashboard/volunteer",
+          ngo: "/dashboard/ngo",
+          donor: "/dashboard/donor",
+        };
+
+        const redirectPath =
+          (location.state as any)?.from ||
+          dashboardRedirectMap[role as "volunteer" | "ngo" | "donor"] ||
+          "/";
+
+        navigate(redirectPath, { replace: true });
+      }
+    } catch (err: any) {
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Something went wrong.",
+        description: err.message || "An unexpected error occurred during sign in.",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    setExistingSession(null);
-    toast({ title: "Logged out", description: "Your session has been cleared." });
-    navigate("/");
-  };
-
   return (
-    <section className="py-16">
-      <div className="container max-w-xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin Login</CardTitle>
-            <CardDescription>
-              This login is for BIH administrators only.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isSessionLoading ? (
-              <p className="text-sm text-muted-foreground">Checking current session...</p>
-            ) : existingSession ? (
-              <div className="rounded-md border p-4 space-y-3">
-                <p className="text-sm">
-                  Signed in as <span className="font-medium">{existingSession.name}</span> ({existingSession.role})
+    <div className="min-h-[85vh] py-12 bg-slate-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-md border-t-4 border-[#F59E0B]">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#F59E0B]">
+            <LogIn className="h-6 w-6" />
+          </div>
+          <CardTitle className="text-2xl font-serif text-[#1E3A5F] font-bold">Sign In</CardTitle>
+          <CardDescription>
+            Access the Bridge for Impact Hub dashboard portal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                disabled={submitting}
+                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="text-xs text-destructive font-medium mt-1">
+                  {errors.email.message}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {existingSession.role === "admin" ? (
-                    <Button asChild>
-                      <Link to="/admin">Continue</Link>
-                    </Button>
-                  ) : null}
-                  <Button variant="outline" onClick={handleLogout}>Logout</Button>
-                </div>
-                {existingSession.role !== "admin" ? (
-                  <p className="text-xs text-muted-foreground">
-                    Non-admin accounts cannot use this route. Public login is coming soon.
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={form.password}
-                    onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-                  />
-                </div>
-                <Button type="submit">Login</Button>
-              </form>
-            )}
+              )}
+            </div>
 
-            <p className="text-sm text-muted-foreground">
-              Public login for volunteers, NGOs, and donors is coming soon.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-[#1E3A5F] hover:underline flex items-center gap-1 font-medium"
+                >
+                  <Lock className="h-3 w-3" /> Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                disabled={submitting}
+                className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                {...register("password")}
+              />
+              {errors.password && (
+                <p className="text-xs text-destructive font-medium mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white flex items-center justify-center gap-2 mt-2"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sign In
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-2 justify-center border-t py-4 bg-slate-50/50 text-xs text-center">
+          <p className="text-muted-foreground">
+            Don't have an account yet?{" "}
+            <Link to="/register" className="text-[#1E3A5F] hover:underline font-semibold">
+              Register here
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

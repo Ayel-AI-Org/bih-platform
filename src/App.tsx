@@ -18,7 +18,14 @@ import SuggestProjectPage from "./pages/SuggestProjectPage";
 import DonatePage from "./pages/DonatePage";
 import MediaPage from "./pages/MediaPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PendingPage from "./pages/PendingPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VolunteerDashboardPlaceholder from "./pages/dashboard/VolunteerDashboardPlaceholder";
+import NgoDashboardPlaceholder from "./pages/dashboard/NgoDashboardPlaceholder";
+import DonorDashboardPlaceholder from "./pages/dashboard/DonorDashboardPlaceholder";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute, PublicRoute, PendingRoute } from "@/components/layout/AuthGuards";
 
 const queryClient = new QueryClient();
 
@@ -40,15 +47,48 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/register/volunteer" element={<VolunteerSignupPage />} />
-              <Route path="/register/ngo" element={<NgoSignupPage />} />
-              <Route path="/register/donor" element={<DonorSignupPage />} />
-              <Route path="/login" element={<LoginPage />} />
+              
+              {/* Public Auth Routes (authenticated users are redirected away) */}
+              <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+              <Route path="/register/volunteer" element={<PublicRoute><VolunteerSignupPage /></PublicRoute>} />
+              <Route path="/register/ngo" element={<PublicRoute><NgoSignupPage /></PublicRoute>} />
+              <Route path="/register/donor" element={<PublicRoute><DonorSignupPage /></PublicRoute>} />
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              
+              {/* Password Recovery Routes */}
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              
+              {/* Pending Queue Route */}
+              <Route path="/pending" element={<PendingRoute><PendingPage /></PendingRoute>} />
+
+              {/* Protected Member Dashboards */}
+              <Route path="/dashboard/volunteer" element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerDashboardPlaceholder />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/ngo" element={
+                <ProtectedRoute allowedRoles={["ngo"]}>
+                  <NgoDashboardPlaceholder />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/donor" element={
+                <ProtectedRoute allowedRoles={["donor"]}>
+                  <DonorDashboardPlaceholder />
+                </ProtectedRoute>
+              } />
+
               <Route path="/suggest-project" element={<SuggestProjectPage />} />
               <Route path="/donate" element={<DonatePage />} />
               <Route path="/media" element={<MediaPage />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
+              
+              {/* Protected Administrator Dashboard */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboardPage />
+                </ProtectedRoute>
+              } />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
