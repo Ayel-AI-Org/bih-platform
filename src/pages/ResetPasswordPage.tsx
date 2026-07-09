@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -68,7 +68,12 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 p-4">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md mb-4 text-left">
+        <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
+          &larr; Back to home
+        </Link>
+      </div>
       <Card className="w-full max-w-md shadow-md border-t-4 border-[#D4A017]">
         <CardHeader className="text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#D4A017]">

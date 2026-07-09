@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, Clock, FolderOpen, Heart, Check, ShieldAlert, Loader2 } from "lucide-react";
+import { Users, Clock, FolderOpen, Heart, Check, ShieldAlert, Loader2, FolderHeart, MessageSquare, Eye } from "lucide-react";
 
 interface PendingUserItem {
   id: string; // user_id
@@ -16,6 +17,12 @@ interface PendingUserItem {
   createdAt: string;
 }
 
+interface PendingPortfolioItem {
+  id: string;
+  title: string;
+  submitterName: string;
+}
+
 const AdminOverviewPage = () => {
   const { toast } = useToast();
   const [stats, setStats] = useState({
@@ -23,8 +30,11 @@ const AdminOverviewPage = () => {
     pendingApprovals: 0,
     totalProjects: 0,
     totalDonations: 0,
+    pendingPortfolios: 0,
+    pendingSuggestions: 0,
   });
   const [pendingList, setPendingList] = useState<PendingUserItem[]>([]);
+  const [recentPortfolios, setRecentPortfolios] = useState<PendingPortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
@@ -64,14 +74,32 @@ const AdminOverviewPage = () => {
 
       const donationsSum = (donationsData || []).reduce((acc, row) => acc + Number(row.amount), 0);
 
+      // 5. Fetch pending portfolio entries count
+      const { count: portfolioCount, error: portCountErr } = await supabase
+        .from("portfolio_entries")
+        .select("id", { count: "exact" })
+        .eq("status", "pending");
+
+      if (portCountErr) throw portCountErr;
+
+      // 6. Fetch pending suggestions count
+      const { count: suggestionCount, error: sugCountErr } = await supabase
+        .from("project_suggestions")
+        .select("id", { count: "exact" })
+        .in("status", ["pending", "reviewing"]);
+
+      if (sugCountErr) throw sugCountErr;
+
       setStats({
         totalUsers: usersCount || 0,
         pendingApprovals: pendingCount,
         totalProjects: projectsCount || 0,
         totalDonations: donationsSum,
+        pendingPortfolios: portfolioCount || 0,
+        pendingSuggestions: suggestionCount || 0,
       });
 
-      // 5. Fetch details of pending users for the quick list (top 5)
+      // 7. Fetch details of pending users for the quick list (top 5)
       // Volunteers pending
       const { data: vols, error: volsErr } = await supabase
         .from("volunteer_profiles")
@@ -96,7 +124,6 @@ const AdminOverviewPage = () => {
 
       if (donorsErr) throw donorsErr;
 
-      // Map and combine
       const combined: PendingUserItem[] = [
         ...(vols || []).map((v: any) => ({
           id: v.user_id,
@@ -121,11 +148,26 @@ const AdminOverviewPage = () => {
         })),
       ];
 
-      // Sort by created_at descending
       combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-      // Limit to 5
       setPendingList(combined.slice(0, 5));
+
+      // 8. Fetch last 3 pending portfolio entries
+      const { data: pendingPorts, error: portsErr } = await supabase
+        .from("portfolio_entries")
+        .select("id, title, profiles!user_id(full_name)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (portsErr) throw portsErr;
+
+      setRecentPortfolios(
+        (pendingPorts || []).map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          submitterName: p.profiles?.full_name || "Unknown Submitter",
+        }))
+      );
     } catch (err: any) {
       toast({
         title: "Failed to fetch stats",
@@ -163,7 +205,6 @@ const AdminOverviewPage = () => {
         description: "Status successfully updated to approved in the registry.",
       });
 
-      // Refresh data
       await fetchOverviewData();
     } catch (err: any) {
       toast({
@@ -183,8 +224,8 @@ const AdminOverviewPage = () => {
           <Skeleton className="h-9 w-48 mb-2" />
           <Skeleton className="h-4 w-72" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          {[...Array(6)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <Skeleton className="h-4 w-24" />
@@ -196,22 +237,55 @@ const AdminOverviewPage = () => {
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32 mb-1" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full rounded" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
+
+  const statCards = [
+    {
+      title: "Registered Users",
+      value: stats.totalUsers,
+      icon: Users,
+      color: "text-indigo-500",
+      path: "/admin/users",
+    },
+    {
+      title: "Pending Approvals",
+      value: stats.pendingApprovals,
+      icon: Clock,
+      color: "text-[#D4A017]",
+      path: "/admin/users",
+    },
+    {
+      title: "Active Projects",
+      value: stats.totalProjects,
+      icon: FolderOpen,
+      color: "text-emerald-500",
+      path: "/admin/projects",
+    },
+    {
+      title: "Fundraising Total",
+      value: `GHS ${stats.totalDonations.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      icon: Heart,
+      color: "text-rose-500",
+      path: "/admin/donations",
+    },
+    {
+      title: "Pending Portfolios",
+      value: stats.pendingPortfolios,
+      icon: FolderHeart,
+      color: "text-[#1E3A5F]",
+      path: "/admin/portfolio",
+    },
+    {
+      title: "Pending Suggestions",
+      value: stats.pendingSuggestions,
+      icon: MessageSquare,
+      color: "text-[#C8601A]",
+      path: "/admin/suggestions",
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -223,79 +297,53 @@ const AdminOverviewPage = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Registered Users
-            </span>
-            <Users className="h-4 w-4 text-indigo-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-[#1E3A5F]">{stats.totalUsers}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Pending Approvals
-            </span>
-            <Clock className="h-4 w-4 text-[#D4A017]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-[#D4A017]">{stats.pendingApprovals}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Active Projects
-            </span>
-            <FolderOpen className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-[#1E3A5F]">{stats.totalProjects}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Fundraising Total
-            </span>
-            <Heart className="h-4 w-4 text-rose-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-rose-600">
-              GHS {stats.totalDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={card.title}
+              to={card.path}
+              className="block transition-all hover:scale-[1.02] active:scale-[0.98] h-full"
+              title={`Go to ${card.title} page`}
+            >
+              <Card className="shadow-sm border-slate-200 hover:border-slate-350 hover:shadow-md transition-all h-full cursor-pointer">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    {card.title}
+                  </span>
+                  <Icon className={`h-4 w-4 ${card.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl font-bold font-mono text-[#1E3A5F]">{card.value}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Pending approvals quick list */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-xl font-serif text-[#1E3A5F]">Recent Pending Approvals</CardTitle>
-          <CardDescription>
-            Most recent applicant submissions awaiting profile activation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pendingList.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              All registration applications are fully processed. No pending reviews.
-            </p>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
+      {/* Two Columns List Area */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Pending approvals quick list */}
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl font-serif text-[#1E3A5F]">Recent Pending Approvals</CardTitle>
+            <CardDescription>
+              Most recent applicant submissions awaiting profile activation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {pendingList.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-10">
+                All registration applications are fully processed. No pending reviews.
+              </p>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/50">
                     <TableHead>Name</TableHead>
-                    <TableHead>Requested Role</TableHead>
-                    <TableHead>Date Registered</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -304,31 +352,24 @@ const AdminOverviewPage = () => {
                     <TableRow key={item.id} className="hover:bg-slate-50/50 text-xs">
                       <TableCell className="font-semibold text-slate-800">
                         <div>{item.fullName}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{item.email}</div>
+                        <div className="text-[9px] text-muted-foreground font-mono mt-0.5">{item.email}</div>
                       </TableCell>
                       <TableCell className="capitalize">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-[9px]">
                           {item.role}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {new Date(item.createdAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"
                           onClick={() => handleApproveInline(item.id, item.role)}
                           disabled={approvingId === item.id}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 text-[11px]"
+                          className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white gap-1 h-7 text-[10px] px-2.5"
                         >
                           {approvingId === item.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <Check className="h-3.5 w-3.5" />
+                            <Check className="h-3 w-3" />
                           )}
                           Approve
                         </Button>
@@ -337,10 +378,54 @@ const AdminOverviewPage = () => {
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent portfolio submissions */}
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl font-serif text-[#1E3A5F]">Recent Portfolio Submissions</CardTitle>
+            <CardDescription>
+              Volunteer and NGO showcases awaiting moderator review checks.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentPortfolios.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-10">
+                No portfolio entries awaiting review.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/50">
+                    <TableHead>Submitter Name</TableHead>
+                    <TableHead>Entry Title</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentPortfolios.map((port) => (
+                    <TableRow key={port.id} className="hover:bg-slate-50/50 text-xs">
+                      <TableCell className="font-semibold text-slate-800">{port.submitterName}</TableCell>
+                      <TableCell className="text-slate-655 font-medium truncate max-w-[150px]" title={port.title}>
+                        {port.title}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="outline" className="h-7 text-[10px] px-2.5 border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50">
+                          <Link to="/admin/portfolio" className="flex gap-1 items-center">
+                            <Eye className="h-3.5 w-3.5" /> Review
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

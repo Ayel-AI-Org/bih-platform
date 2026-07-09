@@ -29,8 +29,13 @@ const roles = [
 
 const RegisterPage = () => {
   return (
-    <section className="py-20 bg-slate-50 min-h-[85vh] flex items-center">
+    <section className="py-20 bg-slate-50 min-h-[85vh] flex flex-col items-center justify-center">
       <div className="container max-w-5xl">
+        <div className="mb-6 text-left">
+          <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
+            &larr; Back to home
+          </Link>
+        </div>
         <div className="text-center mb-12 space-y-3">
           <span className="inline-block px-3 py-1 rounded-full bg-amber-50 text-[#D4A017] text-xs font-semibold uppercase tracking-widest border border-amber-200">
             Join the Ecosystem

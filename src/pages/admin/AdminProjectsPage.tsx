@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,6 +47,8 @@ const AdminProjectsPage = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<AdminProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Form Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -114,6 +117,30 @@ const AdminProjectsPage = () => {
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  useEffect(() => {
+    const title = searchParams.get("title");
+    const description = searchParams.get("description");
+    const location = searchParams.get("location");
+    const timeline = searchParams.get("timeline");
+    const category = searchParams.get("category");
+
+    if (title || description || location || timeline || category) {
+      reset({
+        title: title || "",
+        description: description || "",
+        location: location || "",
+        category: category || "",
+        status: "proposed",
+        timeline: timeline || "",
+        imageUrl: "",
+        partners: "",
+      });
+      setModalOpen(true);
+      // Clear parameters to prevent modal reopening on later operations
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   const handleOpenCreate = () => {
     setEditingProject(null);

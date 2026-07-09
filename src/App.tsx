@@ -20,13 +20,35 @@ import MediaPage from "./pages/MediaPage";
 import PendingPage from "./pages/PendingPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import VolunteerDashboardPlaceholder from "./pages/dashboard/VolunteerDashboardPlaceholder";
-import NgoDashboardPlaceholder from "./pages/dashboard/NgoDashboardPlaceholder";
-import DonorDashboardPlaceholder from "./pages/dashboard/DonorDashboardPlaceholder";
+
+// Dashboards & Layouts
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import VolunteerOverviewPage from "./pages/dashboard/volunteer/VolunteerOverviewPage";
+import VolunteerProfilePage from "./pages/dashboard/volunteer/VolunteerProfilePage";
+import VolunteerPortfolioPage from "./pages/dashboard/volunteer/VolunteerPortfolioPage";
+import VolunteerLogHoursPage from "./pages/dashboard/volunteer/VolunteerLogHoursPage";
+import VolunteerHoursHistoryPage from "./pages/dashboard/volunteer/VolunteerHoursHistoryPage";
+import VolunteerBadgesPage from "./pages/dashboard/volunteer/VolunteerBadgesPage";
+
+import NgoOverviewPage from "./pages/dashboard/ngo/NgoOverviewPage";
+import NgoProfilePage from "./pages/dashboard/ngo/NgoProfilePage";
+import NgoProjectsPage from "./pages/dashboard/ngo/NgoProjectsPage";
+import NgoVerifyHoursPage from "./pages/dashboard/ngo/NgoVerifyHoursPage";
+
+import DonorOverviewPage from "./pages/dashboard/donor/DonorOverviewPage";
+import DonorProfilePage from "./pages/dashboard/donor/DonorProfilePage";
+import DonorHistoryPage from "./pages/dashboard/donor/DonorHistoryPage";
+import DonorImpactPage from "./pages/dashboard/donor/DonorImpactPage";
+
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminProjectsPage from "./pages/admin/AdminProjectsPage";
+import AdminPortfolioPage from "./pages/admin/AdminPortfolioPage";
+import AdminHoursPage from "./pages/admin/AdminHoursPage";
+import AdminSuggestionsPage from "./pages/admin/AdminSuggestionsPage";
+import AdminMediaPage from "./pages/admin/AdminMediaPage";
+import AdminMediaFormPage from "./pages/admin/AdminMediaFormPage";
 import AdminDonationsPage from "./pages/admin/AdminDonationsPage";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute, PublicRoute, PendingRoute } from "@/components/layout/AuthGuards";
@@ -66,37 +88,76 @@ const App = () => {
               {/* Pending Queue Route */}
               <Route path="/pending" element={<PendingRoute><PendingPage /></PendingRoute>} />
 
-              {/* Protected Member Dashboards */}
-              <Route path="/dashboard/volunteer" element={
-                <ProtectedRoute allowedRoles={["volunteer"]}>
-                  <VolunteerDashboardPlaceholder />
-                </ProtectedRoute>
-              } />
-              <Route path="/dashboard/ngo" element={
-                <ProtectedRoute allowedRoles={["ngo"]}>
-                  <NgoDashboardPlaceholder />
-                </ProtectedRoute>
-              } />
-              <Route path="/dashboard/donor" element={
-                <ProtectedRoute allowedRoles={["donor"]}>
-                  <DonorDashboardPlaceholder />
-                </ProtectedRoute>
-              } />
-
               <Route path="/suggest-project" element={<SuggestProjectPage />} />
               <Route path="/donate" element={<DonatePage />} />
               <Route path="/media" element={<MediaPage />} />
             </Route>
 
+            {/* Protected Volunteer Dashboard (Outside public SiteLayout) */}
+            <Route
+              path="/dashboard/volunteer"
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<VolunteerOverviewPage />} />
+              <Route path="profile" element={<VolunteerProfilePage />} />
+              <Route path="portfolio" element={<VolunteerPortfolioPage />} />
+              <Route path="log-hours" element={<VolunteerLogHoursPage />} />
+              <Route path="hours-history" element={<VolunteerHoursHistoryPage />} />
+              <Route path="badges" element={<VolunteerBadgesPage />} />
+            </Route>
+
+            {/* Protected NGO Dashboard (Outside public SiteLayout) */}
+            <Route
+              path="/dashboard/ngo"
+              element={
+                <ProtectedRoute allowedRoles={["ngo"]}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<NgoOverviewPage />} />
+              <Route path="profile" element={<NgoProfilePage />} />
+              <Route path="projects" element={<NgoProjectsPage />} />
+              <Route path="verify-hours" element={<NgoVerifyHoursPage />} />
+            </Route>
+
+            {/* Protected Donor Dashboard (Outside public SiteLayout) */}
+            <Route
+              path="/dashboard/donor"
+              element={
+                <ProtectedRoute allowedRoles={["donor"]}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<DonorOverviewPage />} />
+              <Route path="profile" element={<DonorProfilePage />} />
+              <Route path="history" element={<DonorHistoryPage />} />
+              <Route path="impact" element={<DonorImpactPage />} />
+            </Route>
+
             {/* Protected Administrator Dashboard (Outside public SiteLayout) */}
-            <Route path="/admin" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminLayout />
-              </ProtectedRoute>
-            }>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<AdminOverviewPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="projects" element={<AdminProjectsPage />} />
+              <Route path="portfolio" element={<AdminPortfolioPage />} />
+              <Route path="hours" element={<AdminHoursPage />} />
+              <Route path="suggestions" element={<AdminSuggestionsPage />} />
+              <Route path="media" element={<AdminMediaPage />} />
+              <Route path="media/new" element={<AdminMediaFormPage />} />
+              <Route path="media/edit/:id" element={<AdminMediaFormPage />} />
               <Route path="donations" element={<AdminDonationsPage />} />
             </Route>
 
@@ -109,4 +170,3 @@ const App = () => {
 };
 
 export default App;
-

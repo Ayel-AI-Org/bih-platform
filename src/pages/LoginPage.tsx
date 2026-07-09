@@ -171,7 +171,12 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-[85vh] py-12 bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-[85vh] py-12 bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md mb-4 text-left">
+        <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
+          &larr; Back to home
+        </Link>
+      </div>
       <Card className="w-full max-w-md shadow-md border-t-4 border-[#D4A017]">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#D4A017]">
