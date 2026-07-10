@@ -85,6 +85,22 @@ const RegisterPage = () => {
                       {role.cta} <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
+                  {role.path !== "/register/ngo" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleGoogleRegister(role.path === "/register/volunteer" ? "volunteer" : "donor")}
+                      className="w-full border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#1E3A5F]"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22.56,12.25c0,-0.78 -0.07,-1.53 -0.2,-2.25h-10.36v4.26h5.92c-0.26,1.37 -1.04,2.53 -2.21,3.31v2.77h3.57c2.08,-1.92 3.28,-4.74 3.28,-8.09z" fill="#4285F4" />
+                        <path d="M12,23c2.97,0 5.46,-0.98 7.28,-2.66l-3.57,-2.77c-0.98,0.66 -2.23,1.06 -3.71,1.06c-2.86,0 -5.29,-1.93 -6.16,-4.53h-3.69v2.87c1.82,3.61 5.55,6.03 9.85,6.03z" fill="#34A853" />
+                        <path d="M5.84,14.09c-0.22,-0.66 -0.35,-1.36 -0.35,-2.09c0,-0.73 0.13,-1.43 0.35,-2.09v-2.87h-3.69c-0.77,1.54 -1.21,3.27 -1.21,5.1c0,1.83 0.44,3.56 1.21,5.1l3.69,-2.87z" fill="#FBBC05" />
+                        <path d="M12,5.38c1.62,0 3.06,0.56 4.21,1.64l3.15,-3.15c-1.91,-1.78 -4.42,-2.87 -7.36,-2.87c-4.3,0 -8.03,2.42 -9.85,6.03l3.69,2.87c0.87,-2.6 3.3,-4.52 6.16,-4.52z" fill="#EA4335" />
+                      </svg>
+                      Continue with Google
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
