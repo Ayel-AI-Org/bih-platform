@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 96%;
+    --foreground: 0 0% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
+
+    --primary: 214 52% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 86 39% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 44 80% 46%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 6 63% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 214 52% 24%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 214 52% 24%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 44 80% 46%;
+    --sidebar-primary-foreground: 214 52% 24%;
+    --sidebar-accent: 86 39% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 214 30% 32%;
+    --sidebar-ring: 44 80% 46%;
+
+    /* Custom tokens */
+    --hero-gradient: linear-gradient(135deg, hsl(214, 52%, 24%) 0%, hsl(86, 39%, 40%) 100%);
+    --accent-glow: 0 8px 32px -8px hsl(44, 80%, 46%, 0.4);
+    --card-shadow: 0 4px 24px -4px hsl(0, 0%, 17%, 0.08);
+    --card-hover-shadow: 0 8px 32px -4px hsl(0, 0%, 17%, 0.12);
+  }
+
+  .dark {
+    --background: 214 41% 12%;
+    --foreground: 44 45% 96%;
+    --card: 214 40% 15%;
+    --card-foreground: 44 45% 96%;
+    --popover: 214 40% 15%;
+    --popover-foreground: 44 45% 96%;
+    --primary: 213 44% 44%;
+    --primary-foreground: 44 45% 96%;
+    --secondary: 212 28% 20%;
+    --secondary-foreground: 44 45% 96%;
+    --muted: 212 28% 20%;
+    --muted-foreground: 43 20% 70%;
+    --accent: 38 86% 54%;
+    --accent-foreground: 213 52% 20%;
+    --border: 212 26% 26%;
+    --input: 212 26% 26%;
+    --ring: 85 45% 43%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'DM Serif Display', serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

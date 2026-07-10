@@ -56,7 +56,7 @@ serve(async (req: Request) => {
       ? `<div style="font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937;">
           <h2>Welcome to Bridge for Impact Hub</h2>
           <p>Hello ${payload.name},</p>
-          <p>Your ${payload.role.toLowerCase()} registration has been <strong>approved</strong>.</p>
+          <p>Your BIH account has been approved. Sign in at <a href="https://bridgeforimpacthub.org/login">bridgeforimpacthub.org/login</a>.</p>
           ${noteSection}
           <p>You are now officially part of the BIH platform community.</p>
           <p>Thank you for joining us.</p>
