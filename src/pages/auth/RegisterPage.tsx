@@ -2,6 +2,8 @@ import { ArrowRight, Building2, HandHeart, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { supabase } from "@/database/client";
+import { useToast } from "@/hooks/use-toast";
 
 const roles = [
   {
@@ -28,6 +30,25 @@ const roles = [
 ];
 
 const RegisterPage = () => {
+  const { toast } = useToast();
+
+  const handleGoogleRegister = async (role: "volunteer" | "donor") => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast({
+        title: "Google registration failed",
+        description: err.message || "Could not initialize Google OAuth.",
+        variant: "destructive",
+      });
+    }
+  };
   return (
     <section className="py-20 bg-slate-50 min-h-[85vh] flex flex-col items-center justify-center">
       <div className="container max-w-5xl">
@@ -58,7 +79,7 @@ const RegisterPage = () => {
                   <CardTitle className="text-xl font-serif text-[#1E3A5F]">{role.title}</CardTitle>
                   <CardDescription className="text-xs min-h-[36px]">{role.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 space-y-2">
                   <Button asChild className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white flex items-center justify-center gap-1.5 text-xs">
                     <Link to={role.path}>
                       {role.cta} <ArrowRight className="h-3.5 w-3.5" />

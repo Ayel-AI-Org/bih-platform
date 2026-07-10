@@ -290,7 +290,7 @@ const AdminOverviewPage = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Admin Overview</h1>
+        <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Administration Overview</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Ecosystem health, registrations, and transaction metrics.
         </p>

@@ -410,9 +410,6 @@ create policy "Donors view own donations"
 on public.donations for select
 using (auth.uid() = donor_id);
 
-create policy "Anyone can insert donation"
-on public.donations for insert
-with check (true);
 
 create policy "Admins read all donations"
 on public.donations for select
