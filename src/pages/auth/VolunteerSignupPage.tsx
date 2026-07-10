@@ -45,6 +45,7 @@ const VolunteerSignupPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const {
     register,
@@ -306,10 +307,32 @@ const VolunteerSignupPage = () => {
               )}
             </div>
 
+            <div className="flex items-start gap-2.5 pt-2 pb-1">
+              <input
+                id="consentCheckbox"
+                type="checkbox"
+                checked={acceptedTerms}
+                disabled={submitting}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4.5 w-4.5 rounded border-slate-300 text-[#1E3A5F] focus:ring-[#1E3A5F] cursor-pointer"
+              />
+              <Label htmlFor="consentCheckbox" className="text-xs text-slate-600 leading-normal font-normal cursor-pointer select-none">
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="text-[#1E3A5F] font-medium hover:underline">
+                  Terms & Conditions
+                </Link>{" "}
+                and consent to the{" "}
+                <Link to="/privacy" target="_blank" className="text-[#1E3A5F] font-medium hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </Label>
+            </div>
+
             <Button
               type="submit"
-              disabled={submitting}
-              className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white flex items-center justify-center gap-2 mt-2"
+              disabled={submitting || !acceptedTerms}
+              className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Register as Volunteer

@@ -4,6 +4,7 @@ import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { OnboardingTutorial } from "@/components/layout/OnboardingTutorial";
 import {
   LayoutDashboard,
   User,
@@ -243,6 +244,9 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+      {/* Onboarding Tutorial */}
+      {role && <OnboardingTutorial role={role} userName={fullName} />}
+      
       {/* Mobile Top Header */}
       <header className="lg:hidden bg-white text-[#1E3A5F] px-4 py-3 flex items-center justify-between border-b border-slate-150">
         <div className="flex items-center gap-2">

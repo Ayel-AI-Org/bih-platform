@@ -53,18 +53,32 @@ const Hero = () => {
           // Keep as "—"
         }
 
+        const formatStat = (count: number | null, hasError: any) => {
+          if (hasError || count === null || count === undefined || count === 0) {
+            return "Active";
+          }
+          return `${count}+`;
+        };
+
+        const formatLives = (val: string) => {
+          if (!val || val === "0" || val === "—" || val === "0+") {
+            return "Active";
+          }
+          return val;
+        };
+
         setStats({
-          volunteers: volErr ? "—" : (volCount ?? 0),
-          ngos: ngoErr ? "—" : (ngoCount ?? 0),
-          projects: projErr ? "—" : (projCount ?? 0),
-          lives: livesValue,
+          volunteers: formatStat(volCount, volErr),
+          ngos: formatStat(ngoCount, ngoErr),
+          projects: formatStat(projCount, projErr),
+          lives: formatLives(livesValue),
         });
       } catch (err) {
         setStats({
-          volunteers: "—",
-          ngos: "—",
-          projects: "—",
-          lives: "—",
+          volunteers: "Active",
+          ngos: "Active",
+          projects: "Active",
+          lives: "Active",
         });
       } finally {
         setLoading(false);

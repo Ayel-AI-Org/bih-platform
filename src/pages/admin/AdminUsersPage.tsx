@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Download, Check, X, Loader2, AlertCircle } from "lucide-react";
+import { Search, Download, Check, X, Loader2, AlertCircle, Shield } from "lucide-react";
 
 interface AdminUserItem {
   id: string; // user_id
@@ -19,6 +19,7 @@ interface AdminUserItem {
   email: string;
   createdAt: string;
   approvalStatus: "pending" | "approved" | "rejected";
+  role?: string;
 }
 
 const AdminUsersPage = () => {
@@ -26,6 +27,7 @@ const AdminUsersPage = () => {
   const [volunteers, setVolunteers] = useState<AdminUserItem[]>([]);
   const [ngos, setNgos] = useState<AdminUserItem[]>([]);
   const [donors, setDonors] = useState<AdminUserItem[]>([]);
+  const [admins, setAdmins] = useState<AdminUserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("volunteers");
@@ -36,12 +38,18 @@ const AdminUsersPage = () => {
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  // Role Management state
+  const [manageRoleOpen, setManageRoleOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
+  const [newRole, setNewRole] = useState<string>("");
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+
   const fetchUsersData = async () => {
     try {
       // 1. Fetch Volunteers
       const { data: vols, error: volsErr } = await supabase
         .from("volunteer_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email)");
+        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
 
       if (volsErr) throw volsErr;
 
@@ -52,13 +60,14 @@ const AdminUsersPage = () => {
           email: v.profiles?.email || "",
           createdAt: v.created_at,
           approvalStatus: v.approval_status as any,
+          role: v.profiles?.role || "volunteer",
         }))
       );
 
       // 2. Fetch NGOs
       const { data: ngoList, error: ngoErr } = await supabase
         .from("ngo_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email)");
+        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
 
       if (ngoErr) throw ngoErr;
 
@@ -69,13 +78,14 @@ const AdminUsersPage = () => {
           email: n.profiles?.email || "",
           createdAt: n.created_at,
           approvalStatus: n.approval_status as any,
+          role: n.profiles?.role || "ngo",
         }))
       );
 
       // 3. Fetch Donors
       const { data: donorList, error: donorErr } = await supabase
         .from("donor_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email)");
+        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
 
       if (donorErr) throw donorErr;
 
@@ -86,6 +96,26 @@ const AdminUsersPage = () => {
           email: d.profiles?.email || "",
           createdAt: d.created_at,
           approvalStatus: d.approval_status as any,
+          role: d.profiles?.role || "donor",
+        }))
+      );
+
+      // 4. Fetch Admins
+      const { data: admList, error: admErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role, created_at")
+        .in("role", ["admin", "super_admin"]);
+
+      if (admErr) throw admErr;
+
+      setAdmins(
+        (admList || []).map((a: any) => ({
+          id: a.id,
+          fullName: a.full_name,
+          email: a.email,
+          createdAt: a.created_at,
+          approvalStatus: "approved",
+          role: a.role,
         }))
       );
     } catch (err: any) {
@@ -101,6 +131,21 @@ const AdminUsersPage = () => {
 
   useEffect(() => {
     fetchUsersData();
+
+    const fetchCurrentUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role) {
+          setCurrentUserRole(profile.role);
+        }
+      }
+    };
+    fetchCurrentUserRole();
   }, []);
 
   const handleApprove = async (userId: string, role: "volunteer" | "ngo" | "donor") => {
@@ -119,9 +164,35 @@ const AdminUsersPage = () => {
 
       if (error) throw error;
 
+      // Locate user details to send email notification
+      let userItem: any = null;
+      if (role === "volunteer") {
+        userItem = volunteers.find((v) => v.id === userId);
+      } else if (role === "ngo") {
+        userItem = ngos.find((n) => n.id === userId);
+      } else if (role === "donor") {
+        userItem = donors.find((d) => d.id === userId);
+      }
+
+      if (userItem && userItem.email) {
+        try {
+          const capitalizedRole = role === "volunteer" ? "Volunteer" : role === "ngo" ? "NGO" : "Donor";
+          await supabase.functions.invoke("registration-decision-email", {
+            body: {
+              to: userItem.email,
+              name: userItem.fullName,
+              role: capitalizedRole,
+              status: "approved",
+            },
+          });
+        } catch (emailErr) {
+          console.error("Failed to send approval confirmation email:", emailErr);
+        }
+      }
+
       toast({
         title: "User approved",
-        description: "Status successfully updated in registration record.",
+        description: "Status successfully updated in registration record and notification triggered.",
       });
 
       fetchUsersData();
@@ -177,11 +248,49 @@ const AdminUsersPage = () => {
     }
   };
 
+  const handleRoleUpdate = async () => {
+    if (!selectedUser) return;
+    setProcessing(true);
+    try {
+      // Safety checks:
+      if (newRole === "super_admin" && currentUserRole !== "super_admin") {
+        throw new Error("Only a Super Admin can grant Super Admin privileges.");
+      }
+      if (selectedUser.role === "super_admin" && currentUserRole !== "super_admin") {
+        throw new Error("Only a Super Admin can modify or revoke Super Admin privileges.");
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", selectedUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Role Updated Successfully",
+        description: `Successfully updated ${selectedUser.fullName}'s role to ${newRole}.`,
+      });
+
+      setManageRoleOpen(false);
+      fetchUsersData();
+    } catch (err: any) {
+      toast({
+        title: "Role update failed",
+        description: err.message || "Failed to update profile role.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getFilteredData = () => {
     const dataMap: Record<string, AdminUserItem[]> = {
       volunteers,
       ngos,
       donors,
+      admins,
     };
     const dataset = dataMap[activeTab] || [];
     if (!searchQuery) return dataset;
@@ -205,12 +314,12 @@ const AdminUsersPage = () => {
       return;
     }
 
-    const headers = ["Full Name", "Email", "Date Registered", "Approval Status"];
+    const headers = ["Full Name", "Email", "Date Registered", activeTab === "admins" ? "System Role" : "Approval Status"];
     const rows = dataset.map((user) => [
       user.fullName,
       user.email,
       new Date(user.createdAt).toLocaleDateString(),
-      user.approvalStatus,
+      activeTab === "admins" ? user.role || "" : user.approvalStatus,
     ]);
 
     const csvContent =
@@ -268,6 +377,9 @@ const AdminUsersPage = () => {
             <TabsTrigger value="donors" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">
               Donors
             </TabsTrigger>
+            <TabsTrigger value="admins" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white flex gap-1">
+              <Shield className="h-3.5 w-3.5" /> Admins & Staff
+            </TabsTrigger>
           </TabsList>
 
           <div className="relative w-full sm:w-72">
@@ -281,7 +393,7 @@ const AdminUsersPage = () => {
           </div>
         </div>
 
-        {["volunteers", "ngos", "donors"].map((roleKey) => (
+        {["volunteers", "ngos", "donors", "admins"].map((roleKey) => (
           <TabsContent key={roleKey} value={roleKey} className="mt-0">
             <Card className="shadow-sm border-slate-200">
               <CardContent className="p-0">
@@ -298,7 +410,7 @@ const AdminUsersPage = () => {
                           <TableHead>Full Name</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Date Registered</TableHead>
-                          <TableHead>Approval Status</TableHead>
+                          <TableHead>{roleKey === "admins" ? "System Role" : "Approval Status"}</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -321,19 +433,21 @@ const AdminUsersPage = () => {
                             <TableCell>
                               <Badge
                                 className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${
-                                  user.approvalStatus === "approved"
-                                    ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90"
-                                    : user.approvalStatus === "rejected"
-                                    ? "bg-[#C0392B] hover:bg-[#C0392B]/90"
-                                    : "bg-[#C8601A] hover:bg-[#C8601A]/90"
+                                  roleKey === "admins"
+                                    ? (user.role === "super_admin" ? "bg-purple-600 hover:bg-purple-700" : "bg-indigo-600 hover:bg-indigo-700")
+                                    : (user.approvalStatus === "approved"
+                                      ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90"
+                                      : user.approvalStatus === "rejected"
+                                      ? "bg-[#C0392B] hover:bg-[#C0392B]/90"
+                                      : "bg-[#C8601A] hover:bg-[#C8601A]/90")
                                 }`}
                               >
-                                {user.approvalStatus}
+                                {roleKey === "admins" ? user.role : user.approvalStatus}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1.5">
-                                {user.approvalStatus !== "approved" && (
+                                {roleKey !== "admins" && user.approvalStatus !== "approved" && (
                                   <Button
                                     size="sm"
                                     onClick={() => handleApprove(user.id, roleKey.slice(0, -1) as any)}
@@ -342,7 +456,7 @@ const AdminUsersPage = () => {
                                     <Check className="h-3 w-3" /> Approve
                                   </Button>
                                 )}
-                                {user.approvalStatus !== "rejected" && (
+                                {roleKey !== "admins" && user.approvalStatus !== "rejected" && (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -350,6 +464,20 @@ const AdminUsersPage = () => {
                                     className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 h-7 px-2 text-[10px] flex gap-1"
                                   >
                                     <X className="h-3 w-3" /> Reject
+                                  </Button>
+                                )}
+                                {(user.approvalStatus === "approved" || roleKey === "admins") && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedUser(user);
+                                      setNewRole(user.role || "");
+                                      setManageRoleOpen(true);
+                                    }}
+                                    className="border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 h-7 px-2 text-[10px] flex gap-1"
+                                  >
+                                    Manage Role
                                   </Button>
                                 )}
                               </div>
@@ -400,6 +528,72 @@ const AdminUsersPage = () => {
             >
               {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Reject Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage User Role Modal */}
+      <Dialog open={manageRoleOpen} onOpenChange={setManageRoleOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Manage User Role</DialogTitle>
+            <DialogDescription>
+              Update system clearance and access level for the selected account.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4 pt-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">User Details</Label>
+                <p className="text-sm font-semibold text-slate-800">{selectedUser.fullName}</p>
+                <p className="text-xs font-mono text-slate-500">{selectedUser.email}</p>
+                <p className="text-xs mt-1">
+                  Current Role: <span className="font-semibold uppercase text-amber-600">{selectedUser.role}</span>
+                </p>
+              </div>
+
+              {selectedUser.role === "super_admin" && currentUserRole !== "super_admin" ? (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <p>This user has Super Admin privileges. Only another Super Admin can modify or revoke their clearance level.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="roleSelect">Select System Role</Label>
+                  <select
+                    id="roleSelect"
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="volunteer">Volunteer</option>
+                    <option value="ngo">NGO Partner / Coordinator</option>
+                    <option value="donor">Donor Member</option>
+                    <option value="admin">Standard Admin (Staff/Moderator)</option>
+                    {currentUserRole === "super_admin" && (
+                      <option value="super_admin">Super Admin (Highest Clearance)</option>
+                    )}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setManageRoleOpen(false)}
+              className="text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRoleUpdate}
+              disabled={processing || (selectedUser?.role === "super_admin" && currentUserRole !== "super_admin")}
+              className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white text-xs h-9 flex gap-1.5"
+            >
+              {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save Role Changes
             </Button>
           </DialogFooter>
         </DialogContent>

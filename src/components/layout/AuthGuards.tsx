@@ -28,7 +28,7 @@ export const fetchUserAuthStatus = async (): Promise<Omit<UserAuthStatus, "loadi
   }
 
   const role = profile.role as UserRole;
-  if (role === "admin") {
+  if (role === "admin" || role === "super_admin") {
     return { user, role, approvalStatus: null };
   }
 
@@ -104,8 +104,8 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // If role is admin -> redirect to /admin if they try to access volunteer/ngo/donor dashboards
-  if (status.role === "admin") {
-    if (allowedRoles.includes("admin")) {
+  if (status.role === "admin" || status.role === "super_admin") {
+    if (allowedRoles.includes("admin") || allowedRoles.includes("super_admin")) {
       return <>{children}</>;
     }
     return <Navigate to="/admin" replace />;
@@ -164,7 +164,7 @@ export const PublicRoute = ({ children }: PublicRouteProps) => {
 
   // If authenticated -> redirect to respective portal
   if (status.user) {
-    if (status.role === "admin") {
+    if (status.role === "admin" || status.role === "super_admin") {
       return <Navigate to="/admin" replace />;
     }
     if (status.approvalStatus === "pending" || status.approvalStatus === "rejected") {
@@ -217,7 +217,7 @@ export const PendingRoute = ({ children }: PendingRouteProps) => {
   }
 
   // If admin -> redirect to /admin
-  if (status.role === "admin") {
+  if (status.role === "admin" || status.role === "super_admin") {
     return <Navigate to="/admin" replace />;
   }
 

@@ -38,6 +38,7 @@ const AdminHoursPage = () => {
   const [voidingLog, setVoidingLog] = useState<HourLogItem | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const [voiding, setVoiding] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   const fetchHoursLogs = async () => {
     try {
@@ -86,6 +87,21 @@ const AdminHoursPage = () => {
 
   useEffect(() => {
     fetchHoursLogs();
+
+    const fetchCurrentUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role) {
+          setCurrentUserRole(profile.role);
+        }
+      }
+    };
+    fetchCurrentUserRole();
   }, []);
 
   const recalculateVolunteerBadge = async (volunteerId: string) => {
@@ -166,6 +182,15 @@ const AdminHoursPage = () => {
 
   const handleVoidConfirm = async () => {
     if (!voidingLog) return;
+    if (currentUserRole !== "super_admin") {
+      toast({
+        title: "Unauthorized action",
+        description: "Only a Super Admin has the clearance to void historical hour logs.",
+        variant: "destructive",
+      });
+      setVoidDialogOpen(false);
+      return;
+    }
     setVoiding(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -323,18 +348,20 @@ const AdminHoursPage = () => {
                           >
                             <Check className="h-3 w-3" /> Verify
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenVoidDialog(log)}
-                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
-                          >
-                            <AlertTriangle className="h-3 w-3" /> Void
-                          </Button>
+                          {currentUserRole === "super_admin" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenVoidDialog(log)}
+                              className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            >
+                              <AlertTriangle className="h-3 w-3" /> Void
+                            </Button>
+                          )}
                         </>
                       )}
 
-                      {log.status === "verified" && (
+                      {log.status === "verified" && currentUserRole === "super_admin" && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -398,18 +425,20 @@ const AdminHoursPage = () => {
                     >
                       Verify
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenVoidDialog(log)}
-                      className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-8 text-xs flex-1 justify-center"
-                    >
-                      Void
-                    </Button>
+                    {currentUserRole === "super_admin" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenVoidDialog(log)}
+                        className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-8 text-xs flex-1 justify-center"
+                      >
+                        Void
+                      </Button>
+                    )}
                   </>
                 )}
 
-                {log.status === "verified" && (
+                {log.status === "verified" && currentUserRole === "super_admin" && (
                   <Button
                     size="sm"
                     variant="outline"

@@ -59,6 +59,7 @@ const AdminProjectsPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   const {
     register,
@@ -116,6 +117,21 @@ const AdminProjectsPage = () => {
 
   useEffect(() => {
     fetchProjects();
+
+    const fetchCurrentUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role) {
+          setCurrentUserRole(profile.role);
+        }
+      }
+    };
+    fetchCurrentUserRole();
   }, []);
 
   useEffect(() => {
@@ -238,6 +254,15 @@ const AdminProjectsPage = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deletingId) return;
+    if (currentUserRole !== "super_admin") {
+      toast({
+        title: "Unauthorized action",
+        description: "Only a Super Admin has the clearance to delete project blueprints.",
+        variant: "destructive",
+      });
+      setDeleteDialogOpen(false);
+      return;
+    }
     setDeleting(true);
     try {
       const { error } = await supabase.from("projects").delete().eq("id", deletingId);
@@ -395,15 +420,17 @@ const AdminProjectsPage = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleOpenDelete(p.id)}
-                            className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                            title="Delete project"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
+                          {currentUserRole === "super_admin" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleOpenDelete(p.id)}
+                              className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                              title="Delete project"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

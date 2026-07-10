@@ -24,6 +24,24 @@ const LoginPage = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast({
+        title: "Google sign in failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -239,6 +257,31 @@ const LoginPage = () => {
               Continue
             </Button>
           </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={handleGoogleLogin}
+            className="w-full border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-2 text-xs font-semibold text-[#1E3A5F]"
+          >
+            <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56,12.25c0,-0.78 -0.07,-1.53 -0.2,-2.25h-10.36v4.26h5.92c-0.26,1.37 -1.04,2.53 -2.21,3.31v2.77h3.57c2.08,-1.92 3.28,-4.74 3.28,-8.09z" fill="#4285F4" />
+              <path d="M12,23c2.97,0 5.46,-0.98 7.28,-2.66l-3.57,-2.77c-0.98,0.66 -2.23,1.06 -3.71,1.06c-2.86,0 -5.29,-1.93 -6.16,-4.53h-3.69v2.87c1.82,3.61 5.55,6.03 9.85,6.03z" fill="#34A853" />
+              <path d="M5.84,14.09c-0.22,-0.66 -0.35,-1.36 -0.35,-2.09c0,-0.73 0.13,-1.43 0.35,-2.09v-2.87h-3.69c-0.77,1.54 -1.21,3.27 -1.21,5.1c0,1.83 0.44,3.56 1.21,5.1l3.69,-2.87z" fill="#FBBC05" />
+              <path d="M12,5.38c1.62,0 3.06,0.56 4.21,1.64l3.15,-3.15c-1.91,-1.78 -4.42,-2.87 -7.36,-2.87c-4.3,0 -8.03,2.42 -9.85,6.03l3.69,2.87c0.87,-2.6 3.3,-4.52 6.16,-4.52z" fill="#EA4335" />
+            </svg>
+            Continue with Google
+          </Button>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 justify-center border-t py-4 bg-slate-50/50 text-xs text-center">
           <p className="text-muted-foreground">

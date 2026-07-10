@@ -118,6 +118,7 @@ const DonatePage = () => {
 
     setSubmitting(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       await loadPaystackScript();
 
       if (!window.PaystackPop) {
@@ -126,61 +127,22 @@ const DonatePage = () => {
 
       const txRef = `bih-${Date.now()}`;
 
-      const handlePaymentSuccess = async (reference: string) => {
-        try {
-          const referenceMessage = `Paystack Ref: ${reference}`;
-          const combinedMessage = form.message ? `${form.message}\n${referenceMessage}` : referenceMessage;
+      const handlePaymentSuccess = (reference: string) => {
+        setForm({
+          fullName: "",
+          email: "",
+          amount: "",
+          currency: "GHS",
+          paymentMethod: "mobile_money",
+          purpose: selectedProjectPurpose,
+          message: "",
+        });
 
-          // 1. Insert donation record into public.donations
-          await createDonation({
-            fullName: form.fullName,
-            email: form.email,
-            amount,
-            currency: form.currency,
-            paymentMethod: "mobile_money",
-            purpose: form.purpose,
-            message: combinedMessage,
-          });
-
-          // 2. Invoke Resend donation confirmation email via Edge Function
-          try {
-            await supabase.functions.invoke("donation-confirmation", {
-              body: {
-                email: form.email,
-                fullName: form.fullName,
-                currency: form.currency,
-                amount: amount,
-                purpose: form.purpose,
-                reference: reference,
-              },
-            });
-          } catch (emailErr) {
-            console.error("Failed to trigger donation email edge function:", emailErr);
-          }
-
-          setForm({
-            fullName: "",
-            email: "",
-            amount: "",
-            currency: "GHS",
-            paymentMethod: "mobile_money",
-            purpose: selectedProjectPurpose,
-            message: "",
-          });
-
-          toast({
-            title: "Payment successful, thank you for your support!",
-            description: `Donation recorded with reference ${reference}. Confirmation email receipt triggered.`,
-          });
-        } catch (err: any) {
-          toast({
-            title: "Donation logging failed",
-            description: err.message || "Payment succeeded but database record failed.",
-            variant: "destructive",
-          });
-        } finally {
-          setSubmitting(false);
-        }
+        toast({
+          title: "Payment completed successfully!",
+          description: `Thank you for your support. Your donation (Ref: ${reference}) is being processed securely.`,
+        });
+        setSubmitting(false);
       };
 
       const paystack = window.PaystackPop.setup({
@@ -193,9 +155,11 @@ const DonatePage = () => {
         metadata: {
           full_name: form.fullName,
           purpose: form.purpose,
+          donor_id: user?.id || null,
+          message: form.message,
         },
         callback: (response) => {
-          void handlePaymentSuccess(response.reference);
+          handlePaymentSuccess(response.reference);
         },
         onClose: () => {
           setSubmitting(false);

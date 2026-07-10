@@ -1,4 +1,4 @@
-export type UserRole = "volunteer" | "ngo" | "donor" | "admin";
+export type UserRole = "volunteer" | "ngo" | "donor" | "admin" | "super_admin";
 
 export type ProjectStatus = "proposed" | "ongoing" | "completed";
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Users, AlertCircle } from "lucide-react";
+import { MapPin, Users, AlertCircle, Search } from "lucide-react";
 import { supabase } from "@/database/client";
 import type { ProjectStatus } from "@/database/types";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 interface CatalogProject {
   id: string;
@@ -36,6 +37,7 @@ const statusLabel: Record<ProjectStatus, string> = {
 const ProjectsPage = () => {
   const [projects, setProjects] = useState<CatalogProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -71,13 +73,24 @@ const ProjectsPage = () => {
   }, []);
 
   const renderList = (status: ProjectStatus) => {
-    const items = projects.filter((project) => project.status === status);
+    const items = projects.filter((project) => {
+      const matchesStatus = project.status === status;
+      const matchesSearch =
+        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.location.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
 
     if (items.length === 0) {
       return (
         <div className="text-center py-16 text-muted-foreground bg-slate-50 border border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-2">
           <AlertCircle className="h-6 w-6 text-slate-400" />
-          <p className="text-sm font-medium">No {statusLabel[status]} projects at the moment.</p>
+          <p className="text-sm font-medium">
+            {searchQuery
+              ? `No projects match "${searchQuery}" in this category.`
+              : `No ${statusLabel[status]} projects at the moment.`}
+          </p>
         </div>
       );
     }
@@ -139,11 +152,22 @@ const ProjectsPage = () => {
           </div>
         ) : (
           <Tabs defaultValue="ongoing" className="space-y-6">
-            <TabsList className="bg-slate-100 p-1 border border-slate-200">
-              <TabsTrigger value="proposed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Pending</TabsTrigger>
-              <TabsTrigger value="ongoing" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Ongoing</TabsTrigger>
-              <TabsTrigger value="completed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Completed</TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <TabsList className="bg-slate-100 p-1 border border-slate-200 w-fit">
+                <TabsTrigger value="proposed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Pending</TabsTrigger>
+                <TabsTrigger value="ongoing" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Ongoing</TabsTrigger>
+                <TabsTrigger value="completed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Completed</TabsTrigger>
+              </TabsList>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 bg-white"
+                />
+              </div>
+            </div>
 
             <TabsContent value="proposed" className="mt-0">{renderList("proposed")}</TabsContent>
             <TabsContent value="ongoing" className="mt-0">{renderList("ongoing")}</TabsContent>

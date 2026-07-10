@@ -4,6 +4,7 @@ import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { OnboardingTutorial } from "@/components/layout/OnboardingTutorial";
 import {
   LayoutDashboard,
   Users,
@@ -63,6 +64,49 @@ const AdminLayout = () => {
       }
     };
     fetchAdminProfile();
+  }, []);
+
+  // Inactivity timeout handler (15 minutes = 900,000 milliseconds)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleAutoSignOut, 15 * 60 * 1000);
+    };
+
+    const handleAutoSignOut = async () => {
+      try {
+        await supabase.auth.signOut();
+        toast({
+          title: "Session Expired",
+          description: "You have been signed out due to 15 minutes of inactivity.",
+          variant: "destructive",
+        });
+        navigate("/login");
+      } catch (err: any) {
+        console.error("Auto signout error:", err);
+      }
+    };
+
+    // Events to monitor for activity
+    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+
+    // Initialize timer
+    resetTimer();
+
+    // Attach listeners
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Cleanup listeners and timer
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
   }, []);
 
   const handleToggleCollapse = () => {
@@ -202,6 +246,9 @@ const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial role="admin" userName={adminName} />
+
       {/* Mobile Top Header */}
       <header className="lg:hidden bg-[#1E3A5F] text-white px-4 py-3 flex items-center justify-between border-b border-slate-700">
         <div className="flex items-center gap-2">

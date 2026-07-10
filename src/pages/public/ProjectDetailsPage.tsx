@@ -30,6 +30,7 @@ const ProjectDetailsPage = () => {
   const { projectId } = useParams();
   const [project, setProject] = useState<PlatformProject | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [volunteers, setVolunteers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -80,6 +81,26 @@ const ProjectDetailsPage = () => {
                 completedAt: row.completed_at,
               }))
             );
+          }
+
+          // 3. Query active volunteers from commitment_logs
+          const { data: volLogs, error: volErr } = await supabase
+            .from("commitment_logs")
+            .select(`
+              volunteer_id,
+              volunteer:profiles!volunteer_id (full_name)
+            `)
+            .eq("project_id", projectId);
+
+          if (!volErr && volLogs) {
+            const names = Array.from(
+              new Set(
+                volLogs
+                  .map((row: any) => row.volunteer?.full_name)
+                  .filter(Boolean)
+              )
+            ) as string[];
+            setVolunteers(names);
           }
         }
       } catch (err) {
@@ -184,11 +205,26 @@ const ProjectDetailsPage = () => {
                     </div>
                   </div>
                 ))}
-              </div>
             </div>
-          )}
+          </div>
+        )}
+          {/* Team Section */}
+          <div className="space-y-4 pt-6 border-t border-slate-200">
+            <h3 className="text-xl font-serif text-[#1E3A5F] font-bold">Active Volunteers (Team)</h3>
+            {volunteers.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {volunteers.map((name) => (
+                  <Badge key={name} variant="secondary" className="px-3 py-1 text-xs bg-slate-100 text-slate-805 border border-slate-200">
+                    {name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No active volunteers registered on this project yet.</p>
+            )}
+          </div>
 
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+          <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100">
             {project.status !== "completed" ? (
               <Button asChild className="bg-[#D4A017] hover:bg-[#D4A017]/90 text-white font-medium">
                 <Link to={`/donate?projectId=${project.id}&projectTitle=${encodeURIComponent(project.title)}`}>

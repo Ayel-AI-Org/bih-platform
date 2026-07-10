@@ -1,381 +1,102 @@
 # Bridge for Impact Hub (BIH) User Manual
 
-This manual documents the full current BIH platform: features, user journeys, admin operations, AI behavior, environment setup, deployment, and troubleshooting.
+This manual documents the features, workflows, dashboard portals, role hierarchies, and troubleshooting steps for the Bridge for Impact Hub (BIH) platform.
 
 ---
 
-## 1) Platform Overview
+## 1. Platform Overview
 
-BIH is a web platform that connects:
-
-- Volunteers
-- NGOs / clubs / humanitarian organizations
-- Donors / philanthropists
-- Community members
-- BIH administrators
-
-Primary outcomes:
-
-- Centralized registration and profile records
-- Public project visibility by status
-- Project suggestion intake and admin review
-- Donation capture and tracking
-- Media/article transparency channel
-- Site-wide BIH AI assistant support
+BIH is a central web portal connecting:
+* **Volunteers**: Track hours, build portfolios, and earn progress badges.
+* **Partner NGOs**: Propose blueprints, verify hours, and showcase local actions.
+* **Donors & Philanthropists**: Track giving histories, print receipts, and monitor live project milestones.
+* **General Public**: Search active projects, submit suggestions, and support initiatives.
+* **Ecosystem Administrators**: Moderate registries, audit transactions, and manage projects.
 
 ---
 
-## 2) Current Feature Scope
+## 2. Roles, Clearance Levels & Access Guards
 
-### Implemented now
+The platform uses a role-based access guard system (`AuthGuards.tsx`) to authorize views:
 
-- Public pages and navigation
-- Role-based registration (Volunteer, NGO, Donor)
-- Login + session-based redirect behavior
-- Projects listing + project details
-- Suggest-project form with richer submission fields
-- Admin dashboard with counts, tables, CSV exports, and review actions
-- Donation page with Paystack Mobile Money checkout
-- AI-assisted project text polishing on approved suggestions
-- Site-wide BIH chatbot with resilient provider fallback
-- Decision email edge function for approved/rejected suggestions
-
-### Not yet implemented (known limitations)
-
-- Dedicated role dashboards for volunteer/ngo/donor users after login
-- Card payments (UI shows “coming soon”)
-- Server-side payment verification webhook workflow
+| Role | Access Scope | Clearance Details |
+| --- | --- | --- |
+| **Public Visitor** | Public Pages | Accesses home, search projects, suggestions forms, and donation checkout. |
+| **Volunteer** | `/dashboard/volunteer` | View total hours, log work times, submit showcase drafts, and inspect badges. |
+| **NGO Partner** | `/dashboard/ngo` | Propose projects, edit NGO profiles, and verify active volunteer time logs. |
+| **Donor Member** | `/dashboard/donor` | Print donation receipts, view giving totals, and check project milestone maps. |
+| **Standard Admin** | `/admin` | Moderate registrations, review suggestions, and inspect ledger tables. Blocked from destructive deletes or overrides. |
+| **Super Admin** | `/admin` | Unrestricted command center access, including role promotion grants, project deletions, and hours void overrides. |
 
 ---
 
-## 3) User Roles and Access
+## 3. Core Operational Portals
 
-### Public visitor
+### A. Volunteer Dashboard
+* **My Dashboard**: Shows verified hours, pending log approvals, current badge level, and recent activities.
+* **Log Hours Form**: Volunteers select an active project, input hours worked, choose the date, and describe their tasks. Logs enter a `pending` state awaiting NGO coordinator verification.
+* **Hours History Ledger**: An append-only historical log displaying verification statuses (Pending, Verified, Voided).
+* **My Badges**: Visual rank trackers calculating total verified hours:
+  * **Newcomer**: $0+$ hours
+  * **Contributor**: $10+$ hours
+  * **Champion**: $50+$ hours
+  * **Impact Leader**: $150+$ hours
+  * **Legend**: $500+$ hours
+* **Portfolio Showcase**: Create work item drafts. Once verified, submit them to platform moderators to highlight contributions on public profiles.
 
-Can access:
+### B. NGO Coordinator Portal
+* **Dashboard Overview**: Displays active NGO project statistics and pending approval queue sizes.
+* **Verify Hours Ledger**: NGOs view hour logs submitted by volunteers for their specific projects. Coordinators can approve logs (instantly updating volunteer hours and badges) or reject invalid logs.
 
-- `/`
-- `/projects`
-- `/projects/:projectId`
-- `/suggest-project`
-- `/donate`
-- `/media`
-- `/register` and role signup pages
-- `/login`
+### C. Donor Portal
+* **Donation History**: Lists all successfully completed donations, with options to download and print transaction receipts.
+* **Impact View Map**: An interactive tracker displaying how donation transactions correspond directly to live project milestones.
 
-No authentication required for reading projects/media and submitting suggestions/donations.
-
-### Registered non-admin user (volunteer / ngo / donor)
-
-- Can authenticate and maintain an account.
-- After login, redirects to `/projects`.
-
-### Admin user
-
-- Must have `role = 'admin'` in `profiles`.
-- After login, redirects to `/admin`.
-- Can review suggestions, export data, and operate core workflows.
-
----
-
-## 4) Routes and Pages
-
-- Home: `/`
-- Projects listing: `/projects`
-- Project details: `/projects/:projectId`
-- Register chooser: `/register`
-- Volunteer signup: `/register/volunteer`
-- NGO signup: `/register/ngo`
-- Donor signup: `/register/donor`
-- Login: `/login`
-- Suggest project: `/suggest-project`
-- Donate: `/donate`
-- Media: `/media`
-- Admin dashboard: `/admin`
-- 404 page: unmatched route fallback
+### D. Administrator Hub
+* **User Management**: Admins approve or reject incoming registrations. Features a dedicated **"Admins & Staff"** tab to review administrators.
+* **Role Promotions**:
+  * Standard admins can promote users between volunteer, NGO, or donor roles, or appoint them to standard `admin` staff status.
+  * Only a `super_admin` can grant or revoke `super_admin` privileges. Standard admins are blocked from editing super admin clearance levels.
+* **Project Management**: Create, edit, and publish project blueprints. Destructive project deletion is restricted to `super_admin` accounts.
+* **Hours Override Operations**: Standard admins review log streams, but the authority to void historical hours logs is restricted to `super_admin` accounts.
+* **Donations Ledger**: Shows all transactions, with options for CSV exports and an interactive **Paystack Reconciliation** button to check database transactions against payment gateway API logs.
 
 ---
 
-## 5) End-to-End Flows
+## 4. End-to-End Key User Journeys
 
-## A) Registration flow
+### A. Dynamic Project Discovery
+1. Public visitors browse the projects listing at `/projects`.
+2. Users can switch tabs (Proposed, Ongoing, Completed) and type keywords into the **live search bar** to filter projects by title, description, or location.
+3. Clicking a project details page reveals location parameters, partner profiles, milestones, and the **Active Volunteers (Team)** roster.
 
-1. User chooses a role on `/register`.
-2. User submits role-specific form.
-3. System creates user in Supabase Auth.
-4. System upserts `profiles` base record.
-5. System writes role-specific row into one of:
-   - `volunteer_profiles`
-   - `ngo_profiles`
-   - `donor_profiles`
-6. User is redirected to `/login`.
+### B. Onboarding Spotlight System (Guided UI Tour)
+1. On first login, a customized tour starts automatically.
+2. The tour uses a high-density spotlight overlay (`box-shadow: 0 0 0 9999px rgba(0,0,0,0.65)`) to highlight relevant elements (e.g. navigation links or tabs).
+3. The tooltip card positions itself responsively adjacent to the target (on the right for sidebars, below or above depending on viewport boundaries).
+4. If an element is hidden or missing (e.g. mobile drawer is collapsed), the tour falls back to a centered modal layout to prevent crashing.
+5. Users can click **"Skip Tour"** at any time. The dismissal state is saved to `localStorage` per role so the tour will not trigger again.
 
-Expected outcome:
-
-- Record is available in admin dashboard exports.
-
-## B) Login flow
-
-1. User enters credentials on `/login`.
-2. System authenticates with Supabase Auth.
-3. System resolves role/name from `profiles`.
-4. Redirect logic:
-   - Admin → `/admin`
-   - Non-admin → `/projects`
-
-## C) Project browsing flow
-
-1. Public user opens `/projects`.
-2. System fetches from `projects`.
-3. User filters by tabs:
-   - Proposed
-   - Ongoing
-   - Completed
-4. User opens details at `/projects/:projectId`.
-
-## D) Project suggestion flow
-
-1. Public user submits on `/suggest-project`.
-2. System inserts into `project_suggestions` with status `pending`.
-3. Admin reviews in `/admin`.
-4. Admin decision:
-   - `approved`: suggestion status updated and proposed project created in `projects`
-   - `rejected`: status updated to `rejected`
-5. Decision email function is invoked when configured.
-
-## E) AI project polish flow (during approval)
-
-When admin approves a suggestion:
-
-1. App invokes `project-polish` edge function.
-2. Polished title/description is used to create project (if available).
-3. If AI fails, original suggestion text is used (graceful fallback).
-
-## F) Donation flow
-
-1. User opens `/donate`.
-2. If arriving from project details, donation purpose is prefilled to that project.
-3. User chooses payment method:
-   - Mobile Money: active via Paystack inline checkout
-   - Card: currently disabled (“coming soon”)
-4. On successful Paystack callback, donation is recorded in `donations`.
-5. `confirmation_email_status` is stored as `sent` in current MVP logic.
-
-## G) Admin dashboard flow
-
-Admin on `/admin` can:
-
-- View summary cards for key datasets
-- Inspect Volunteers / NGOs / Donors / Suggestions / Donations
-- Export each dataset to CSV
-- Approve/reject pending suggestions
-- Trigger decision email sending on review
-
-## H) Chatbot flow
-
-BIH Assistant is available site-wide via floating chat button.
-
-Provider sequence:
-
-1. Gemini
-2. Groq
-3. OpenAI
-
-If all providers fail, chatbot still returns a safe local fallback reply so users are not blocked.
+### C. Public Suggestions and AI Polish
+1. Community members submit project proposals at `/suggest-project`.
+2. Admins review pending proposals.
+3. Upon approval, the application runs the `project-polish` serverless edge function. AI refines the description for clarity and style before publishing it as an ongoing project blueprint. If the AI model is offline, it falls back to the user's original text.
+4. Decision email notifications are sent out to suggestion submitters automatically.
 
 ---
 
-## 6) Data Model and Storage
+## 5. Troubleshooting Guidelines
 
-Primary tables:
+### System crashes to a blank screen on runtime error
+* **Resolution**: Wrap transitions or component mounts inside our global `ErrorBoundary`. If a crash occurs, a stylized error card with a **"Go to Safety"** reset trigger will guide the user back to safety.
 
-- `profiles`
-- `volunteer_profiles`
-- `ngo_profiles`
-- `donor_profiles`
-- `projects`
-- `project_suggestions`
-- `donations`
-- `media_articles`
+### Tour tooltips overlap or cut off on small viewports
+* **Resolution**: The positioning engine recalculates tooltips dynamically on window resize or scroll. If the sidebar menu collapses or drawer closes, the engine defaults to a centered overlay card.
 
-Reference schema:
+### Paystack checkout failures
+* **Resolution**: Check the public key in your configuration:
+  * For sandbox testing, use a `pk_test_...` key.
+  * For live payments, replace it with `pk_live_...` in your env settings. No changes to code files are required.
 
-- `supabase/schema.sql`
-
-Upgrade/fix scripts:
-
-- `supabase/suggestion-upgrade.sql`
-- `supabase/project-rls-fix.sql`
-- `supabase/approved-suggestions-backfill.sql`
-
----
-
-## 7) Security and Access Control
-
-- Supabase Auth is used for authentication.
-- Row Level Security (RLS) is enabled on core tables.
-- Public read:
-  - `projects`
-  - `media_articles`
-- Public insert:
-  - `project_suggestions`
-  - `donations`
-- Admin read/update privileges on operational tables via `is_admin()` policy logic.
-
-Important:
-
-- Admin role is determined by `profiles.role = 'admin'`.
-
----
-
-## 8) Edge Functions and AI/Email Behavior
-
-### Functions in use
-
-- `ai-chat-assistant`
-- `project-polish`
-- `suggestion-decision-email`
-
-### `config.toml` behavior
-
-- `ai-chat-assistant`: `verify_jwt = false`
-- `project-polish`: `verify_jwt = false`
-- `suggestion-decision-email`: `verify_jwt = true`
-
-### Required secrets
-
-Core:
-
-- `RESEND_API_KEY` (for decision emails)
-- `SUGGESTION_EMAIL_FROM` (sender identity)
-
-AI providers (at least one):
-
-- `GEMINI_API_KEY`
-- `GROQ_API_KEY`
-- `OPENAI_API_KEY`
-
-Optional model overrides:
-
-- `GEMINI_MODEL`
-- `GROQ_MODEL`
-- `OPENAI_MODEL`
-
----
-
-## 9) Environment Variables
-
-Frontend `.env` values:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_PAYSTACK_PUBLIC_KEY`
-
-Use `.env.example` as template and never commit real secrets.
-
----
-
-## 10) Local Setup (Developer)
-
-1. Create/select Supabase project.
-2. Run schema in SQL Editor:
-   - `supabase/schema.sql`
-3. If upgrading an existing DB, run:
-   - `supabase/suggestion-upgrade.sql`
-   - `supabase/project-rls-fix.sql`
-   - `supabase/approved-suggestions-backfill.sql` (when needed)
-4. Create `.env` from `.env.example` and set values.
-5. Install and run:
-   - `npm install`
-   - `npm run dev`
-6. Build check:
-   - `npm run build`
-
----
-
-## 11) Deployment Runbook (Production)
-
-1. Push code to GitHub.
-2. Deploy Supabase edge functions:
-   - `ai-chat-assistant`
-   - `project-polish`
-   - `suggestion-decision-email`
-3. Ensure function secrets are configured in target project.
-4. Deploy frontend (e.g., Vercel) with env vars:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_PAYSTACK_PUBLIC_KEY`
-5. Post-deploy verification:
-   - Signup/login works
-   - Suggestion submit + admin review works
-   - Approved suggestion creates project
-   - Donation checkout records donation
-   - Chatbot replies correctly
-
----
-
-## 12) Admin Operating Checklist
-
-Daily/regular operations:
-
-1. Login to `/admin`.
-2. Review pending suggestions.
-3. Approve/reject with optional admin notes.
-4. Confirm approved suggestions appear in Projects.
-5. Export CSV snapshots for audit/reporting.
-6. Monitor function logs for email/AI failures.
-
----
-
-## 13) Troubleshooting Guide
-
-### App fails at startup with Supabase env error
-
-- Confirm `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set.
-
-### Admin cannot create projects from approved suggestions
-
-- Apply `supabase/project-rls-fix.sql`.
-
-### Approved suggestions missing from Projects
-
-- Run `supabase/approved-suggestions-backfill.sql` once.
-
-### Suggestion fields (phone/org/category/budget/beneficiaries) missing
-
-- Run `supabase/suggestion-upgrade.sql`.
-
-### Chatbot replies with fallback too often
-
-- Verify `GEMINI_API_KEY`, `GROQ_API_KEY`, and/or `OPENAI_API_KEY` in function secrets.
-- Check provider quota/usage limits.
-- Confirm `ai-chat-assistant` is deployed to correct project.
-
-### Suggestion decision emails not delivered
-
-- Verify `RESEND_API_KEY` and `SUGGESTION_EMAIL_FROM`.
-- Check `suggestion-decision-email` deployment and logs.
-
-### Donation errors on checkout
-
-- Verify `VITE_PAYSTACK_PUBLIC_KEY`.
-- Confirm Paystack script can load.
-
----
-
-## 14) Operational Notes Worth Knowing
-
-- Card payment is intentionally disabled right now (Mobile Money only).
-- Chatbot is designed to avoid hard failure UX (local fallback reply always available).
-- Project creation on approval attempts AI polish first, then falls back to original text.
-- Keep `supabase/.temp` out of commits; it contains local CLI artifacts.
-
----
-
-## 15) Recommended Next Enhancements
-
-- Payment webhook verification + reconciliation dashboard
-- Dedicated role dashboards after login
-- Search/filter/pagination in admin tables
-- Audit log trail for review actions
-- Real confirmation/notification email templates for donations and account events
+### Administrative actions disabled or missing
+* **Resolution**: Verify that the logged-in administrator carries the `super_admin` role in the database. Actions like project deletion and hours overrides are hidden and blocked for standard staff users.
