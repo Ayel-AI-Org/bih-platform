@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadStorageFile } from "@/database/operations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash, Pencil, Send, Eye, ShieldAlert, Archive, Undo, Loader2 } from "lucide-react";
+import { Plus, Trash, Pencil, Send, Eye, ShieldAlert, Archive, Undo, Loader2, Upload } from "lucide-react";
 
 interface PortfolioItem {
   id: string;
@@ -282,6 +283,66 @@ const VolunteerPortfolioPage = () => {
       updated[index] = value;
       return updated;
     });
+  };
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Images and videos must be under 25MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isValidType = file.type.startsWith("image/") || file.type === "video/mp4";
+    if (!isValidType) {
+      toast({
+        title: "Unsupported file type",
+        description: "Only images and MP4 video files are accepted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No active session found.");
+
+      const path = `portfolio/${user.id}/${Date.now()}_${file.name}`;
+      const publicUrl = await uploadStorageFile("bih-media", path, file);
+
+      setMediaUrls((prev) => {
+        const firstEmptyIndex = prev.findIndex((url) => !url.trim());
+        if (firstEmptyIndex !== -1) {
+          const updated = [...prev];
+          updated[firstEmptyIndex] = publicUrl;
+          return updated;
+        }
+        if (prev.length < 5) {
+          return [...prev, publicUrl];
+        }
+        return prev;
+      });
+
+      toast({
+        title: "Upload complete",
+        description: "File uploaded and added to your media attachments.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Failed to upload file to storage.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   if (loading) {
@@ -681,16 +742,42 @@ const VolunteerPortfolioPage = () => {
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <Label>Media URLs (up to 5 links)</Label>
-                {mediaUrls.length < 5 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleAddMediaField}
-                    className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add Link
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="media-file-upload"
+                      accept="image/*,video/mp4"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={saving || uploadingFile || mediaUrls.length >= 5}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1 items-center"
+                      disabled={saving || uploadingFile || mediaUrls.length >= 5}
+                    >
+                      {uploadingFile ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                      Upload File
+                    </Button>
+                  </div>
+                  {mediaUrls.length < 5 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleAddMediaField}
+                      className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1"
+                      disabled={saving || uploadingFile}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Link
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 {mediaUrls.map((url, index) => (

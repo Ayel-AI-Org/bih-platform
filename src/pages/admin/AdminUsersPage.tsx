@@ -38,6 +38,10 @@ const AdminUsersPage = () => {
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  // Deletion Modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<{ id: string; role: "volunteer" | "ngo" | "donor" } | null>(null);
+
   // Role Management state
   const [manageRoleOpen, setManageRoleOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
@@ -177,7 +181,7 @@ const AdminUsersPage = () => {
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = role === "volunteer" ? "Volunteer" : role === "ngo" ? "NGO" : "Donor";
-          await supabase.functions.invoke("registration-decision-email", {
+          const { error: fnErr } = await supabase.functions.invoke("registration-decision-email", {
             body: {
               to: userItem.email,
               name: userItem.fullName,
@@ -185,8 +189,14 @@ const AdminUsersPage = () => {
               status: "approved",
             },
           });
-        } catch (emailErr) {
+          if (fnErr) throw fnErr;
+        } catch (emailErr: any) {
           console.error("Failed to send approval confirmation email:", emailErr);
+          toast({
+            title: "Notification failed",
+            description: emailErr.message || "Approval email failed to dispatch.",
+            variant: "destructive",
+          });
         }
       }
 
@@ -224,15 +234,47 @@ const AdminUsersPage = () => {
       const tableName = roleTableMap[rejectingUser.role];
       const { error } = await supabase
         .from(tableName)
-        .update({ approval_status: "rejected" }) // We can write feedback if database supported it, but since schema doesn't have feedback column, we just update status to rejected.
+        .update({ approval_status: "rejected" })
         .eq("user_id", rejectingUser.id);
 
       if (error) throw error;
 
-      // Note: We can also trigger the edge function sendRegistrationDecisionEmail if it was required, but the prompt says: "Updates approval_status = 'rejected' -> Shows success toast: 'User rejected'"
+      // Locate user details to send email notification
+      let userItem: any = null;
+      if (rejectingUser.role === "volunteer") {
+        userItem = volunteers.find((v) => v.id === rejectingUser.id);
+      } else if (rejectingUser.role === "ngo") {
+        userItem = ngos.find((n) => n.id === rejectingUser.id);
+      } else if (rejectingUser.role === "donor") {
+        userItem = donors.find((d) => d.id === rejectingUser.id);
+      }
+
+      if (userItem && userItem.email) {
+        try {
+          const capitalizedRole = rejectingUser.role === "volunteer" ? "Volunteer" : rejectingUser.role === "ngo" ? "NGO" : "Donor";
+          const { error: fnErr } = await supabase.functions.invoke("registration-decision-email", {
+            body: {
+              to: userItem.email,
+              name: userItem.fullName,
+              role: capitalizedRole,
+              status: "rejected",
+              adminNote: rejectFeedback || undefined,
+            },
+          });
+          if (fnErr) throw fnErr;
+        } catch (emailErr: any) {
+          console.error("Failed to send rejection confirmation email:", emailErr);
+          toast({
+            title: "Notification failed",
+            description: emailErr.message || "Rejection email failed to dispatch.",
+            variant: "destructive",
+          });
+        }
+      }
+
       toast({
         title: "User rejected",
-        description: "Status successfully updated to rejected.",
+        description: "Status successfully updated to rejected and notification triggered.",
       });
 
       setRejectModalOpen(false);
@@ -241,6 +283,39 @@ const AdminUsersPage = () => {
       toast({
         title: "Operation failed",
         description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleOpenDelete = (userId: string, role: "volunteer" | "ngo" | "donor") => {
+    setDeletingUser({ id: userId, role });
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingUser) return;
+    setProcessing(true);
+    try {
+      const { error } = await supabase.functions.invoke("account-deletion-email", {
+        body: { userId: deletingUser.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "User account deleted",
+        description: "The user account and all associated child data have been permanently removed.",
+      });
+
+      setDeleteModalOpen(false);
+      fetchUsersData();
+    } catch (err: any) {
+      toast({
+        title: "Deletion failed",
+        description: err.message || "Failed to remove the user account.",
         variant: "destructive",
       });
     } finally {
@@ -480,6 +555,16 @@ const AdminUsersPage = () => {
                                     Manage Role
                                   </Button>
                                 )}
+                                {roleKey !== "admins" && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleOpenDelete(user.id, roleKey.slice(0, -1) as any)}
+                                    className="h-7 px-2 text-[10px] flex gap-1"
+                                  >
+                                    Delete
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -594,6 +679,35 @@ const AdminUsersPage = () => {
             >
               {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Save Role Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-rose-700 text-lg font-bold">Delete Account Permanently</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this user account? All profile information, logs, portfolio entries, and uploaded files will be permanently purged. This action is irreversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteModalOpen(false)}
+              className="text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              disabled={processing}
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5"
+            >
+              {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Delete Account
             </Button>
           </DialogFooter>
         </DialogContent>

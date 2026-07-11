@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadStorageFile } from "@/database/operations";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Upload } from "lucide-react";
 
 const articleSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -120,6 +121,42 @@ const AdminMediaFormPage = () => {
 
     loadArticleAndAdmin();
   }, [id, isEditMode, setValue]);
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleMediaImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file for the article cover.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const path = `articles/${Date.now()}_${file.name}`;
+      const publicUrl = await uploadStorageFile("bih-media", path, file);
+
+      setValue("imageUrl", publicUrl);
+      toast({
+        title: "Cover uploaded",
+        description: "Article cover image uploaded successfully.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Failed to upload cover image.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSave = async (values: ArticleFormValues) => {
     setSaving(true);
@@ -304,10 +341,35 @@ const AdminMediaFormPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="imageUrl">Cover Image URL (optional)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="imageUrl">Cover Image URL (optional)</Label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="article-image-file"
+                    accept="image/*"
+                    onChange={handleMediaImageUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    disabled={saving || uploadingImage}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1 items-center"
+                    disabled={saving || uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    Upload file
+                  </Button>
+                </div>
+              </div>
               <Input
                 id="imageUrl"
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 className={errors.imageUrl ? "border-destructive" : ""}
                 placeholder="https://images.unsplash.com/..."
                 {...register("imageUrl")}

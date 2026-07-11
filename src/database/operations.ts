@@ -1327,3 +1327,18 @@ export function exportRowsToCsv(filename: string, rows: Record<string, string | 
   anchor.click();
   URL.revokeObjectURL(url);
 }
+
+export async function uploadStorageFile(bucket: string, path: string, file: File): Promise<string> {
+  if (file.size > 25 * 1024 * 1024) {
+    throw new Error("File size exceeds 25MB limit.");
+  }
+  const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
+  throwIfError(error);
+
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
+  return publicUrl;
+}
+

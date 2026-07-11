@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadStorageFile } from "@/database/operations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash, Download, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash, Download, Loader2, AlertCircle, Upload } from "lucide-react";
 
 interface AdminProjectItem {
   id: string;
@@ -186,6 +187,42 @@ const AdminProjectsPage = () => {
       partners: project.partners.join(", "),
     });
     setModalOpen(true);
+  };
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file for the project cover.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const path = `projects/${Date.now()}_${file.name}`;
+      const publicUrl = await uploadStorageFile("bih-media", path, file);
+
+      setValue("imageUrl", publicUrl);
+      toast({
+        title: "Cover uploaded",
+        description: "Project cover image uploaded successfully.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Failed to upload project cover image.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSaveProject = async (values: ProjectFormValues) => {
@@ -538,11 +575,36 @@ const AdminProjectsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="imageUrl">Project Image URL</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="imageUrl">Project Image URL</Label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="project-image-file"
+                    accept="image/*"
+                    onChange={handleProjectImageUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    disabled={saving || uploadingImage}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1 items-center"
+                    disabled={saving || uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    Upload file
+                  </Button>
+                </div>
+              </div>
               <Input
                 id="imageUrl"
                 placeholder="https://images.unsplash.com/..."
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 {...register("imageUrl")}
               />
             </div>
