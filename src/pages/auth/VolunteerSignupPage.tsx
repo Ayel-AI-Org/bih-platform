@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const AVAILABLE_SKILLS = [
@@ -25,11 +25,17 @@ const AVAILABLE_SKILLS = [
 
 const volunteerSchema = z
   .object({
-    fullName: z.string().min(1, "Full name is required"),
+    fullName: z
+      .string()
+      .min(1, "Full name is required")
+      .regex(/^[A-Za-z\s-]+$/, "Name must contain only letters, spaces, and hyphens"),
     email: z.string().min(1, "Email is required").email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    phone: z.string().min(1, "Phone number is required"),
+    phone: z
+      .string()
+      .min(1, "Phone number is required")
+      .regex(/^[0-9]+$/, "Phone number must contain only numbers"),
     location: z.string().min(1, "Location is required"),
     skills: z.array(z.string()).min(1, "Select at least one skill category"),
     availability: z.string().min(1, "Please select availability option"),
@@ -46,6 +52,8 @@ const VolunteerSignupPage = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -161,7 +169,11 @@ const VolunteerSignupPage = () => {
                 id="fullName"
                 disabled={submitting}
                 className={errors.fullName ? "border-destructive focus-visible:ring-destructive" : ""}
-                {...register("fullName")}
+                {...register("fullName", {
+                  onChange: (e) => {
+                    e.target.value = e.target.value.replace(/[^A-Za-z\s-]/g, "");
+                  },
+                })}
               />
               {errors.fullName && (
                 <p className="text-xs text-destructive font-medium mt-1">
@@ -193,7 +205,11 @@ const VolunteerSignupPage = () => {
                   id="phone"
                   disabled={submitting}
                   className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-                  {...register("phone")}
+                  {...register("phone", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    },
+                  })}
                 />
                 {errors.phone && (
                   <p className="text-xs text-destructive font-medium mt-1">
@@ -206,29 +222,44 @@ const VolunteerSignupPage = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
+              <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   disabled={submitting}
-                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
                   {...register("password")}
                 />
-                {errors.password && (
-                  <p className="text-xs text-destructive font-medium mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  disabled={submitting}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   disabled={submitting}
-                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
                   {...register("confirmPassword")}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  disabled={submitting}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
                 {errors.confirmPassword && (
                   <p className="text-xs text-destructive font-medium mt-1">
                     {errors.confirmPassword.message}

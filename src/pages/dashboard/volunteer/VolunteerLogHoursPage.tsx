@@ -218,7 +218,15 @@ const VolunteerLogHoursPage = () => {
                   max="24"
                   disabled={submitting}
                   className={errors.hours ? "border-destructive" : ""}
-                  {...register("hours")}
+                  {...register("hours", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                      const parts = e.target.value.split(".");
+                      if (parts.length > 2) {
+                        e.target.value = parts[0] + "." + parts.slice(1).join("");
+                      }
+                    },
+                  })}
                 />
                 {errors.hours && (
                   <p className="text-xs text-destructive font-medium">{errors.hours.message}</p>

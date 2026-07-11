@@ -203,7 +203,7 @@ const VolunteerProfilePage = () => {
 
       if (error) throw error;
 
-      setAvatarUrl(publicUrl);
+      setAvatarUrl(`${publicUrl}?t=${Date.now()}`);
       toast({
         title: "Avatar updated",
         description: "Your profile picture has been updated successfully.",

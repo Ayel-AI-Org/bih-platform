@@ -162,7 +162,7 @@ const VolunteerOverviewPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="volunteer-stats-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -185,7 +185,7 @@ const VolunteerOverviewPage = () => {
       </div>
 
       {/* Recent Activity */}
-      <Card className="shadow-sm border-slate-200">
+      <Card id="volunteer-recent-logs" className="shadow-sm border-slate-200">
         <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">

@@ -209,7 +209,16 @@ const DonorImpactPage = () => {
               return (
                 <Card key={proj.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow border-slate-200">
                   <div>
-                    <img src={proj.imageUrl} alt={proj.title} className="h-40 w-full object-cover bg-slate-100 border-b" />
+                    <img
+                      src={proj.imageUrl}
+                      alt={proj.title}
+                      className="h-40 w-full object-cover bg-slate-100 border-b"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "/placeholder.svg";
+                      }}
+                    />
                     <CardHeader className="space-y-2.5 pb-2">
                       <div className="flex items-start justify-between gap-3">
                         <CardTitle className="text-base font-serif text-[#1E3A5F] font-bold line-clamp-2">

@@ -98,7 +98,16 @@ const MediaPage = () => {
             {articles.map((article) => (
               <Card key={article.id} className="overflow-hidden cursor-pointer transition-transform hover:-translate-y-1 flex flex-col justify-between" onClick={() => setSelectedArticle(article)}>
                 <div>
-                  <img src={article.imageUrls[0] ?? article.imageUrl} alt={article.title} className="h-48 w-full object-cover bg-slate-100" />
+                  <img
+                    src={article.imageUrls[0] ?? article.imageUrl}
+                    alt={article.title}
+                    className="h-48 w-full object-cover bg-slate-100"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "/placeholder.svg";
+                    }}
+                  />
                   <CardHeader className="space-y-3">
                     <Badge variant="outline" className="w-fit border-[#1E3A5F] text-[#1E3A5F]">{article.category}</Badge>
                     <CardTitle className="text-xl text-[#1E3A5F] font-bold font-serif line-clamp-2">{article.title}</CardTitle>
@@ -125,11 +134,16 @@ const MediaPage = () => {
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" overlayClassName="bg-black/40 backdrop-blur-sm">
             {selectedArticle ? (
               <div className="space-y-5">
-                <img
-                  src={selectedArticle.imageUrls[activeSlideIndex] ?? selectedArticle.imageUrl}
-                  alt={selectedArticle.title}
-                  className="h-56 w-full object-cover rounded-md border"
-                />
+                 <img
+                   src={selectedArticle.imageUrls[activeSlideIndex] ?? selectedArticle.imageUrl}
+                   alt={selectedArticle.title}
+                   className="h-56 w-full object-cover rounded-md border"
+                   onError={(e) => {
+                     const target = e.target as HTMLImageElement;
+                     target.onerror = null;
+                     target.src = "/placeholder.svg";
+                   }}
+                 />
                 {selectedArticle.imageUrls.length > 1 ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -159,7 +173,16 @@ const MediaPage = () => {
                           onClick={() => setActiveSlideIndex(index)}
                           className={`overflow-hidden rounded border ${activeSlideIndex === index ? "ring-2 ring-primary" : ""}`}
                         >
-                          <img src={imageUrl} alt={`${selectedArticle.title} slide ${index + 1}`} className="h-16 w-full object-cover" />
+                           <img
+                             src={imageUrl}
+                             alt={`${selectedArticle.title} slide ${index + 1}`}
+                             className="h-16 w-full object-cover"
+                             onError={(e) => {
+                               const target = e.target as HTMLImageElement;
+                               target.onerror = null;
+                               target.src = "/placeholder.svg";
+                             }}
+                           />
                         </button>
                       ))}
                     </div>

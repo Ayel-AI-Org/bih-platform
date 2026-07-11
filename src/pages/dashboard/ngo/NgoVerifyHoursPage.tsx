@@ -381,12 +381,14 @@ const NgoVerifyHoursPage = () => {
       <Card className="shadow-sm border-slate-200">
         <CardContent className="pt-6">
           <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="bg-slate-100 p-1 border border-slate-200 w-fit">
-              <TabsTrigger value="all">All Logs</TabsTrigger>
-              <TabsTrigger value="logged" className="data-[state=active]:bg-[#C8601A] data-[state=active]:text-white">Pending</TabsTrigger>
-              <TabsTrigger value="verified" className="data-[state=active]:bg-[#6B8E3E] data-[state=active]:text-white">Verified</TabsTrigger>
-              <TabsTrigger value="voided" className="data-[state=active]:bg-[#C0392B] data-[state=active]:text-white">Voided</TabsTrigger>
-            </TabsList>
+            <div className="border-b border-slate-200">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+                <TabsTrigger value="all">All Logs</TabsTrigger>
+                <TabsTrigger value="logged">Pending</TabsTrigger>
+                <TabsTrigger value="verified">Verified</TabsTrigger>
+                <TabsTrigger value="voided">Voided</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-0">
               {renderTable(logs)}

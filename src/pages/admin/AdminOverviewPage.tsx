@@ -323,9 +323,10 @@ const AdminOverviewPage = () => {
           </p>
         </div>
         <Button 
+          id="admin-send-summaries-btn"
           onClick={handleSendQuarterlySummaries}
           disabled={sendingSummaries}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm transition-all"
+          className="bg-[#1E3A5F] hover:bg-blue-700 text-white font-medium shadow-sm transition-all"
         >
           {sendingSummaries ? (
             <>
@@ -333,13 +334,13 @@ const AdminOverviewPage = () => {
               Sending Summaries...
             </>
           ) : (
-            "Send Donor Impact Summaries"
+            "Send Impact Summaries"
           )}
         </Button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div id="admin-stats-cards" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (

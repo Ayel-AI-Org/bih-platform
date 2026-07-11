@@ -39,6 +39,14 @@ const portfolioFormSchema = z.object({
   visibility: z.boolean(), // true = public, false = internal
 });
 
+const fileSchema = z
+  .instanceof(File)
+  .refine((file) => file.size <= 25 * 1024 * 1024, "File size must be under 25MB")
+  .refine(
+    (file) => file.type.startsWith("image/") || file.type === "video/mp4",
+    "Only images and MP4 videos are accepted"
+  );
+
 type PortfolioFormValues = z.infer<typeof portfolioFormSchema>;
 
 const VolunteerPortfolioPage = () => {
@@ -52,6 +60,7 @@ const VolunteerPortfolioPage = () => {
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [mediaUrls, setMediaUrls] = useState<string[]>([""]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Details dialog state
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -290,20 +299,14 @@ const VolunteerPortfolioPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
+    setUploadError(null);
+    const validation = fileSchema.safeParse(file);
+    if (!validation.success) {
+      const errMsg = validation.error.errors[0].message;
+      setUploadError(errMsg);
       toast({
-        title: "File too large",
-        description: "Images and videos must be under 25MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isValidType = file.type.startsWith("image/") || file.type === "video/mp4";
-    if (!isValidType) {
-      toast({
-        title: "Unsupported file type",
-        description: "Only images and MP4 video files are accepted.",
+        title: "Invalid file",
+        description: errMsg,
         variant: "destructive",
       });
       return;
@@ -411,11 +414,11 @@ const VolunteerPortfolioPage = () => {
                           <Badge
                             className={`text-[9px] uppercase font-bold tracking-wider border-none text-white ${
                               item.status === "published"
-                                ? "bg-[#6B8E3E]"
+                                ? "bg-[#1E3A5F]"
                                 : item.status === "archived"
                                 ? "bg-[#C0392B]"
                                 : item.status === "pending"
-                                ? "bg-[#C8601A]"
+                                ? "bg-[#D4A017]"
                                 : "bg-slate-400"
                             }`}
                           >
@@ -529,11 +532,11 @@ const VolunteerPortfolioPage = () => {
                       <Badge
                         className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
                           item.status === "published"
-                            ? "bg-[#6B8E3E]"
+                            ? "bg-[#1E3A5F]"
                             : item.status === "archived"
                             ? "bg-[#C0392B]"
                             : item.status === "pending"
-                            ? "bg-[#C8601A]"
+                            ? "bg-[#D4A017]"
                             : "bg-slate-400"
                         }`}
                       >
@@ -779,6 +782,9 @@ const VolunteerPortfolioPage = () => {
                   )}
                 </div>
               </div>
+              {uploadError && (
+                <p className="text-xs text-rose-600 font-medium pb-1">{uploadError}</p>
+              )}
               <div className="space-y-2">
                 {mediaUrls.map((url, index) => (
                   <div key={`media-url-${index}`} className="flex gap-2 items-center">
@@ -867,13 +873,13 @@ const VolunteerPortfolioPage = () => {
                     {selectedViewItem.title}
                   </DialogTitle>
                   <Badge
-                    className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                    className={`text-[9px] uppercase font-bold tracking-wider border-none text-white ${
                       selectedViewItem.status === "published"
-                        ? "bg-[#6B8E3E]"
+                        ? "bg-[#1E3A5F]"
                         : selectedViewItem.status === "archived"
                         ? "bg-[#C0392B]"
                         : selectedViewItem.status === "pending"
-                        ? "bg-[#C8601A]"
+                        ? "bg-[#D4A017]"
                         : "bg-slate-400"
                     }`}
                   >
@@ -919,8 +925,9 @@ const VolunteerPortfolioPage = () => {
                             alt={`Attachment ${index + 1}`}
                             className="h-24 w-full object-cover bg-slate-100"
                             onError={(e) => {
-                              // If loading fails, render an icon placeholder instead of a broken image
-                              (e.target as HTMLElement).style.display = "none";
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = "/placeholder.svg";
                             }}
                           />
                           <span className="block text-[8px] text-center p-1 bg-slate-50 text-slate-500 font-mono truncate">

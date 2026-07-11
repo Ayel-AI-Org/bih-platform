@@ -436,18 +436,18 @@ const AdminUsersPage = () => {
       </div>
 
       <Tabs defaultValue="volunteers" onValueChange={setActiveTab} className="w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <TabsList className="bg-slate-100 p-1 border border-slate-200/60">
-            <TabsTrigger value="volunteers" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-slate-200">
+          <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+            <TabsTrigger value="volunteers">
               Volunteers
             </TabsTrigger>
-            <TabsTrigger value="ngos" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">
+            <TabsTrigger value="ngos">
               NGOs
             </TabsTrigger>
-            <TabsTrigger value="donors" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">
+            <TabsTrigger value="donors">
               Donors
             </TabsTrigger>
-            <TabsTrigger value="admins" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white flex gap-1">
+            <TabsTrigger value="admins" className="flex gap-1">
               <Shield className="h-3.5 w-3.5" /> Admins & Staff
             </TabsTrigger>
           </TabsList>

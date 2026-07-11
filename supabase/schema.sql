@@ -39,6 +39,7 @@ create table public.profiles (
   bio text,
   country text default 'Ghana',
   is_active boolean default true,
+  has_completed_onboarding boolean default false not null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

@@ -136,7 +136,7 @@ const SuggestProjectPage = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="submittedBy">Submitted by</Label>
-                  <Input id="submittedBy" required disabled={submitting} value={form.submittedBy} onChange={(event) => setForm((prev) => ({ ...prev, submittedBy: event.target.value }))} />
+                  <Input id="submittedBy" required disabled={submitting} value={form.submittedBy} onChange={(event) => setForm((prev) => ({ ...prev, submittedBy: event.target.value.replace(/[^A-Za-z\s-]/g, "") }))} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -147,7 +147,7 @@ const SuggestProjectPage = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone (optional)</Label>
-                  <Input id="phone" disabled={submitting} value={form.phone} onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                  <Input id="phone" disabled={submitting} value={form.phone} onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value.replace(/[^0-9]/g, "") }))} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="organization">Organization (optional)</Label>
@@ -162,7 +162,7 @@ const SuggestProjectPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="expectedBudget">Expected budget (GHS, optional)</Label>
-                  <Input id="expectedBudget" type="number" min={0} disabled={submitting} value={form.expectedBudget} onChange={(event) => setForm((prev) => ({ ...prev, expectedBudget: event.target.value }))} />
+                  <Input id="expectedBudget" type="number" min={0} disabled={submitting} value={form.expectedBudget} onChange={(event) => setForm((prev) => ({ ...prev, expectedBudget: event.target.value.replace(/[^0-9]/g, "") }))} />
                 </div>
               </div>
 
