@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/database/client";
+import { sendRegistrationDecisionEmail } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -181,15 +182,12 @@ const AdminUsersPage = () => {
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = role === "volunteer" ? "Volunteer" : role === "ngo" ? "NGO" : "Donor";
-          const { error: fnErr } = await supabase.functions.invoke("registration-decision-email", {
-            body: {
-              to: userItem.email,
-              name: userItem.fullName,
-              role: capitalizedRole,
-              status: "approved",
-            },
+          await sendRegistrationDecisionEmail({
+            to: userItem.email,
+            name: userItem.fullName,
+            role: capitalizedRole,
+            status: "approved",
           });
-          if (fnErr) throw fnErr;
         } catch (emailErr: any) {
           console.error("Failed to send approval confirmation email:", emailErr);
           toast({
@@ -252,16 +250,13 @@ const AdminUsersPage = () => {
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = rejectingUser.role === "volunteer" ? "Volunteer" : rejectingUser.role === "ngo" ? "NGO" : "Donor";
-          const { error: fnErr } = await supabase.functions.invoke("registration-decision-email", {
-            body: {
-              to: userItem.email,
-              name: userItem.fullName,
-              role: capitalizedRole,
-              status: "rejected",
-              adminNote: rejectFeedback || undefined,
-            },
+          await sendRegistrationDecisionEmail({
+            to: userItem.email,
+            name: userItem.fullName,
+            role: capitalizedRole,
+            status: "rejected",
+            adminNote: rejectFeedback || undefined,
           });
-          if (fnErr) throw fnErr;
         } catch (emailErr: any) {
           console.error("Failed to send rejection confirmation email:", emailErr);
           toast({

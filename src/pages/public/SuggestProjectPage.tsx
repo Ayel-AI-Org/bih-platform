@@ -57,6 +57,23 @@ const SuggestProjectPage = () => {
         console.error("Failed to trigger suggestion confirmation email:", emailErr);
       }
 
+      // Invoke Internal Admin Alert via Supabase Edge Function
+      try {
+        await supabase.functions.invoke("internal-admin-alert", {
+          body: {
+            type: "project_proposal",
+            submittedBy: form.submittedBy,
+            email: form.email,
+            title: form.title,
+            description: form.description,
+            location: form.location,
+            timeline: form.timeline,
+          },
+        });
+      } catch (adminErr) {
+        console.error("Failed to trigger internal admin alert:", adminErr);
+      }
+
       setForm({
         title: "",
         description: "",

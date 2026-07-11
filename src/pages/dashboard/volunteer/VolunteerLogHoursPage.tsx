@@ -99,6 +99,21 @@ const VolunteerLogHoursPage = () => {
 
       if (error) throw error;
 
+      // Trigger commitment alert email via Supabase Edge Function
+      try {
+        await supabase.functions.invoke("volunteer-commitment-alert", {
+          body: {
+            volunteerId: user.id,
+            projectId: values.projectId,
+            hours: values.hours,
+            activityDescription: values.activityDescription,
+            logDate: values.logDate,
+          },
+        });
+      } catch (emailErr) {
+        console.error("Failed to trigger commitment alert email:", emailErr);
+      }
+
       toast({
         title: "Hours logged successfully",
         description: "Pending NGO verification. Thank you for your commitment!",

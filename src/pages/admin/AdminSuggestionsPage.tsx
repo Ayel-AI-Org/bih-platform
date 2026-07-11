@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/database/client";
+import { sendSuggestionDecisionEmail } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -171,6 +172,18 @@ const AdminSuggestionsPage = () => {
         description: "Status marked as approved in audit log.",
       });
 
+      try {
+        await sendSuggestionDecisionEmail({
+          to: approveItem.email,
+          submittedBy: approveItem.submittedBy,
+          title: approveItem.title,
+          status: "approved",
+          adminNotes: approveNotes || undefined,
+        });
+      } catch (emailErr: any) {
+        console.error("Failed to send approval email:", emailErr);
+      }
+
       setApproveOpen(false);
       fetchSuggestions();
 
@@ -232,6 +245,18 @@ const AdminSuggestionsPage = () => {
         title: "Suggestion rejected",
         description: "Reason successfully saved to admin notes.",
       });
+
+      try {
+        await sendSuggestionDecisionEmail({
+          to: rejectItem.email,
+          submittedBy: rejectItem.submittedBy,
+          title: rejectItem.title,
+          status: "rejected",
+          adminNotes: rejectNotes || undefined,
+        });
+      } catch (emailErr: any) {
+        console.error("Failed to send rejection email:", emailErr);
+      }
 
       setRejectOpen(false);
       fetchSuggestions();
