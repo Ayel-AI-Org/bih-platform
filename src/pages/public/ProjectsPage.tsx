@@ -100,7 +100,16 @@ const ProjectsPage = () => {
         {items.map((project) => (
           <Card key={project.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
             <div>
-              <img src={project.imageUrl} alt={project.title} className="h-44 w-full object-cover bg-slate-100" />
+              <img
+                src={project.imageUrl}
+                alt={project.title}
+                className="h-44 w-full object-cover bg-slate-100"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = "/placeholder.svg";
+                }}
+              />
               <CardHeader className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-xl font-serif text-[#1E3A5F] font-bold line-clamp-2">{project.title}</CardTitle>
@@ -152,11 +161,11 @@ const ProjectsPage = () => {
           </div>
         ) : (
           <Tabs defaultValue="ongoing" className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <TabsList className="bg-slate-100 p-1 border border-slate-200 w-fit">
-                <TabsTrigger value="proposed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Pending</TabsTrigger>
-                <TabsTrigger value="ongoing" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Ongoing</TabsTrigger>
-                <TabsTrigger value="completed" className="data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white">Completed</TabsTrigger>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+                <TabsTrigger value="proposed">Pending</TabsTrigger>
+                <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
               </TabsList>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />

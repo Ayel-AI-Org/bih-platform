@@ -530,12 +530,12 @@ const AdminHoursPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="pending" className="space-y-6">
-            <div className="px-6 border-b">
-              <TabsList className="bg-slate-100 p-1 border-none w-fit rounded-b-none rounded-t-lg -mb-px">
+            <div className="px-6 border-b border-slate-200">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
                 <TabsTrigger value="all">All Logs</TabsTrigger>
-                <TabsTrigger value="pending" className="data-[state=active]:bg-[#C8601A] data-[state=active]:text-white">Pending</TabsTrigger>
-                <TabsTrigger value="verified" className="data-[state=active]:bg-[#6B8E3E] data-[state=active]:text-white">Verified</TabsTrigger>
-                <TabsTrigger value="voided" className="data-[state=active]:bg-[#C0392B] data-[state=active]:text-white">Voided</TabsTrigger>
+                <TabsTrigger value="pending">Pending</TabsTrigger>
+                <TabsTrigger value="verified">Verified</TabsTrigger>
+                <TabsTrigger value="voided">Voided</TabsTrigger>
               </TabsList>
             </div>
 

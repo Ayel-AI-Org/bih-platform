@@ -144,7 +144,16 @@ const ProjectDetailsPage = () => {
   return (
     <section className="py-16">
       <div className="container max-w-4xl space-y-8">
-        <img src={project.imageUrl} alt={project.title} className="w-full h-72 rounded-xl object-cover border bg-slate-100" />
+        <img
+          src={project.imageUrl}
+          alt={project.title}
+          className="w-full h-72 rounded-xl object-cover border bg-slate-100"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = "/placeholder.svg";
+          }}
+        />
         <div className="space-y-6">
           <Badge
             className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${

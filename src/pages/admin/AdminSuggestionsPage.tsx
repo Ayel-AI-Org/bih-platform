@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/database/client";
+import { sendSuggestionDecisionEmail } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -171,6 +172,18 @@ const AdminSuggestionsPage = () => {
         description: "Status marked as approved in audit log.",
       });
 
+      try {
+        await sendSuggestionDecisionEmail({
+          to: approveItem.email,
+          submittedBy: approveItem.submittedBy,
+          title: approveItem.title,
+          status: "approved",
+          adminNotes: approveNotes || undefined,
+        });
+      } catch (emailErr: any) {
+        console.error("Failed to send approval email:", emailErr);
+      }
+
       setApproveOpen(false);
       fetchSuggestions();
 
@@ -232,6 +245,18 @@ const AdminSuggestionsPage = () => {
         title: "Suggestion rejected",
         description: "Reason successfully saved to admin notes.",
       });
+
+      try {
+        await sendSuggestionDecisionEmail({
+          to: rejectItem.email,
+          submittedBy: rejectItem.submittedBy,
+          title: rejectItem.title,
+          status: "rejected",
+          adminNotes: rejectNotes || undefined,
+        });
+      } catch (emailErr: any) {
+        console.error("Failed to send rejection email:", emailErr);
+      }
 
       setRejectOpen(false);
       fetchSuggestions();
@@ -556,13 +581,38 @@ const AdminSuggestionsPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="pending" className="space-y-6">
-            <div className="px-6 border-b">
-              <TabsList className="bg-slate-100 p-1 border-none w-fit rounded-b-none rounded-t-lg -mb-px">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="reviewing">Reviewing</TabsTrigger>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="rejected">Rejected</TabsTrigger>
+            <div className="px-6 border-b border-slate-200">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+                <TabsTrigger
+                  value="all"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pending"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                >
+                  Pending
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reviewing"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                >
+                  Reviewing
+                </TabsTrigger>
+                <TabsTrigger
+                  value="approved"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                >
+                  Approved
+                </TabsTrigger>
+                <TabsTrigger
+                  value="rejected"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                >
+                  Rejected
+                </TabsTrigger>
               </TabsList>
             </div>
 

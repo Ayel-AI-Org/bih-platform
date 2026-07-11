@@ -19,6 +19,7 @@ import {
   ChevronRight,
   HandHeart,
   Heart,
+  HelpCircle,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -220,13 +221,24 @@ const DashboardLayout = () => {
             )}
           </div>
           <Button
-            onClick={handleSignOut}
+            onClick={() => window.dispatchEvent(new CustomEvent("bih-restart-tour"))}
             variant="ghost"
-            className={`w-full text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 flex gap-2 h-9 ${
+            className={`w-full text-xs text-[#1E3A5F] hover:text-[#D4A017] hover:bg-slate-100/50 flex gap-2 h-9 ${
               isCollapsed ? "justify-center px-0" : "justify-start px-3"
             }`}
           >
-            <LogOut className="h-4 w-4 flex-shrink-0 text-rose-455" />
+            <HelpCircle className="h-4 w-4 flex-shrink-0 text-[#D4A017]" />
+            {!isCollapsed && <span className="font-medium">Restart Tour</span>}
+          </Button>
+
+          <Button
+            onClick={handleSignOut}
+            variant="ghost"
+            className={`w-full text-xs text-rose-550 hover:text-rose-300 hover:bg-rose-500/10 flex gap-2 h-9 ${
+              isCollapsed ? "justify-center px-0" : "justify-start px-3"
+            }`}
+          >
+            <LogOut className="h-4 w-4 flex-shrink-0" />
             {!isCollapsed && <span className="text-rose-550 font-medium">Sign out</span>}
           </Button>
         </div>
@@ -243,7 +255,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="h-screen overflow-hidden bg-slate-50 flex flex-col lg:flex-row">
       {/* Onboarding Tutorial */}
       {role && <OnboardingTutorial role={role} userName={fullName} />}
       

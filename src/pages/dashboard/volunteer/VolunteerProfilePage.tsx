@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadStorageFile } from "@/database/operations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Loader2, Save } from "lucide-react";
+import { Plus, X, Loader2, Save, Upload } from "lucide-react";
 
 const profileFormSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -29,6 +30,8 @@ const VolunteerProfilePage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -37,6 +40,7 @@ const VolunteerProfilePage = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -58,7 +62,7 @@ const VolunteerProfilePage = () => {
       // 1. Fetch core profile
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, bio")
+        .select("full_name, bio, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -72,6 +76,7 @@ const VolunteerProfilePage = () => {
       if (profile) {
         setValue("fullName", profile.full_name);
         setValue("bio", profile.bio || "");
+        setAvatarUrl(profile.avatar_url || null);
       }
 
       if (volProfile) {
@@ -170,6 +175,50 @@ const VolunteerProfilePage = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file for your avatar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No active session found.");
+
+      const path = `${user.id}/avatar_${Date.now()}.${file.name.split(".").pop()}`;
+      const publicUrl = await uploadStorageFile("bih-avatars", path, file);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setAvatarUrl(`${publicUrl}?t=${Date.now()}`);
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Failed to update avatar image.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -197,6 +246,48 @@ const VolunteerProfilePage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(handleSaveProfile)} className="space-y-5">
+            {/* Avatar Upload Section */}
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200/60">
+              <div className="relative h-16 w-16 rounded-full overflow-hidden border border-slate-300 flex-shrink-0 bg-slate-100 flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="text-xl font-bold font-serif text-slate-400">
+                    {watch("fullName") ? watch("fullName").charAt(0).toUpperCase() : "U"}
+                  </div>
+                )}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="avatar-file" className="text-sm font-semibold text-[#1E3A5F]">Profile Photo</Label>
+                <p className="text-[10px] text-muted-foreground">Upload a JPG/PNG profile picture.</p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="avatar-file"
+                    accept="image/*"
+                    disabled={uploadingAvatar || saving}
+                    onChange={handleAvatarUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs border-slate-350 text-slate-700 flex gap-1.5"
+                    disabled={uploadingAvatar || saving}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Change Photo
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <Label htmlFor="fullName">Full Name / Display Name</Label>

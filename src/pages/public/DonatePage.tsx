@@ -211,7 +211,21 @@ const DonatePage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Input id="currency" required disabled={submitting} value={form.currency} onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))} />
+                  <Select
+                    disabled={true}
+                    value={form.currency}
+                    onValueChange={(val) => setForm((prev) => ({ ...prev, currency: val }))}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue placeholder="GHS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GHS">GHS (Ghana Cedi)</SelectItem>
+                      <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                      <SelectItem value="GBP">GBP (British Pound)</SelectItem>
+                      <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Payment Method</Label>

@@ -99,6 +99,21 @@ const VolunteerLogHoursPage = () => {
 
       if (error) throw error;
 
+      // Trigger commitment alert email via Supabase Edge Function
+      try {
+        await supabase.functions.invoke("volunteer-commitment-alert", {
+          body: {
+            volunteerId: user.id,
+            projectId: values.projectId,
+            hours: values.hours,
+            activityDescription: values.activityDescription,
+            logDate: values.logDate,
+          },
+        });
+      } catch (emailErr) {
+        console.error("Failed to trigger commitment alert email:", emailErr);
+      }
+
       toast({
         title: "Hours logged successfully",
         description: "Pending NGO verification. Thank you for your commitment!",
@@ -203,7 +218,15 @@ const VolunteerLogHoursPage = () => {
                   max="24"
                   disabled={submitting}
                   className={errors.hours ? "border-destructive" : ""}
-                  {...register("hours")}
+                  {...register("hours", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                      const parts = e.target.value.split(".");
+                      if (parts.length > 2) {
+                        e.target.value = parts[0] + "." + parts.slice(1).join("");
+                      }
+                    },
+                  })}
                 />
                 {errors.hours && (
                   <p className="text-xs text-destructive font-medium">{errors.hours.message}</p>

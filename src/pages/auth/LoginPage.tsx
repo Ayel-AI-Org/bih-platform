@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogIn, Lock } from "lucide-react";
+import { Loader2, LogIn, Lock, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email format"),
@@ -23,6 +23,7 @@ const LoginPage = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleLogin = async () => {
     try {
@@ -234,13 +235,23 @@ const LoginPage = () => {
                   <Lock className="h-3 w-3" /> Forgot password?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                disabled={submitting}
-                className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  disabled={submitting}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  disabled={submitting}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive font-medium mt-1">
                   {errors.password.message}

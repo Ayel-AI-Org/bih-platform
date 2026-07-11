@@ -233,6 +233,36 @@ serve(async (req) => {
       }
     }
 
+    // Trigger internal-admin-alert for high tier donation
+    const isHighTier = (currency === "GHS" && amount >= 500) || (currency !== "GHS" && amount >= 50);
+    if (isHighTier) {
+      console.log(`Donation of ${currency} ${amount} meets high-tier threshold. Alerting internal admins.`);
+      try {
+        const alertResponse = await fetch(`${supabaseUrl}/functions/v1/internal-admin-alert`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "high_tier_donation",
+            email,
+            fullName,
+            amount,
+            currency,
+            reference,
+            purpose,
+          }),
+        });
+        if (!alertResponse.ok) {
+          const errText = await alertResponse.text();
+          console.error(`Internal admin alert failed: ${errText}`);
+        }
+      } catch (alertErr) {
+        console.error(`Failed to invoke internal admin alert: ${alertErr}`);
+      }
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

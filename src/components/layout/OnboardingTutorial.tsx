@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { supabase } from "@/database/client";
 
 export type UserRole = "admin" | "ngo" | "volunteer" | "donor";
 
@@ -27,74 +28,159 @@ const roleTutorials: Record<UserRole, TutorialStep[]> = {
   admin: [
     {
       title: "Command Center Overview",
-      description: "Welcome to the BIH Command Center. Monitor real-time system growth, pending requests, and platform statistics here.",
+      description: "Welcome to the BIH Command Center. Monitor real-time platform statistics, pending approvals, and database metric counts here.",
       selector: "a[href='/admin']",
     },
     {
+      title: "Operational Summary Metrics",
+      description: "This real-time control strip displays aggregate numbers for users, projects, funds raised, and pending proposals.",
+      selector: "#admin-stats-cards",
+    },
+    {
       title: "User Management Pipelines",
-      description: "Navigate to User Management to review incoming volunteer logs, approve new NGO profiles, or override logged decisions.",
+      description: "Approve or reject incoming volunteer signups and NGO partner registrations to grant them platform access.",
       selector: "a[href='/admin/users']",
     },
     {
-      title: "Project & Financials",
-      description: "Manage active projects and review the absolute source of truth via the CSV-exportable Donations ledger.",
+      title: "Projects Hub",
+      description: "Manage global projects, update descriptions, assign partners, and audit active campaigns in the ecosystem.",
+      selector: "a[href='/admin/projects']",
+    },
+    {
+      title: "Portfolio Review",
+      description: "Moderate and review volunteer portfolio showcase items before they are published to the public gallery.",
+      selector: "a[href='/admin/portfolio']",
+    },
+    {
+      title: "Hours Verification Audit",
+      description: "Perform global checks on volunteer commitment logs, verify records, or void entries for strict auditing.",
+      selector: "a[href='/admin/hours']",
+    },
+    {
+      title: "Project Suggestions Vetting",
+      description: "Audit community-submitted project proposals and budget requests, and convert approved ideas to live campaigns.",
+      selector: "a[href='/admin/suggestions']",
+    },
+    {
+      title: "Media Manager",
+      description: "Publish news, press releases, and success stories to the media gallery to share our community's accomplishments.",
+      selector: "a[href='/admin/media']",
+    },
+    {
+      title: "Global Donations Ledger",
+      description: "Audit all transactions processed through Paystack. Track donors, view amounts, and export full reports.",
       selector: "a[href='/admin/donations']",
     },
     {
-      title: "Suggestions & Media Management",
-      description: "Review public project suggestions submitted by the community and publish news/impact stories using the Media Manager.",
-      selector: "a[href='/admin/suggestions']",
+      title: "Send Impact Summaries",
+      description: "Auditors can click this button to trigger manual quarterly progress email dispatches to all donors in the ecosystem.",
+      selector: "#admin-send-summaries-btn",
     },
   ],
   ngo: [
     {
       title: "Organization Portal Overview",
-      description: "Welcome to your Organization Portal. Track your organization's active projects and overall impact metrics at a glance.",
+      description: "Welcome to your NGO home. Monitor your projects, metrics, and ongoing community impact here.",
       selector: "a[href='/dashboard/ngo']",
     },
     {
+      title: "Organization Metrics Dashboard",
+      description: "Monitor active NGO campaigns, verified service hours sum, pending logs, and volunteers engaged from this grid.",
+      selector: "#ngo-stats-cards",
+    },
+    {
+      title: "Organization Profile",
+      description: "Keep your contact information, website links, and focus areas updated for volunteers and donors.",
+      selector: "a[href='/dashboard/ngo/profile']",
+    },
+    {
+      title: "Project Proposals & Management",
+      description: "Submit new project proposals and manage ongoing blueprints. Volunteers will apply to these projects.",
+      selector: "a[href='/dashboard/ngo/projects']",
+    },
+    {
       title: "Verify Volunteer Hours",
-      description: "Go to 'Verify Hours' to review, approve, or void time logs submitted by volunteers working on your projects. Your verification updates their portfolio instantly.",
+      description: "Review, approve, or void logged volunteer hours. Verified logs update the volunteer's badge rank and portfolio instantly.",
       selector: "a[href='/dashboard/ngo/verify-hours']",
     },
     {
-      title: "Manage Projects & Profile",
-      description: "Manage your organization's active projects, create new blueprints, and keep your public NGO profile updated so volunteers and donors can find you.",
-      selector: "a[href='/dashboard/ngo/projects']",
+      title: "Quick Hours Verification Queue",
+      description: "Verify or reject pending logs submitted by volunteers directly from this dashboard timeline.",
+      selector: "#ngo-pending-verifications",
     },
   ],
   volunteer: [
     {
+      title: "Volunteer Dashboard Home",
+      description: "Welcome! View your cumulative hours, current badge ranks, and quick status summaries here.",
+      selector: "a[href='/dashboard/volunteer']",
+    },
+    {
+      title: "Volunteer Action Metrics",
+      description: "Monitor your verified volunteer hours, pending logs count, portfolio showcases, and badge rank progression at a glance.",
+      selector: "#volunteer-stats-cards",
+    },
+    {
+      title: "Recent Commitment Timeline",
+      description: "Inspect the processing state of your most recent hours logged on projects from this activity log.",
+      selector: "#volunteer-recent-logs",
+    },
+    {
+      title: "My Profile Settings",
+      description: "Manage your contact info, location details, skill tags, and upload your profile avatar.",
+      selector: "a[href='/dashboard/volunteer/profile']",
+    },
+    {
+      title: "Portfolio Showcase",
+      description: "Submit showcase items, attach photos/videos, and build your public impact portfolio.",
+      selector: "a[href='/dashboard/volunteer/portfolio']",
+    },
+    {
       title: "Log Your Hours",
-      description: "Ready to build your impact portfolio? Use the 'Log Hours' feature to report your contributions and activities on active projects.",
+      description: "Report your daily activities and logged hours on active NGO projects for coordinator verification.",
       selector: "a[href='/dashboard/volunteer/log-hours']",
     },
     {
-      title: "Badges & Progression Tiers",
-      description: "Track your hours history and watch your rank climb from Newcomer to Legend as your hours are verified by partner NGOs.",
-      selector: "a[href='/dashboard/volunteer/badges']",
+      title: "Hours History Logs",
+      description: "Access your complete hours history, checking statuses (logged, verified, voided) and NGO approvals.",
+      selector: "a[href='/dashboard/volunteer/hours-history']",
     },
     {
-      title: "Portfolio & Profile Setup",
-      description: "Create, edit, and submit showcase items to your public portfolio to highlight your achievements, and update your skills or availability under My Profile.",
-      selector: "a[href='/dashboard/volunteer/portfolio']",
+      title: "Badges & Progress Tiers",
+      description: "Track your rank progression from Newcomer to Legend as your verified service hours accumulate.",
+      selector: "a[href='/dashboard/volunteer/badges']",
     },
   ],
   donor: [
     {
-      title: "Interactive Impact View",
-      description: "See your generosity in action. Your Impact View map links your transactions directly with live project milestones.",
-      selector: "a[href='/dashboard/donor/impact']",
+      title: "Donor Home Overview",
+      description: "Welcome! View your lifetime donation total, active contribution count, and impact stats at a glance.",
+      selector: "a[href='/dashboard/donor']",
     },
     {
-      title: "Printable Donation Receipts",
-      description: "Access your complete giving history and instantly print official receipts for tax or record-keeping purposes.",
+      title: "Giving Dashboard Metrics",
+      description: "View your total verified donations, processed donation count, and distinct social causes supported.",
+      selector: "#donor-stats-cards",
+    },
+    {
+      title: "Recent Transaction Ledger",
+      description: "Audit the status of your last processed donation records securely inside this timeline widget.",
+      selector: "#donor-recent-transactions",
+    },
+    {
+      title: "Donor Profile Settings",
+      description: "Update your donor classification, contact info, and select your preferred social impact interest categories.",
+      selector: "a[href='/dashboard/donor/profile']",
+    },
+    {
+      title: "Donation Ledger & Receipts",
+      description: "Track your payment history. Download and print official receipts for tax or record-keeping.",
       selector: "a[href='/dashboard/donor/history']",
     },
     {
-      title: "Overview & Interests Profile",
-      description: "Get an overview of your aggregate contributions, and keep your interests and contact info updated under My Profile.",
-      selector: "a[href='/dashboard/donor']",
+      title: "Interactive Impact View",
+      description: "Track how your funds directly support live project milestones through visual maps and progress metrics.",
+      selector: "a[href='/dashboard/donor/impact']",
     },
   ],
 };
@@ -108,12 +194,56 @@ export const OnboardingTutorial = ({ role, userName }: OnboardingTutorialProps) 
   const steps = roleTutorials[role] || [];
 
   useEffect(() => {
-    // Check if the user has already dismissed or completed the tutorial for this role
-    const isDismissed = localStorage.getItem(storageKey) === "true";
-    if (!isDismissed && steps.length > 0) {
-      setIsOpen(true);
-    }
+    const checkOnboardingStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("has_completed_onboarding")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (profile && !profile.has_completed_onboarding) {
+          setIsOpen(true);
+        }
+      } catch (err) {
+        console.error("Failed to query onboarding flag in Supabase:", err);
+        const isDismissed = localStorage.getItem(storageKey) === "true";
+        if (!isDismissed && steps.length > 0) {
+          setIsOpen(true);
+        }
+      }
+    };
+
+    checkOnboardingStatus();
   }, [role, storageKey, steps.length]);
+
+  useEffect(() => {
+    const handleRestartTour = async () => {
+      setCurrentStep(0);
+      setIsOpen(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("profiles")
+            .update({ has_completed_onboarding: false })
+            .eq("id", user.id);
+        }
+      } catch (err) {
+        console.error("Failed to reset onboarding flag in Supabase:", err);
+      }
+    };
+
+    window.addEventListener("bih-restart-tour", handleRestartTour);
+    return () => {
+      window.removeEventListener("bih-restart-tour", handleRestartTour);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -156,9 +286,20 @@ export const OnboardingTutorial = ({ role, userName }: OnboardingTutorialProps) 
     };
   }, [isOpen, currentStep, role, steps]);
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     localStorage.setItem(storageKey, "true");
     setIsOpen(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ has_completed_onboarding: true })
+          .eq("id", user.id);
+      }
+    } catch (err) {
+      console.error("Failed to update onboarding flag in Supabase:", err);
+    }
   };
 
   const handleNext = () => {

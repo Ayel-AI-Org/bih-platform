@@ -10,16 +10,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 const ngoSchema = z
   .object({
     organizationName: z.string().min(1, "Organisation name is required"),
-    contactPerson: z.string().min(1, "Contact person name is required"),
+    contactPerson: z
+      .string()
+      .min(1, "Contact person name is required")
+      .regex(/^[A-Za-z\s-]+$/, "Contact person must contain only letters, spaces, and hyphens"),
     email: z.string().min(1, "Email is required").email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    phone: z.string().min(1, "Phone number is required"),
+    phone: z
+      .string()
+      .min(1, "Phone number is required")
+      .regex(/^[0-9]+$/, "Phone number must contain only numbers"),
     focusArea: z.string().min(1, "Focus area is required"),
     registrationNumber: z.string().optional().or(z.literal("")),
   })
@@ -35,6 +41,8 @@ const NgoSignupPage = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -150,12 +158,16 @@ const NgoSignupPage = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contactPerson">Contact Person Name</Label>
-                <Input
-                  id="contactPerson"
-                  disabled={submitting}
-                  className={errors.contactPerson ? "border-destructive focus-visible:ring-destructive" : ""}
-                  {...register("contactPerson")}
-                />
+                 <Input
+                   id="contactPerson"
+                   disabled={submitting}
+                   className={errors.contactPerson ? "border-destructive focus-visible:ring-destructive" : ""}
+                   {...register("contactPerson", {
+                     onChange: (e) => {
+                       e.target.value = e.target.value.replace(/[^A-Za-z\s-]/g, "");
+                     },
+                   })}
+                 />
                 {errors.contactPerson && (
                   <p className="text-xs text-destructive font-medium mt-1">
                     {errors.contactPerson.message}
@@ -199,12 +211,16 @@ const NgoSignupPage = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  disabled={submitting}
-                  className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-                  {...register("phone")}
-                />
+                 <Input
+                   id="phone"
+                   disabled={submitting}
+                   className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                   {...register("phone", {
+                     onChange: (e) => {
+                       e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                     },
+                   })}
+                 />
                 {errors.phone && (
                   <p className="text-xs text-destructive font-medium mt-1">
                     {errors.phone.message}
@@ -216,29 +232,44 @@ const NgoSignupPage = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
+              <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   disabled={submitting}
-                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
                   {...register("password")}
                 />
-                {errors.password && (
-                  <p className="text-xs text-destructive font-medium mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  disabled={submitting}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   disabled={submitting}
-                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive pr-10" : "pr-10"}
                   {...register("confirmPassword")}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                  disabled={submitting}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
                 {errors.confirmPassword && (
                   <p className="text-xs text-destructive font-medium mt-1">
                     {errors.confirmPassword.message}

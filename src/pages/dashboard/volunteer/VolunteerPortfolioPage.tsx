@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadStorageFile } from "@/database/operations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash, Pencil, Send, Eye, ShieldAlert, Archive, Undo, Loader2 } from "lucide-react";
+import { Plus, Trash, Pencil, Send, Eye, ShieldAlert, Archive, Undo, Loader2, Upload } from "lucide-react";
 
 interface PortfolioItem {
   id: string;
@@ -38,6 +39,14 @@ const portfolioFormSchema = z.object({
   visibility: z.boolean(), // true = public, false = internal
 });
 
+const fileSchema = z
+  .instanceof(File)
+  .refine((file) => file.size <= 25 * 1024 * 1024, "File size must be under 25MB")
+  .refine(
+    (file) => file.type.startsWith("image/") || file.type === "video/mp4",
+    "Only images and MP4 videos are accepted"
+  );
+
 type PortfolioFormValues = z.infer<typeof portfolioFormSchema>;
 
 const VolunteerPortfolioPage = () => {
@@ -51,6 +60,7 @@ const VolunteerPortfolioPage = () => {
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [mediaUrls, setMediaUrls] = useState<string[]>([""]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Details dialog state
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -283,6 +293,60 @@ const VolunteerPortfolioPage = () => {
       return updated;
     });
   };
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    const validation = fileSchema.safeParse(file);
+    if (!validation.success) {
+      const errMsg = validation.error.errors[0].message;
+      setUploadError(errMsg);
+      toast({
+        title: "Invalid file",
+        description: errMsg,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No active session found.");
+
+      const path = `portfolio/${user.id}/${Date.now()}_${file.name}`;
+      const publicUrl = await uploadStorageFile("bih-media", path, file);
+
+      setMediaUrls((prev) => {
+        const firstEmptyIndex = prev.findIndex((url) => !url.trim());
+        if (firstEmptyIndex !== -1) {
+          const updated = [...prev];
+          updated[firstEmptyIndex] = publicUrl;
+          return updated;
+        }
+        if (prev.length < 5) {
+          return [...prev, publicUrl];
+        }
+        return prev;
+      });
+
+      toast({
+        title: "Upload complete",
+        description: "File uploaded and added to your media attachments.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Failed to upload file to storage.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -350,11 +414,11 @@ const VolunteerPortfolioPage = () => {
                           <Badge
                             className={`text-[9px] uppercase font-bold tracking-wider border-none text-white ${
                               item.status === "published"
-                                ? "bg-[#6B8E3E]"
+                                ? "bg-[#1E3A5F]"
                                 : item.status === "archived"
                                 ? "bg-[#C0392B]"
                                 : item.status === "pending"
-                                ? "bg-[#C8601A]"
+                                ? "bg-[#D4A017]"
                                 : "bg-slate-400"
                             }`}
                           >
@@ -468,11 +532,11 @@ const VolunteerPortfolioPage = () => {
                       <Badge
                         className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
                           item.status === "published"
-                            ? "bg-[#6B8E3E]"
+                            ? "bg-[#1E3A5F]"
                             : item.status === "archived"
                             ? "bg-[#C0392B]"
                             : item.status === "pending"
-                            ? "bg-[#C8601A]"
+                            ? "bg-[#D4A017]"
                             : "bg-slate-400"
                         }`}
                       >
@@ -681,17 +745,46 @@ const VolunteerPortfolioPage = () => {
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <Label>Media URLs (up to 5 links)</Label>
-                {mediaUrls.length < 5 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleAddMediaField}
-                    className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add Link
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="media-file-upload"
+                      accept="image/*,video/mp4"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={saving || uploadingFile || mediaUrls.length >= 5}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1 items-center"
+                      disabled={saving || uploadingFile || mediaUrls.length >= 5}
+                    >
+                      {uploadingFile ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                      Upload File
+                    </Button>
+                  </div>
+                  {mediaUrls.length < 5 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleAddMediaField}
+                      className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1"
+                      disabled={saving || uploadingFile}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Link
+                    </Button>
+                  )}
+                </div>
               </div>
+              {uploadError && (
+                <p className="text-xs text-rose-600 font-medium pb-1">{uploadError}</p>
+              )}
               <div className="space-y-2">
                 {mediaUrls.map((url, index) => (
                   <div key={`media-url-${index}`} className="flex gap-2 items-center">
@@ -780,13 +873,13 @@ const VolunteerPortfolioPage = () => {
                     {selectedViewItem.title}
                   </DialogTitle>
                   <Badge
-                    className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                    className={`text-[9px] uppercase font-bold tracking-wider border-none text-white ${
                       selectedViewItem.status === "published"
-                        ? "bg-[#6B8E3E]"
+                        ? "bg-[#1E3A5F]"
                         : selectedViewItem.status === "archived"
                         ? "bg-[#C0392B]"
                         : selectedViewItem.status === "pending"
-                        ? "bg-[#C8601A]"
+                        ? "bg-[#D4A017]"
                         : "bg-slate-400"
                     }`}
                   >
@@ -832,8 +925,9 @@ const VolunteerPortfolioPage = () => {
                             alt={`Attachment ${index + 1}`}
                             className="h-24 w-full object-cover bg-slate-100"
                             onError={(e) => {
-                              // If loading fails, render an icon placeholder instead of a broken image
-                              (e.target as HTMLElement).style.display = "none";
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = "/placeholder.svg";
                             }}
                           />
                           <span className="block text-[8px] text-center p-1 bg-slate-50 text-slate-500 font-mono truncate">

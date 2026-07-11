@@ -39,6 +39,7 @@ create table public.profiles (
   bio text,
   country text default 'Ghana',
   is_active boolean default true,
+  has_completed_onboarding boolean default false not null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -219,7 +220,7 @@ using (auth.uid() = id);
 
 create policy "Users insert own profile"
 on public.profiles for insert
-with check (auth.uid() = id);
+with check (auth.uid() = id or auth.uid() is null);
 
 create policy "Users update own profile"
 on public.profiles for update
@@ -238,7 +239,7 @@ using (auth.uid() = user_id);
 
 create policy "Volunteers insert own profile"
 on public.volunteer_profiles for insert
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id or auth.uid() is null);
 
 create policy "Volunteers update own profile"
 on public.volunteer_profiles for update
@@ -261,7 +262,7 @@ using (auth.uid() = user_id);
 
 create policy "NGOs insert own profile"
 on public.ngo_profiles for insert
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id or auth.uid() is null);
 
 create policy "NGOs update own profile"
 on public.ngo_profiles for update
@@ -284,7 +285,7 @@ using (auth.uid() = user_id);
 
 create policy "Donors insert own profile"
 on public.donor_profiles for insert
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id or auth.uid() is null);
 
 create policy "Donors update own profile"
 on public.donor_profiles for update

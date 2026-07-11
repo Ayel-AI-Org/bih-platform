@@ -363,8 +363,8 @@ const AdminMediaPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="published" className="space-y-6">
-            <div className="px-6 border-b">
-              <TabsList className="bg-slate-100 p-1 border-none w-fit rounded-b-none rounded-t-lg -mb-px">
+            <div className="px-6 border-b border-slate-200">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
                 <TabsTrigger value="published">Published</TabsTrigger>
                 <TabsTrigger value="drafts">Drafts</TabsTrigger>
               </TabsList>

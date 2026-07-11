@@ -37,6 +37,7 @@ const AdminOverviewPage = () => {
   const [recentPortfolios, setRecentPortfolios] = useState<PendingPortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [sendingSummaries, setSendingSummaries] = useState(false);
 
   const fetchOverviewData = async () => {
     try {
@@ -217,6 +218,31 @@ const AdminOverviewPage = () => {
     }
   };
 
+  const handleSendQuarterlySummaries = async () => {
+    setSendingSummaries(true);
+    toast({
+      title: "Generating Summaries",
+      description: "Compiling impact metrics and sending emails to donors...",
+    });
+    try {
+      const { data, error } = await supabase.functions.invoke("donor-impact-summary");
+      if (error) throw error;
+      
+      toast({
+        title: "Impact Summaries Dispatched",
+        description: `Successfully sent quarterly impact summaries to ${data.count || 0} donors.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Dispatch failed",
+        description: err.message || "Failed to send quarterly summaries.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingSummaries(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-8 animate-pulse">
@@ -289,15 +315,32 @@ const AdminOverviewPage = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Administration Overview</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ecosystem health, registrations, and transaction metrics.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Administration Overview</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ecosystem health, registrations, and transaction metrics.
+          </p>
+        </div>
+        <Button 
+          id="admin-send-summaries-btn"
+          onClick={handleSendQuarterlySummaries}
+          disabled={sendingSummaries}
+          className="bg-[#1E3A5F] hover:bg-blue-700 text-white font-medium shadow-sm transition-all"
+        >
+          {sendingSummaries ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending Summaries...
+            </>
+          ) : (
+            "Send Impact Summaries"
+          )}
+        </Button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div id="admin-stats-cards" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
