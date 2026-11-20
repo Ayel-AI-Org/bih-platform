@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, Users, Building2, HandHeart } from "lucide-react";
+import { Heart, Users, Building2, HandHeart, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/database/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getTopPinnedUpdate } from "@/database/operations";
+import { type MediaArticle } from "@/database/types";
 
 const Hero = () => {
   const [stats, setStats] = useState({
@@ -14,9 +16,25 @@ const Hero = () => {
     projects: null as number | string | null,
     lives: null as string | null,
   });
+  const [pinnedUpdate, setPinnedUpdate] = useState<MediaArticle | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchPinned = async () => {
+      try {
+        const update = await getTopPinnedUpdate();
+        if (isMounted) {
+          setPinnedUpdate(update);
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    };
+
+    fetchPinned();
+
     const fetchStats = async () => {
       try {
         // 1. Fetch volunteers count
@@ -86,6 +104,10 @@ const Hero = () => {
     };
 
     fetchStats();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const statsItems = [
@@ -111,9 +133,26 @@ const Hero = () => {
           transition={{ duration: 0.8 }}
           className="max-w-3xl"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-accent/20 text-accent font-medium text-sm mb-6">
-            Connecting Hearts, Building Futures
-          </span>
+          {pinnedUpdate ? (
+            <Link
+              to={`/media?item=${pinnedUpdate.id}`}
+              className="group inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium text-xs md:text-sm mb-6 backdrop-blur-xs transition-all max-w-full"
+              title={pinnedUpdate.title}
+            >
+              <span className="flex h-2 w-2 rounded-full bg-[#D4A017] animate-pulse shrink-0" />
+              <span className="text-[#D4A017] font-semibold uppercase tracking-wider text-[11px] shrink-0">
+                Latest:
+              </span>
+              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md text-white/95 group-hover:text-white">
+                {pinnedUpdate.title}
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </Link>
+          ) : (
+            <span className="inline-block px-4 py-1.5 rounded-full bg-accent/20 text-accent font-medium text-sm mb-6">
+              Connecting Hearts, Building Futures
+            </span>
+          )}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-primary-foreground leading-tight mb-6">
             Bridge for{" "}
             <span className="text-accent">Impact</span> Hub

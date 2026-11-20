@@ -61,6 +61,11 @@ export interface Project {
   partners: string[];
   timeline: string;
   imageUrl: string;
+  completedAt?: string | null;
+  completionSummary?: string | null;
+  beneficiariesReached?: number | null;
+  galleryUrls?: string[];
+  reportUrl?: string | null;
 }
 
 export interface ProjectSuggestion {
@@ -95,6 +100,8 @@ export interface Donation {
   confirmationEmailStatus: "sent";
 }
 
+export type UpdateType = "announcement" | "event" | "media";
+
 export interface MediaArticle {
   id: string;
   title: string;
@@ -106,6 +113,16 @@ export interface MediaArticle {
   imageUrl: string;
   imageUrls: string[];
   fullStoryUrl?: string;
+  isPublished?: boolean;
+  type: UpdateType;
+  eventDate?: string | null;
+  eventLocation?: string | null;
+  eventLink?: string | null;
+  galleryUrls: string[];
+  attachmentUrl?: string | null;
+  videoUrl?: string | null;
+  isPinned: boolean;
+  createdAt?: string;
 }
 
 export interface Session {
