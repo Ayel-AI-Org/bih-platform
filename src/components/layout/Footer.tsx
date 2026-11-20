@@ -93,7 +93,7 @@ const Footer = () => {
               </a>
 
               <a
-                href="https://linktr.ee/BridgeforImpact_Hub"
+                href="https://instagram.com/bridgeforimpact_hub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
