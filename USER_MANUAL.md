@@ -53,7 +53,12 @@ The platform uses a role-based access guard system (`AuthGuards.tsx`) to authori
 * **Impact View Map**: An interactive tracker displaying how donation transactions correspond directly to live project milestones.
 
 ### D. Administrator Hub
-* **User Management**: Admins approve or reject incoming registrations. Features a dedicated **"Admins & Staff"** tab to review administrators.
+* **User Management**: Admins approve or reject incoming registrations. Approving an applicant automatically dispatches a branded confirmation email via the `registration-decision-email` edge function, notifying the user to sign in. Rejections provide optional feedback reasons.
+* **Announcements & Media Management (`/admin/media`)**:
+  * Create, edit, publish, or unpublish entries across types: **Announcement**, **Event**, or **Media / Story**.
+  * Attach event logistics (date/time, venue address, external registration link).
+  * Upload PDF document attachments (supporting reports or press releases) and multi-image galleries.
+  * **Editorial Pinning ("Featured")**: Toggling **"Pin as Featured Update"** marks an item as top editorial priority. Pinned items immediately surface in the homepage Hero announcement pill and claim the primary spotlight card in the homepage **Latest Updates** section.
 * **Role Promotions**:
   * Standard admins can promote users between volunteer, NGO, or donor roles, or appoint them to standard `admin` staff status.
   * Only a `super_admin` can grant or revoke `super_admin` privileges. Standard admins are blocked from editing super admin clearance levels.

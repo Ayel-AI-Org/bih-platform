@@ -10,8 +10,13 @@ import SiteLayout from "@/components/layout/SiteLayout";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ErrorBoundary from "@/components/layout/ErrorBoundary";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 import { initializePlatformData } from "@/database/operations";
 import { ProtectedRoute, PublicRoute, PendingRoute } from "@/components/layout/AuthGuards";
+import { ConsentProvider } from "@/context/ConsentContext";
+import GatedAnalytics from "@/components/analytics/GatedAnalytics";
+import CookieConsentBanner from "@/components/consent/CookieConsentBanner";
+import CookiePreferencesModal from "@/components/consent/CookiePreferencesModal";
 
 // Keep static imports for critical immediate paths
 import Index from "./pages/public/Index";
@@ -89,11 +94,16 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
+        <ConsentProvider>
+          <GatedAnalytics />
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <CookieConsentBanner />
+              <CookiePreferencesModal />
+              <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route element={<SiteLayout />}>
                   <Route path="/" element={<Index />} />
@@ -198,8 +208,9 @@ const App = () => {
             </Suspense>
           </BrowserRouter>
         </TooltipProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
+      </ConsentProvider>
+    </ErrorBoundary>
+  </QueryClientProvider>
   );
 };
 

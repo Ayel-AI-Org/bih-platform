@@ -109,16 +109,20 @@ const AdminPortfolioPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No admin session active.");
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("portfolio_entries")
         .update({
           status: "published",
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", entryId);
+        .eq("id", entryId)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Entry approved",
@@ -151,7 +155,7 @@ const AdminPortfolioPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No admin session active.");
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("portfolio_entries")
         .update({
           status: "draft",
@@ -159,9 +163,13 @@ const AdminPortfolioPage = () => {
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", returnEntry.id);
+        .eq("id", returnEntry.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Entry returned",
@@ -191,14 +199,18 @@ const AdminPortfolioPage = () => {
     if (!archiveEntry) return;
     setArchiving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("portfolio_entries")
         .update({
           status: "archived",
         })
-        .eq("id", archiveEntry.id);
+        .eq("id", archiveEntry.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Entry archived",
@@ -315,9 +327,9 @@ const AdminPortfolioPage = () => {
                         <>
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             onClick={() => handleOpenPreview(entry)}
-                            className="h-7 px-2 text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
+                            className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] bg-blue-50/60 border-blue-200/80 hover:bg-[#1E3A5F] hover:text-white hover:border-[#1E3A5F] focus-visible:ring-2 focus-visible:ring-[#1E3A5F] focus-visible:ring-offset-1 transition-colors flex gap-1.5 items-center"
                           >
                             <Eye className="h-3.5 w-3.5" /> Preview
                           </Button>

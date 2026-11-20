@@ -159,7 +159,15 @@ serve(async (req) => {
 
       // Trigger Resend confirmation email
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      const fromEmail = Deno.env.get("DONATION_EMAIL_FROM") || Deno.env.get("SUGGESTED_EMAIL_FROM") || "BIH <no-reply@bridgeforimpacthub.org>";
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const namedEmailRegex = /^[^<>]+ <[^\s@]+@[^\s@]+\.[^\s@]+>$/;
+      
+      let fromEmail = Deno.env.get("DONATION_EMAIL_FROM") || Deno.env.get("SUGGESTED_EMAIL_FROM") || "";
+      if (!fromEmail || (!emailRegex.test(fromEmail) && !namedEmailRegex.test(fromEmail))) {
+        console.warn(`Invalid or missing DONATION_EMAIL_FROM: "${fromEmail}". Falling back to safe default.`);
+        fromEmail = "BIH <no-reply@bridgeforimpacthub.org>";
+      }
 
       if (resendApiKey && email) {
         console.log(`Sending receipt confirmation email to ${email}`);

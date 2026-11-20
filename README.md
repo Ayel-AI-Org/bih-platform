@@ -39,7 +39,8 @@ By bringing stakeholders together, BIH establishes a transparent, metrics-driven
 * **Projects Gallery**: Browse proposed, ongoing, and completed community projects with dynamic keyword search and status tabs.
 * **Intake Suggestions**: Community members can submit neighborhood improvement blueprints directly without logging in.
 * **AI Chat Assistant**: A resilient, site-wide chatbot trained on BIH policies to match volunteers to projects and answer community inquiries.
-* **Media & Stories**: Access transparent impact reports, news, and success stories published by the team.
+* **Latest Updates & Media Hub**: Dedicated newsroom (`/media`) with real-time text search, topic category pills, pagination ("Load More"), .ics calendar generation, and PDF document downloads.
+* **Social Presence**: Connect with BIH via [Linktree Hub](https://linktr.ee/BridgeforImpact_Hub) and Instagram `@bridgeforimpact_hub`.
 
 ---
 

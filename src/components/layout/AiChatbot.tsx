@@ -63,13 +63,14 @@ const AiChatbot = () => {
     try {
       const reply = await getAiChatReply([...contextMessages, { role: "user", content: text }]);
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-    } catch {
+    } catch (error) {
       const fallback = getLocalFallbackReply(text);
+      const detail = error instanceof Error ? error.message : "AI service unavailable";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `I could not reach live AI right now.\n\nFallback help:\n${fallback}`,
+          content: `AI Service Notice: ${detail}\n\n${fallback}`,
         },
       ]);
     } finally {

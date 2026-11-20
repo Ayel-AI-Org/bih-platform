@@ -139,7 +139,7 @@ const ProjectsPage = () => {
   };
 
   return (
-    <section className="py-16 bg-[#F5F5F5] min-h-[80vh]">
+    <section className="flex-1 py-10 md:py-16 bg-[#F5F5F5]">
       <div className="container">
         <div className="mb-8">
           <p className="text-sm font-semibold text-accent uppercase tracking-widest">Projects</p>

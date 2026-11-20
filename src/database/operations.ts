@@ -9,6 +9,7 @@ import {
   type ProjectSuggestion,
   type Session,
   type SuggestionStatus,
+  type UpdateType,
   type VolunteerProfile,
 } from "@/database/types";
 import { supabase } from "@/database/client";
@@ -34,6 +35,11 @@ type ProjectRow = {
   partners: string[];
   timeline: string;
   image_url: string;
+  completed_at?: string | null;
+  completion_summary?: string | null;
+  beneficiaries_reached?: number | null;
+  gallery_urls?: string[] | null;
+  report_url?: string | null;
 };
 
 type SuggestionRow = {
@@ -78,6 +84,16 @@ type MediaRow = {
   published_at: string;
   image_url: string;
   full_story_url?: string | null;
+  is_published?: boolean;
+  type?: UpdateType;
+  event_date?: string | null;
+  event_location?: string | null;
+  event_link?: string | null;
+  gallery_urls?: string[] | null;
+  attachment_url?: string | null;
+  video_url?: string | null;
+  is_pinned?: boolean;
+  created_at?: string;
 };
 
 type ProfileJoin = { full_name?: string; email?: string } | Array<{ full_name?: string; email?: string }> | null;
@@ -149,6 +165,11 @@ const mapProject = (row: ProjectRow): Project => ({
   partners: row.partners,
   timeline: row.timeline,
   imageUrl: row.image_url,
+  completedAt: row.completed_at ?? null,
+  completionSummary: row.completion_summary ?? null,
+  beneficiariesReached: row.beneficiaries_reached ?? null,
+  galleryUrls: Array.isArray(row.gallery_urls) ? row.gallery_urls : [],
+  reportUrl: row.report_url ?? null,
 });
 
 const mapSuggestion = (row: SuggestionRow): ProjectSuggestion => ({
@@ -183,7 +204,11 @@ const mapDonation = (row: DonationRow): Donation => ({
   confirmationEmailStatus: row.confirmation_email_status,
 });
 
-const parseMediaImageUrls = (value: string): string[] => {
+const parseMediaImageUrls = (value?: string | null): string[] => {
+  if (!value || typeof value !== "string") {
+    return [];
+  }
+
   try {
     const parsed = JSON.parse(value) as unknown;
     if (Array.isArray(parsed)) {
@@ -201,19 +226,29 @@ const parseMediaImageUrls = (value: string): string[] => {
 
 const mapMedia = (row: MediaRow): MediaArticle => {
   const imageUrls = parseMediaImageUrls(row.image_url);
-  const fallbackUrl = "https://source.unsplash.com/1600x900/?community,story";
+  const fallbackUrl = "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80";
 
   return {
     id: row.id,
-    title: row.title,
-    summary: row.summary,
-    content: row.content?.trim() ? row.content : row.summary,
-    author: row.author,
-    category: row.category,
-    publishedAt: row.published_at,
+    title: row.title || "Untitled Update",
+    summary: row.summary || "",
+    content: row.content?.trim() ? row.content : (row.summary || ""),
+    author: row.author || "BIH Team",
+    category: row.category || "General",
+    publishedAt: row.published_at || new Date().toISOString().split("T")[0],
     imageUrl: imageUrls[0] ?? fallbackUrl,
     imageUrls: imageUrls.length > 0 ? imageUrls : [fallbackUrl],
     fullStoryUrl: row.full_story_url ?? undefined,
+    isPublished: row.is_published ?? false,
+    type: (row.type as UpdateType) || "media",
+    eventDate: row.event_date ?? null,
+    eventLocation: row.event_location ?? null,
+    eventLink: row.event_link ?? null,
+    galleryUrls: Array.isArray(row.gallery_urls) ? row.gallery_urls : [],
+    attachmentUrl: row.attachment_url ?? null,
+    videoUrl: row.video_url ?? null,
+    isPinned: row.is_pinned ?? false,
+    createdAt: row.created_at,
   };
 };
 
@@ -685,12 +720,16 @@ export async function updateRegistrationApprovalStatus(payload: {
   } as const;
 
   const table = tableMap[payload.role];
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(table)
     .update({ approval_status: payload.status })
-    .eq("user_id", payload.userId);
+    .eq("user_id", payload.userId)
+    .select();
 
   throwIfError(error);
+  if (!data || data.length === 0) {
+    throw new Error("Permission denied: check your admin role");
+  }
 }
 
 export async function sendRegistrationDecisionEmail(payload: {
@@ -766,7 +805,7 @@ export async function getSession(): Promise<Session | null> {
 export async function getProjects() {
   const { data, error } = await supabase
     .from("projects")
-    .select("id, title, description, location, status, partners, timeline, image_url")
+    .select("*")
     .order("created_at", { ascending: false });
 
   throwIfError(error);
@@ -777,7 +816,7 @@ export async function getProjects() {
 export async function getProjectById(projectId: string) {
   const { data, error } = await supabase
     .from("projects")
-    .select("id, title, description, location, status, partners, timeline, image_url")
+    .select("*")
     .eq("id", projectId)
     .maybeSingle();
 
@@ -791,13 +830,37 @@ export async function getProjectsByStatus(status: ProjectStatus) {
   return allProjects.filter((project) => project.status === status);
 }
 
-export async function updateProjectStatus(projectId: string, status: ProjectStatus) {
-  const { error } = await supabase
+export async function updateProjectStatus(
+  projectId: string,
+  status: ProjectStatus,
+  completionData?: {
+    completedAt?: string | null;
+    completionSummary?: string | null;
+    beneficiariesReached?: number | null;
+    galleryUrls?: string[];
+    reportUrl?: string | null;
+  }
+) {
+  const updatePayload: Record<string, any> = { status };
+  if (completionData) {
+    if (completionData.completedAt !== undefined) updatePayload.completed_at = completionData.completedAt;
+    if (completionData.completionSummary !== undefined) updatePayload.completion_summary = completionData.completionSummary;
+    if (completionData.beneficiariesReached !== undefined) updatePayload.beneficiaries_reached = completionData.beneficiariesReached;
+    if (completionData.galleryUrls !== undefined) updatePayload.gallery_urls = completionData.galleryUrls;
+    if (completionData.reportUrl !== undefined) updatePayload.report_url = completionData.reportUrl;
+  }
+
+  const { data, error } = await supabase
     .from("projects")
-    .update({ status })
-    .eq("id", projectId);
+    .update(updatePayload)
+    .eq("id", projectId)
+    .select();
 
   throwIfError(error);
+  if (!data || data.length === 0) {
+    throw new Error("Permission denied: check your admin role");
+  }
+  return data;
 }
 
 export async function suggestProject(payload: {
@@ -1211,7 +1274,7 @@ export async function getDonations() {
 export async function getMediaArticles() {
   const { data, error } = await supabase
     .from("media_articles")
-    .select("id, title, summary, content, author, category, published_at, image_url, full_story_url")
+    .select("*")
     .order("published_at", { ascending: false });
 
   if (!error) {
@@ -1230,6 +1293,81 @@ export async function getMediaArticles() {
   throwIfError(fallbackError);
 
   return (fallbackData as MediaRow[]).map(mapMedia);
+}
+
+export async function getAllPublishedMediaArticles(): Promise<MediaArticle[]> {
+  const { data, error } = await supabase
+    .from("media_articles")
+    .select("*")
+    .eq("is_published", true)
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false });
+
+  if (!error) {
+    return (data as MediaRow[]).map(mapMedia);
+  }
+
+  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+    throw new Error(error.message);
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("media_articles")
+    .select("id, title, summary, author, category, published_at, image_url")
+    .order("published_at", { ascending: false });
+
+  throwIfError(fallbackError);
+
+  return (fallbackData as MediaRow[]).map(mapMedia);
+}
+
+export async function getLatestUpdates(limit = 3): Promise<MediaArticle[]> {
+  const { data, error } = await supabase
+    .from("media_articles")
+    .select("*")
+    .eq("is_published", true)
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (!error) {
+    return (data as MediaRow[]).map(mapMedia);
+  }
+
+  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+    throw new Error(error.message);
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("media_articles")
+    .select("id, title, summary, author, category, published_at, image_url")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  throwIfError(fallbackError);
+
+  return (fallbackData as MediaRow[]).map(mapMedia);
+}
+
+export async function getTopPinnedUpdate(): Promise<MediaArticle | null> {
+  const { data, error } = await supabase
+    .from("media_articles")
+    .select("*")
+    .eq("is_published", true)
+    .eq("is_pinned", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!error) {
+    return data ? mapMedia(data as MediaRow) : null;
+  }
+
+  if (error.message.includes("column") && error.message.includes("does not exist")) {
+    return null;
+  }
+
+  throw new Error(error.message);
 }
 
 export async function createMediaArticle(payload: {
@@ -1330,13 +1468,43 @@ export function exportRowsToCsv(filename: string, rows: Record<string, string | 
 
 export async function uploadStorageFile(bucket: string, path: string, file: File): Promise<string> {
   if (file.size > 25 * 1024 * 1024) {
-    throw new Error("File size exceeds 25MB limit.");
+    throw new Error("File size exceeds the 25 MB limit.");
   }
+
+  // Determine normalized MIME type, especially when browser omits file.type
+  let contentType = (file.type || "").toLowerCase().trim();
+  const ext = file.name.includes(".") ? `.${file.name.split(".").pop()?.toLowerCase()}` : "";
+
+  if (!contentType || contentType === "application/octet-stream") {
+    if (ext === ".pdf") contentType = "application/pdf";
+    else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
+    else if (ext === ".png") contentType = "image/png";
+    else if (ext === ".webp") contentType = "image/webp";
+    else if (ext === ".mp4") contentType = "video/mp4";
+    else if (ext === ".webm") contentType = "video/webm";
+  }
+
   const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",
     upsert: true,
+    contentType: contentType || undefined,
   });
-  throwIfError(error);
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("mime type") && (msg.includes("not supported") || msg.includes("not allowed"))) {
+      throw new Error(
+        `The storage bucket rejected "${file.name}" because the file format (${contentType || "detected type"}) is restricted in Supabase storage bucket settings. Ensure the bucket's allowed_mime_types includes this type.`
+      );
+    }
+    if (msg.includes("violates row-level security") || msg.includes("row-level security")) {
+      throw new Error("Upload permission denied by storage security policies. Ensure you are signed in with admin permissions.");
+    }
+    if (msg.includes("exceeds") || msg.includes("too large") || msg.includes("payload too large")) {
+      throw new Error(`File "${file.name}" exceeds the storage size limit.`);
+    }
+    throw new Error(error.message || `Failed to upload "${file.name}".`);
+  }
 
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
   return publicUrl;

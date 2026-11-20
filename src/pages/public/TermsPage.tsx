@@ -6,7 +6,7 @@ export const TermsPage = () => {
   const data = TERMS_AND_CONDITIONS_TEXT;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex-1 bg-slate-50 py-10 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-3 border-b pb-4 border-slate-200">
           <div className="h-10 w-10 rounded-full bg-[#1E3A5F]/10 flex items-center justify-center text-[#1E3A5F]">

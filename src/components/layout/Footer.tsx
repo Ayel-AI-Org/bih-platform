@@ -1,8 +1,10 @@
-import { Heart, Mail, MapPin, Phone } from "lucide-react";
+import { Heart, Mail, MapPin, Phone, Instagram, Share2, ExternalLink, SlidersHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "@/database/operations";
+import { useConsent } from "@/context/ConsentContext";
 
 const Footer = () => {
+  const { openPreferences } = useConsent();
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminDashboard = location.pathname === "/admin";
@@ -17,69 +19,145 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-primary text-primary-foreground pt-16 pb-8" id="contact">
+    <footer className="bg-primary text-primary-foreground pt-10 md:pt-16 pb-12 md:pb-8" id="contact">
       <div className="container">
-        <div className="grid md:grid-cols-4 gap-10 mb-12">
-          <div className="md:col-span-2">
-            <h3 className="text-2xl font-serif mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 mb-8 md:mb-12">
+          {/* Brand & Contact */}
+          <div className="md:col-span-5 text-center md:text-left flex flex-col items-center md:items-start">
+            <h3 className="text-xl md:text-2xl font-serif mb-3 md:mb-4">
               Bridge for <span className="text-accent">Impact</span> Hub
             </h3>
-            <p className="text-primary-foreground/70 text-sm leading-relaxed max-w-md mb-6">
+            <p className="text-primary-foreground/70 text-sm leading-relaxed max-w-md mb-4 md:mb-6">
               Connecting volunteers, NGOs, philanthropists, and communities to create
               lasting, measurable change across the region.
             </p>
-            <div className="space-y-2 text-sm text-primary-foreground/70">
-              <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> bridgeforimpacthub@gmail.com</div>
-              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> +233 (0) 53 880 9478</div>
-              <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> University of Ghana, Legon Campus</div>
+            <div className="space-y-1.5 md:space-y-2 text-sm text-primary-foreground/70 w-full">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Mail className="w-4 h-4 shrink-0 text-accent" />
+                <span>bridgeforimpacthub@gmail.com</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Phone className="w-4 h-4 shrink-0 text-accent" />
+                <span>+233 (0) 53 880 9478</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <MapPin className="w-4 h-4 shrink-0 text-accent" />
+                <span>University of Ghana, Legon Campus</span>
+              </div>
             </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/" className="hover:text-primary-foreground transition-colors">Home</Link></li>
-              <li><Link to="/projects" className="hover:text-primary-foreground transition-colors">Projects</Link></li>
-              <li><Link to="/suggest-project" className="hover:text-primary-foreground transition-colors">Suggest Project</Link></li>
-              <li><Link to="/media" className="hover:text-primary-foreground transition-colors">Media & Articles</Link></li>
-            </ul>
+          {/* Navigation Links */}
+          <div className="grid grid-cols-2 gap-6 text-center md:text-left md:col-span-4 w-full">
+            <div>
+              <h4 className="font-semibold mb-3 md:mb-4 text-sm uppercase tracking-wider text-accent">Quick Links</h4>
+              <ul className="space-y-2.5 text-sm text-primary-foreground/70">
+                <li><Link to="/" className="hover:text-primary-foreground transition-colors">Home</Link></li>
+                <li><Link to="/projects" className="hover:text-primary-foreground transition-colors">Projects</Link></li>
+                <li><Link to="/suggest-project" className="hover:text-primary-foreground transition-colors">Suggest Project</Link></li>
+                <li><Link to="/media" className="hover:text-primary-foreground transition-colors">Media & Updates</Link></li>
+                <li><Link to="/privacy" className="hover:text-primary-foreground transition-colors">Privacy Policy</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-3 md:mb-4 text-sm uppercase tracking-wider text-accent">For Partners</h4>
+              <ul className="space-y-2.5 text-sm text-primary-foreground/70">
+                <li><Link to="/register/ngo" className="hover:text-primary-foreground transition-colors">Register as NGO</Link></li>
+                <li><Link to="/register/volunteer" className="hover:text-primary-foreground transition-colors">Volunteer Sign-up</Link></li>
+                <li><Link to="/register/donor" className="hover:text-primary-foreground transition-colors">Donor Portal</Link></li>
+                <li><Link to="/donate" className="hover:text-primary-foreground transition-colors">Donate</Link></li>
+              </ul>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">For Partners</h4>
-            <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><Link to="/register/ngo" className="hover:text-primary-foreground transition-colors">Register as NGO</Link></li>
-              <li><Link to="/register/volunteer" className="hover:text-primary-foreground transition-colors">Volunteer Sign-up</Link></li>
-              <li><Link to="/register/donor" className="hover:text-primary-foreground transition-colors">Donor Portal</Link></li>
-              <li><Link to="/donate" className="hover:text-primary-foreground transition-colors">Donate</Link></li>
-            </ul>
+          {/* Follow BIH / Social Presence */}
+          <div className="md:col-span-3 text-center md:text-left flex flex-col items-center md:items-start space-y-3">
+            <h4 className="font-semibold text-sm uppercase tracking-wider text-accent">Follow BIH</h4>
+            <p className="text-primary-foreground/70 text-xs leading-relaxed max-w-xs">
+              Stay connected with our community, projects, stories, and impact.
+            </p>
+            <div className="flex flex-col gap-2 pt-1 w-full max-w-xs">
+              <a
+                href="https://linktr.ee/BridgeforImpact_Hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
+                aria-label="BIH Social Links landing page on Linktree"
+              >
+                <span className="flex items-center gap-2">
+                  <Share2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                  <span className="font-medium">Social Hub (Linktree)</span>
+                </span>
+                <ExternalLink className="w-3 h-3 text-primary-foreground/40 group-hover:text-accent transition-colors shrink-0" />
+              </a>
+
+              <a
+                href="https://instagram.com/bridgeforimpact_hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
+                aria-label="Follow BIH on Instagram: @bridgeforimpact_hub"
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <Instagram className="w-3.5 h-3.5 text-accent shrink-0" />
+                  <span className="font-medium truncate">@bridgeforimpact_hub</span>
+                </span>
+                <ExternalLink className="w-3 h-3 text-primary-foreground/40 group-hover:text-accent transition-colors shrink-0" />
+              </a>
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/10 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-primary-foreground/50 gap-2">
-          <p>© 2026 Bridge for Impact Hub. All rights reserved.</p>
-          <p className="flex items-center gap-1 mt-2 md:mt-0">
-            Made with <Heart className="w-3 h-3 text-accent" /> for communities everywhere
-          </p>
-          {isAdminDashboard ? (
-            <button
-              type="button"
-              onClick={handleAdminFooterAction}
-              className="w-full md:w-auto text-right text-xs font-semibold uppercase tracking-wide text-primary-foreground/90 hover:text-primary-foreground transition-colors"
-              aria-label="Logout"
-            >
-              Logout
-            </button>
-          ) : (
-            <Link
-              to="/login"
-              state={{ from: "/admin" }}
-              className="w-full md:w-auto text-right text-[10px] tracking-wide uppercase opacity-35 hover:opacity-65 transition-opacity"
-              aria-label="Login as admin"
-            >
-              login/register
-            </Link>
-          )}
+        <div className="border-t border-primary-foreground/10 pt-6 flex flex-col md:flex-row items-center justify-between text-center md:text-left text-xs text-primary-foreground/70 gap-4 md:gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-primary-foreground/60">
+            <p>© 2026 Bridge for Impact Hub. All rights reserved.</p>
+            <span className="hidden sm:inline opacity-40">•</span>
+            <div className="flex items-center gap-3">
+              <Link to="/privacy" className="hover:text-primary-foreground transition-colors underline-offset-4 hover:underline">
+                Privacy
+              </Link>
+              <span className="opacity-40">•</span>
+              <Link to="/terms" className="hover:text-primary-foreground transition-colors underline-offset-4 hover:underline">
+                Terms
+              </Link>
+              <span className="opacity-40">•</span>
+              <button
+                type="button"
+                onClick={openPreferences}
+                className="inline-flex items-center gap-1.5 hover:text-accent transition-colors underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm text-primary-foreground/80 font-medium"
+                aria-label="Manage cookie and privacy preferences"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Cookie Preferences</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <p className="flex items-center gap-1 text-primary-foreground/60">
+              Made with <Heart className="w-3 h-3 text-accent" /> for communities everywhere
+            </p>
+            {isAdminDashboard ? (
+              <button
+                type="button"
+                onClick={handleAdminFooterAction}
+                className="w-auto text-center md:text-right text-xs font-semibold uppercase tracking-wide text-primary-foreground/90 hover:text-primary-foreground transition-colors"
+                aria-label="Logout"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                state={{ from: "/admin" }}
+                className="w-auto text-center md:text-right text-[10px] tracking-wide uppercase opacity-35 hover:opacity-65 transition-opacity"
+                aria-label="Login as admin"
+              >
+                login/register
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </footer>

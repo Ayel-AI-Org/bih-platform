@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
-import { uploadStorageFile } from "@/database/operations";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileUploader } from "@/components/admin/FileUploader";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash, Download, Loader2, AlertCircle, Upload } from "lucide-react";
+import { Plus, Pencil, Trash, Download, Loader2, AlertCircle, MapPin, Calendar, Info } from "lucide-react";
 
 interface AdminProjectItem {
   id: string;
@@ -29,6 +29,11 @@ interface AdminProjectItem {
   imageUrl: string;
   partners: string[];
   createdAt: string;
+  completedAt?: string | null;
+  completionSummary?: string | null;
+  beneficiariesReached?: number | null;
+  galleryUrls?: string[];
+  reportUrl?: string | null;
 }
 
 const projectFormSchema = z.object({
@@ -40,6 +45,11 @@ const projectFormSchema = z.object({
   timeline: z.string().optional().or(z.literal("")),
   imageUrl: z.string().optional().or(z.literal("")),
   partners: z.string().optional().or(z.literal("")),
+  completedAt: z.string().optional().or(z.literal("")),
+  completionSummary: z.string().optional().or(z.literal("")),
+  beneficiariesReached: z.union([z.number(), z.string()]).optional().nullable(),
+  galleryUrls: z.array(z.string()).default([]),
+  reportUrl: z.string().optional().or(z.literal("")),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -62,10 +72,17 @@ const AdminProjectsPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
+  // Inline Status Change & Completion Confirmation State
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
+  const [completingProject, setCompletingProject] = useState<AdminProjectItem | null>(null);
+  const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<ProjectFormValues>({
@@ -79,8 +96,21 @@ const AdminProjectsPage = () => {
       timeline: "",
       imageUrl: "",
       partners: "",
+      completedAt: "",
+      completionSummary: "",
+      beneficiariesReached: "",
+      galleryUrls: [],
+      reportUrl: "",
     },
   });
+
+  const watchTitle = watch("title");
+  const watchDescription = watch("description");
+  const watchLocation = watch("location");
+  const watchCategory = watch("category");
+  const watchStatus = watch("status");
+  const watchTimeline = watch("timeline");
+  const watchImageUrl = watch("imageUrl");
 
   const fetchProjects = async () => {
     try {
@@ -103,6 +133,11 @@ const AdminProjectsPage = () => {
           imageUrl: row.image_url || "",
           partners: row.partners || [],
           createdAt: row.created_at,
+          completedAt: row.completed_at || null,
+          completionSummary: row.completion_summary || null,
+          beneficiariesReached: row.beneficiaries_reached ?? null,
+          galleryUrls: Array.isArray(row.gallery_urls) ? row.gallery_urls : [],
+          reportUrl: row.report_url || null,
         }))
       );
     } catch (err: any) {
@@ -152,12 +187,17 @@ const AdminProjectsPage = () => {
         timeline: timeline || "",
         imageUrl: "",
         partners: "",
+        completedAt: "",
+        completionSummary: "",
+        beneficiariesReached: "",
+        galleryUrls: [],
+        reportUrl: "",
       });
       setModalOpen(true);
       // Clear parameters to prevent modal reopening on later operations
       setSearchParams({});
     }
-  }, [searchParams]);
+  }, [searchParams, reset, setSearchParams]);
 
   const handleOpenCreate = () => {
     setEditingProject(null);
@@ -170,6 +210,11 @@ const AdminProjectsPage = () => {
       timeline: "",
       imageUrl: "",
       partners: "",
+      completedAt: "",
+      completionSummary: "",
+      beneficiariesReached: "",
+      galleryUrls: [],
+      reportUrl: "",
     });
     setModalOpen(true);
   };
@@ -185,44 +230,16 @@ const AdminProjectsPage = () => {
       timeline: project.timeline,
       imageUrl: project.imageUrl,
       partners: project.partners.join(", "),
+      completedAt: project.completedAt ? project.completedAt.slice(0, 10) : "",
+      completionSummary: project.completionSummary || "",
+      beneficiariesReached:
+        project.beneficiariesReached !== null && project.beneficiariesReached !== undefined
+          ? project.beneficiariesReached
+          : "",
+      galleryUrls: project.galleryUrls || [],
+      reportUrl: project.reportUrl || "",
     });
     setModalOpen(true);
-  };
-
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file for the project cover.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const path = `projects/${Date.now()}_${file.name}`;
-      const publicUrl = await uploadStorageFile("bih-media", path, file);
-
-      setValue("imageUrl", publicUrl);
-      toast({
-        title: "Cover uploaded",
-        description: "Project cover image uploaded successfully.",
-      });
-    } catch (err: any) {
-      toast({
-        title: "Upload failed",
-        description: err.message || "Failed to upload project cover image.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingImage(false);
-    }
   };
 
   const handleSaveProject = async (values: ProjectFormValues) => {
@@ -235,7 +252,21 @@ const AdminProjectsPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No active session detected.");
 
-      const payload = {
+      const beneficiaries =
+        values.beneficiariesReached !== undefined &&
+        values.beneficiariesReached !== "" &&
+        values.beneficiariesReached !== null
+          ? Number(values.beneficiariesReached)
+          : null;
+
+      let completedAtDate: string | null = null;
+      if (values.status === "completed") {
+        completedAtDate = values.completedAt
+          ? new Date(values.completedAt).toISOString()
+          : new Date().toISOString();
+      }
+
+      const payload: Record<string, any> = {
         title: values.title,
         description: values.description,
         location: values.location,
@@ -245,16 +276,25 @@ const AdminProjectsPage = () => {
         image_url: values.imageUrl || null,
         partners: partnerArray,
         created_by: user.id,
+        completed_at: completedAtDate,
+        completion_summary: values.status === "completed" ? (values.completionSummary || null) : null,
+        beneficiaries_reached: values.status === "completed" ? beneficiaries : null,
+        gallery_urls: values.status === "completed" ? (values.galleryUrls || []) : [],
+        report_url: values.status === "completed" ? (values.reportUrl || null) : null,
       };
 
       if (editingProject) {
         // Update existing row
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("projects")
           .update(payload)
-          .eq("id", editingProject.id);
+          .eq("id", editingProject.id)
+          .select();
 
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error("Permission denied: check your admin role");
+        }
 
         toast({
           title: "Project updated",
@@ -262,8 +302,15 @@ const AdminProjectsPage = () => {
         });
       } else {
         // Insert new row
-        const { error } = await supabase.from("projects").insert(payload);
+        const { data, error } = await supabase
+          .from("projects")
+          .insert(payload)
+          .select();
+
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error("Permission denied: check your admin role");
+        }
 
         toast({
           title: "Project created",
@@ -281,6 +328,93 @@ const AdminProjectsPage = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleInlineStatusChange = async (
+    project: AdminProjectItem,
+    newStatus: "proposed" | "ongoing" | "completed"
+  ) => {
+    if (newStatus === project.status) return;
+
+    if (newStatus === "completed") {
+      setCompletingProject(project);
+      setCompletionDate(new Date().toISOString().slice(0, 10));
+      setCompletionModalOpen(true);
+      return;
+    }
+
+    // Moving to proposed or ongoing (including admin correction completed -> ongoing)
+    setUpdatingStatusId(project.id);
+    try {
+      const updatePayload: Record<string, any> = { status: newStatus };
+
+      const { data, error } = await supabase
+        .from("projects")
+        .update(updatePayload)
+        .eq("id", project.id)
+        .select();
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
+
+      toast({
+        title: "Status updated",
+        description: `"${project.title}" status changed to ${newStatus}.`,
+      });
+      fetchProjects();
+    } catch (err: any) {
+      toast({
+        title: "Status update failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!completingProject) return;
+
+    setUpdatingStatusId(completingProject.id);
+    try {
+      const dateToSave = completionDate
+        ? new Date(completionDate).toISOString()
+        : new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("projects")
+        .update({
+          status: "completed",
+          completed_at: dateToSave,
+        })
+        .eq("id", completingProject.id)
+        .select();
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
+
+      toast({
+        title: "Project completed",
+        description: `"${completingProject.title}" marked as completed. Use "Edit" to attach gallery photos and report evidence.`,
+      });
+
+      setCompletionModalOpen(false);
+      setCompletingProject(null);
+      fetchProjects();
+    } catch (err: any) {
+      toast({
+        title: "Completion update failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -302,8 +436,16 @@ const AdminProjectsPage = () => {
     }
     setDeleting(true);
     try {
-      const { error } = await supabase.from("projects").delete().eq("id", deletingId);
+      const { data, error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", deletingId)
+        .select();
+
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Project deleted",
@@ -333,7 +475,7 @@ const AdminProjectsPage = () => {
       return;
     }
 
-    const headers = ["Title", "Location", "Category", "Status", "Date Created", "Partners"];
+    const headers = ["Title", "Location", "Category", "Status", "Date Created", "Partners", "Beneficiaries Reached"];
     const rows = projects.map((p) => [
       p.title,
       p.location,
@@ -341,11 +483,12 @@ const AdminProjectsPage = () => {
       p.status,
       new Date(p.createdAt).toLocaleDateString(),
       p.partners.join(";"),
+      p.beneficiariesReached ?? "",
     ]);
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.map(val => `"${val}"`).join(","))].join("\n");
+      [headers.join(","), ...rows.map((e) => e.map((val) => `"${val}"`).join(","))].join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -427,17 +570,44 @@ const AdminProjectsPage = () => {
                         {p.category || "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${
-                            p.status === "completed"
-                              ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90"
-                              : p.status === "ongoing"
-                              ? "bg-[#1E3A5F] hover:bg-[#1E3A5F]/90"
-                              : "bg-[#C8601A] hover:bg-[#C8601A]/90"
-                          }`}
-                        >
-                          {p.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          {updatingStatusId === p.id ? (
+                            <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-500 font-sans">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1E3A5F]" />
+                              Updating...
+                            </div>
+                          ) : (
+                            <Select
+                              value={p.status}
+                              onValueChange={(val: "proposed" | "ongoing" | "completed") =>
+                                handleInlineStatusChange(p, val)
+                              }
+                            >
+                              <SelectTrigger
+                                className={`h-7 w-[110px] text-[11px] font-bold uppercase tracking-wider border-none text-white shadow-xs focus:ring-1 focus:ring-offset-1 ${
+                                  p.status === "completed"
+                                    ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 focus:ring-[#6B8E3E]"
+                                    : p.status === "ongoing"
+                                    ? "bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 focus:ring-[#1E3A5F]"
+                                    : "bg-[#C8601A] hover:bg-[#C8601A]/90 focus:ring-[#C8601A]"
+                                }`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="proposed" className="text-xs">
+                                  Proposed
+                                </SelectItem>
+                                <SelectItem value="ongoing" className="text-xs">
+                                  Ongoing
+                                </SelectItem>
+                                <SelectItem value="completed" className="text-xs">
+                                  Completed
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-slate-500 font-sans">
                         {new Date(p.createdAt).toLocaleDateString(undefined, {
@@ -447,15 +617,15 @@ const AdminProjectsPage = () => {
                         })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1.5">
+                        <div className="flex justify-end items-center gap-1.5">
                           <Button
-                            size="icon"
-                            variant="ghost"
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleOpenEdit(p)}
-                            className="h-8 w-8 text-slate-500 hover:text-slate-800"
-                            title="Edit project"
+                            className="h-8 px-2.5 text-xs text-slate-700 hover:text-slate-900 border-slate-300 gap-1.5"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
                           </Button>
                           {currentUserRole === "super_admin" && (
                             <Button
@@ -479,147 +649,291 @@ const AdminProjectsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Slide-over Form Modal */}
+      {/* Slide-over Form Modal with Responsive Two-Column Workspace */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">
               {editingProject ? "Edit Project Details" : "Register New Project"}
             </DialogTitle>
             <DialogDescription>
-              Complete the project dossier details. Reconcile timelines and NGO coordinators.
+              Complete the project dossier details. Reconcile timelines and NGO coordinators with real-time card preview.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(handleSaveProject)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="title">Project Title</Label>
-              <Input
-                id="title"
-                disabled={saving}
-                className={errors.title ? "border-destructive" : ""}
-                {...register("title")}
-              />
-              {errors.title && (
-                <p className="text-xs text-destructive font-medium">{errors.title.message}</p>
-              )}
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Form Fields (approx 65%) */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="title">Project Title</Label>
+                  <Input
+                    id="title"
+                    disabled={saving}
+                    className={errors.title ? "border-destructive" : ""}
+                    {...register("title")}
+                  />
+                  {errors.title && (
+                    <p className="text-xs text-destructive font-medium">{errors.title.message}</p>
+                  )}
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="description">Project Description</Label>
-              <Textarea
-                id="description"
-                rows={3}
-                disabled={saving}
-                className={errors.description ? "border-destructive" : ""}
-                {...register("description")}
-              />
-              {errors.description && (
-                <p className="text-xs text-destructive font-medium">{errors.description.message}</p>
-              )}
-            </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="description">Project Description</Label>
+                  <Textarea
+                    id="description"
+                    rows={3}
+                    disabled={saving}
+                    className={errors.description ? "border-destructive" : ""}
+                    {...register("description")}
+                  />
+                  {errors.description && (
+                    <p className="text-xs text-destructive font-medium">{errors.description.message}</p>
+                  )}
+                </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="location">Geographic Location</Label>
-                <Input
-                  id="location"
-                  placeholder="e.g. Tamale, Ghana"
-                  disabled={saving}
-                  className={errors.location ? "border-destructive" : ""}
-                  {...register("location")}
-                />
-                {errors.location && (
-                  <p className="text-xs text-destructive font-medium">{errors.location.message}</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location">Geographic Location</Label>
+                    <Input
+                      id="location"
+                      placeholder="e.g. Tamale, Ghana"
+                      disabled={saving}
+                      className={errors.location ? "border-destructive" : ""}
+                      {...register("location")}
+                    />
+                    {errors.location && (
+                      <p className="text-xs text-destructive font-medium">{errors.location.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="category">Category / Sector</Label>
+                    <Input
+                      id="category"
+                      placeholder="e.g. Water Sanitation"
+                      disabled={saving}
+                      {...register("category")}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="status">Project Phase / Status</Label>
+                    <Select
+                      disabled={saving}
+                      value={watch("status")}
+                      onValueChange={(val: any) => setValue("status", val, { shouldValidate: true })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="proposed">Proposed</SelectItem>
+                        <SelectItem value="ongoing">Ongoing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="timeline">Timeline Scope</Label>
+                    <Input
+                      id="timeline"
+                      placeholder="e.g. Q3 2026 - Q2 2027"
+                      disabled={saving}
+                      {...register("timeline")}
+                    />
+                  </div>
+                </div>
+
+                {/* Cover Image Upload */}
+                <div className="space-y-1.5">
+                  <Label>Project Cover Image</Label>
+                  <FileUploader
+                    bucket="bih-media"
+                    folder="projects"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    multiple={false}
+                    maxSizeMB={25}
+                    value={watch("imageUrl") ? [watch("imageUrl")!] : []}
+                    onChange={(urls) => setValue("imageUrl", urls[0] || "", { shouldDirty: true })}
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="partners">Cooperating Partners (Comma-separated)</Label>
+                  <Input
+                    id="partners"
+                    placeholder="e.g. UNICEF, WaterAid, Local Assembly"
+                    disabled={saving}
+                    {...register("partners")}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Separate partner names with commas to list them under metadata metrics.
+                  </p>
+                </div>
+
+                {/* Conditional Completion Section */}
+                {watch("status") === "completed" && (
+                  <div className="space-y-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-[#6B8E3E] text-white">Project Completion Details</Badge>
+                      <span className="text-xs text-muted-foreground">Capture impact metrics and evidence</span>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="completedAt">Completion Date</Label>
+                        <Input
+                          id="completedAt"
+                          type="date"
+                          disabled={saving}
+                          {...register("completedAt")}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="beneficiariesReached">Beneficiaries Reached</Label>
+                        <Input
+                          id="beneficiariesReached"
+                          type="number"
+                          min="0"
+                          placeholder="e.g. 1500"
+                          disabled={saving}
+                          {...register("beneficiariesReached")}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="completionSummary">Completion & Impact Summary</Label>
+                      <Textarea
+                        id="completionSummary"
+                        rows={3}
+                        placeholder="Detail the project's achievements, key outcomes, and lasting community impact..."
+                        disabled={saving}
+                        {...register("completionSummary")}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Project Evidence Gallery (Images)</Label>
+                      <FileUploader
+                        bucket="bih-media"
+                        folder="projects/gallery"
+                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                        multiple={true}
+                        maxSizeMB={25}
+                        value={watch("galleryUrls") || []}
+                        onChange={(urls) => setValue("galleryUrls", urls, { shouldDirty: true })}
+                        disabled={saving}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Final Report (PDF)</Label>
+                      <FileUploader
+                        bucket="bih-media"
+                        folder="projects/reports"
+                        accept="application/pdf,.pdf"
+                        multiple={false}
+                        maxSizeMB={25}
+                        value={watch("reportUrl") ? [watch("reportUrl")!] : []}
+                        onChange={(urls) => setValue("reportUrl", urls[0] || "", { shouldDirty: true })}
+                        disabled={saving}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="category">Category / Sector</Label>
-                <Input
-                  id="category"
-                  placeholder="e.g. Water Sanitation"
-                  disabled={saving}
-                  {...register("category")}
-                />
-              </div>
-            </div>
+              {/* Right Column: Live Project Card Preview & Context (approx 35%) */}
+              <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-0">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-[#D4A017] animate-pulse" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#1E3A5F]">
+                        Live Public Card Preview
+                      </h4>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-50 font-sans">
+                      Real-time Sync
+                    </Badge>
+                  </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="status">Project Phase / Status</Label>
-                <Select
-                  disabled={saving}
-                  defaultValue={editingProject?.status || "proposed"}
-                  onValueChange={(val: any) => setValue("status", val, { shouldValidate: true })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="proposed">Proposed</SelectItem>
-                    <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {/* Public Project Card */}
+                  <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden flex flex-col justify-between">
+                    <div className="relative h-36 w-full overflow-hidden bg-slate-100">
+                      <img
+                        src={watchImageUrl || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80"}
+                        alt={watchTitle || "Project"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80";
+                        }}
+                      />
+                      <Badge
+                        className={`absolute top-2.5 left-2.5 text-[9px] font-bold uppercase tracking-wider border-none text-white shadow-xs ${
+                          watchStatus === "completed"
+                            ? "bg-[#6B8E3E]"
+                            : watchStatus === "ongoing"
+                            ? "bg-[#1E3A5F]"
+                            : "bg-[#C8601A]"
+                        }`}
+                      >
+                        {watchStatus}
+                      </Badge>
+                      {watchCategory && (
+                        <Badge variant="secondary" className="absolute top-2.5 right-2.5 text-[9px] bg-white/90 text-slate-700 font-sans shadow-xs">
+                          {watchCategory}
+                        </Badge>
+                      )}
+                    </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="timeline">Timeline Scope</Label>
-                <Input
-                  id="timeline"
-                  placeholder="e.g. Q3 2026 - Q2 2027"
-                  disabled={saving}
-                  {...register("timeline")}
-                />
-              </div>
-            </div>
+                    <div className="p-3.5 space-y-2 text-xs">
+                      <h5 className="font-serif font-bold text-[#1E3A5F] text-sm leading-snug line-clamp-1">
+                        {watchTitle?.trim() || "Untitled Project (Draft)"}
+                      </h5>
+                      <p className="text-slate-600 line-clamp-2 leading-relaxed text-[11px]">
+                        {watchDescription?.trim() || "Project description will appear here..."}
+                      </p>
+                      <div className="space-y-1 pt-1.5 border-t border-slate-100 text-[10px] text-slate-500">
+                        <p className="flex items-center gap-1.5 truncate">
+                          <MapPin className="h-3 w-3 text-[#D4A017] shrink-0" />
+                          <span>{watchLocation || "Location"}</span>
+                        </p>
+                        {watchTimeline && (
+                          <p className="flex items-center gap-1.5 truncate">
+                            <Calendar className="h-3 w-3 text-[#D4A017] shrink-0" />
+                            <span>{watchTimeline}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="imageUrl">Project Image URL</Label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    id="project-image-file"
-                    accept="image/*"
-                    onChange={handleProjectImageUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    disabled={saving || uploadingImage}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="text-[#1E3A5F] hover:bg-slate-50 text-[10px] h-7 px-2 flex gap-1 items-center"
-                    disabled={saving || uploadingImage}
-                  >
-                    {uploadingImage ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    Upload file
-                  </Button>
+                {/* Contextual Workflow Guidance */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-2 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-[11px]">
+                    <Info className="h-3.5 w-3.5 text-[#D4A017]" />
+                    <span>Workflow & Lifecycle Status</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    {watchStatus === "proposed" && "Proposed projects are visible in the public community review queue for volunteer expressions of interest."}
+                    {watchStatus === "ongoing" && "Ongoing projects accept volunteer hour logs and NGO coordinator endorsements."}
+                    {watchStatus === "completed" && "Completed projects update public impact metrics and are archived in the historical impact gallery."}
+                  </p>
+                  <p className="text-[10px] text-slate-400 border-t border-slate-200/60 pt-1.5">
+                    Recommended cover image: 16:9 landscape aspect ratio (JPG, PNG, WebP up to 25MB).
+                  </p>
                 </div>
               </div>
-              <Input
-                id="imageUrl"
-                placeholder="https://images.unsplash.com/..."
-                disabled={saving || uploadingImage}
-                {...register("imageUrl")}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="partners">Cooperating Partners (Comma-separated)</Label>
-              <Input
-                id="partners"
-                placeholder="e.g. UNICEF, WaterAid, Local Assembly"
-                disabled={saving}
-                {...register("partners")}
-              />
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Separate partner names with commas to list them under metadata metrics.
-              </p>
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t mt-4">
@@ -641,6 +955,61 @@ const AdminProjectsPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Completion Confirmation Dialog */}
+      <Dialog open={completionModalOpen} onOpenChange={setCompletionModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">
+              Mark Project as Completed
+            </DialogTitle>
+            <DialogDescription>
+              Marking <span className="font-semibold text-slate-800">"{completingProject?.title}"</span> as completed.
+              Please specify the official project completion date.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="completionDateInput">Completion Date</Label>
+              <Input
+                id="completionDateInput"
+                type="date"
+                value={completionDate}
+                onChange={(e) => setCompletionDate(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Defaults to today ({new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}).
+              </p>
+            </div>
+            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-md text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">Next Step:</p>
+              <p>
+                After setting the date, you can edit the project at any time to attach completion summaries, beneficiary reach counts, gallery photos, and final report PDFs.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button
+              variant="ghost"
+              onClick={() => setCompletionModalOpen(false)}
+              className="text-xs h-9"
+              disabled={updatingStatusId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmComplete}
+              disabled={updatingStatusId !== null || !completionDate}
+              className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white text-xs h-9 flex gap-1.5"
+            >
+              {updatingStatusId !== null && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Confirm Completion
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

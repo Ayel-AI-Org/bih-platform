@@ -50,8 +50,8 @@ const About = () => {
           >
             <div className="rounded-2xl overflow-hidden">
               <img
-                src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700&q=80"
-                alt="Team collaboration"
+                src="/bih.jpeg"
+                alt="About BIH"
                 className="w-full h-[500px] object-cover"
               />
             </div>

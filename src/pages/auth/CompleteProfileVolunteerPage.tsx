@@ -133,7 +133,7 @@ const CompleteProfileVolunteerPage = () => {
   }
 
   return (
-    <div className="min-h-[85vh] py-12 bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="flex-1 py-10 md:py-12 bg-slate-50 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-lg shadow-md border-t-4 border-[#D4A017]">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center mb-2 text-[#D4A017]">

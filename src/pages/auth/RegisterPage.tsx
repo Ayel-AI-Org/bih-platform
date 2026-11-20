@@ -50,7 +50,7 @@ const RegisterPage = () => {
     }
   };
   return (
-    <section className="py-20 bg-slate-50 min-h-[85vh] flex flex-col items-center justify-center">
+    <section className="flex-1 py-10 md:py-16 bg-slate-50 flex flex-col items-center justify-center">
       <div className="container max-w-5xl">
         <div className="mb-6 text-left">
           <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">

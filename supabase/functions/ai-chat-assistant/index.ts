@@ -48,12 +48,18 @@ const resolveGeminiProvider = (): ProviderConfig | null => {
 const resolveGroqProvider = (): ProviderConfig | null => {
   const groqKey = Deno.env.get("GROQ_API_KEY");
   if (groqKey) {
+    const model = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-20b";
     return {
       name: "groq",
       kind: "openai-compatible",
       apiKey: groqKey,
       endpoint: "https://api.groq.com/openai/v1/chat/completions",
-      model: Deno.env.get("GROQ_MODEL") || "llama-3.1-8b-instant",
+      model,
+      fallbackModels: [
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "allam-2-7b",
+      ],
     };
   }
 
@@ -136,7 +142,8 @@ const callGemini = async (provider: ProviderConfig, messages: ChatMessage[]) => 
 
     if (!response.ok) {
       const errorText = await response.text();
-      lastError = errorText || `Gemini request failed for model ${model}`;
+      console.error(`[ai-chat-assistant] Gemini model ${model} HTTP ${response.status}:`, errorText);
+      lastError = errorText || `Gemini request failed for model ${model} (HTTP ${response.status})`;
       continue;
     }
 
@@ -152,33 +159,46 @@ const callGemini = async (provider: ProviderConfig, messages: ChatMessage[]) => 
 };
 
 const callOpenAiCompatible = async (provider: ProviderConfig, messages: ChatMessage[]) => {
-  const response = await fetch(provider.endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${provider.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      temperature: 0.5,
-      messages: [
-        {
-          role: "system",
-          content: assistantInstruction,
-        },
-        ...messages,
-      ],
-    }),
-  });
+  const modelsToTry = [provider.model, ...(provider.fallbackModels ?? [])]
+    .filter((value, index, array) => Boolean(value) && array.indexOf(value) === index);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "AI request failed");
+  let lastError = "AI request failed";
+
+  for (const model of modelsToTry) {
+    const response = await fetch(provider.endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${provider.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.5,
+        messages: [
+          {
+            role: "system",
+            content: assistantInstruction,
+          },
+          ...messages,
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ai-chat-assistant] ${provider.name} model ${model} HTTP ${response.status}:`, errorText);
+      lastError = errorText || `AI request failed for ${provider.name} model ${model} (HTTP ${response.status})`;
+      continue;
+    }
+
+    const responseBody = await response.json();
+    const reply = responseBody?.choices?.[0]?.message?.content?.trim();
+    if (reply) {
+      return reply;
+    }
   }
 
-  const responseBody = await response.json();
-  const reply = responseBody?.choices?.[0]?.message?.content?.trim();
-  return reply;
+  throw new Error(lastError);
 };
 
 serve(async (req) => {
@@ -189,11 +209,14 @@ serve(async (req) => {
   try {
     const providers = resolveProviderChain();
     if (providers.length === 0) {
+      console.error("[ai-chat-assistant] No AI provider keys configured (GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY).");
       return new Response(JSON.stringify({ error: "Missing GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log("[ai-chat-assistant] Configured providers:", providers.map((p) => `${p.name} (${p.model})`).join(", "));
 
     const payload = (await req.json()) as ChatPayload;
     const messages = payload?.messages ?? [];
@@ -206,7 +229,7 @@ serve(async (req) => {
     }
 
     let reply = "";
-    let lastProviderError = "AI request failed";
+    const providerErrors: string[] = [];
 
     for (const provider of providers) {
       try {
@@ -221,23 +244,26 @@ serve(async (req) => {
         }
       } catch (providerError) {
         const reason = providerError instanceof Error ? providerError.message : "Unknown provider error";
-        lastProviderError = `${provider.name}: ${reason}`;
+        console.error(`[ai-chat-assistant] Provider ${provider.name} failed:`, reason);
+        providerErrors.push(`${provider.name}: ${reason}`);
       }
     }
 
     if (!reply) {
-      throw new Error(lastProviderError);
+      throw new Error(providerErrors.join(" | "));
     }
 
     return new Response(JSON.stringify({ reply: reply || "I can help with projects, donations, and registrations." }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "AI assistant failed";
+    console.error("[ai-chat-assistant] Error:", message);
     return new Response(JSON.stringify({
-      reply: localFallbackReply,
+      error: message,
     }), {
-      status: 200,
+      status: 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
