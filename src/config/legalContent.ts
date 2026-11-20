@@ -47,6 +47,10 @@ export const PRIVACY_POLICY_TEXT = {
     {
       heading: "3. Data Retention & Privacy Assurance",
       content: "User profile information is shared exclusively with verified admin dashboards and directly assigned partner NGO coordinators. Personal datasets will never be shared with external third-party advertisers. Users retain rights to adjust details dynamically or invoke formal deletion commands through the System Administrator."
+    },
+    {
+      heading: "4. Cookies, Local Storage & Analytics",
+      content: "Bridge for Impact Hub employs a privacy-first approach to local storage and web technologies. We use essential local storage items (such as 'bih-session' to securely maintain authenticated sessions with Supabase, and layout preference flags like sidebar collapse states and dismissed onboarding prompts) strictly necessary for site functionality, account security, and navigation. With your explicit consent, we may enable privacy-conscious analytics (Vercel Web Analytics) to collect anonymous, aggregate telemetry regarding platform traffic, speed, and responsiveness. BIH does not use third-party advertising cookies, marketing pixels, or behavioral tracking across external sites. You can review, update, or withdraw your consent at any time using the 'Cookie Preferences' link in the footer of every page."
     }
   ]
 };

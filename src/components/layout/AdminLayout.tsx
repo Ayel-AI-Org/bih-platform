@@ -36,7 +36,7 @@ const sidebarItems: SidebarItem[] = [
   { name: "Portfolio Review", path: "/admin/portfolio", icon: FolderHeart },
   { name: "Hours Verification", path: "/admin/hours", icon: Clock },
   { name: "Project Suggestions", path: "/admin/suggestions", icon: MessageSquare },
-  { name: "Media Manager", path: "/admin/media", icon: Newspaper },
+  { name: "Updates", path: "/admin/media", icon: Newspaper },
   { name: "Donations", path: "/admin/donations", icon: Heart },
 ];
 

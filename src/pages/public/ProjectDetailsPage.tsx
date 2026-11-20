@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { MapPin, Users, Calendar, AlertCircle } from "lucide-react";
+import { MapPin, Users, Calendar, AlertCircle, Download, FileText, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/database/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ interface PlatformProject {
   timeline: string;
   imageUrl: string;
   partners: string[];
+  completedAt?: string | null;
+  completionSummary?: string | null;
+  beneficiariesReached?: number | null;
+  galleryUrls?: string[];
+  reportUrl?: string | null;
 }
 
 interface Milestone {
@@ -62,6 +67,11 @@ const ProjectDetailsPage = () => {
             timeline: projData.timeline || "",
             imageUrl: projData.image_url || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700&q=80",
             partners: projData.partners || [],
+            completedAt: projData.completed_at || null,
+            completionSummary: projData.completion_summary || null,
+            beneficiariesReached: projData.beneficiaries_reached ?? null,
+            galleryUrls: Array.isArray(projData.gallery_urls) ? projData.gallery_urls : [],
+            reportUrl: projData.report_url || null,
           });
 
           // 2. Query project milestones
@@ -116,7 +126,7 @@ const ProjectDetailsPage = () => {
 
   if (isLoading) {
     return (
-      <section className="py-16">
+      <section className="flex-1 py-10 md:py-16">
         <div className="container max-w-4xl space-y-6">
           <Skeleton className="h-72 w-full rounded-xl" />
           <Skeleton className="h-10 w-3/4" />
@@ -128,7 +138,7 @@ const ProjectDetailsPage = () => {
 
   if (!project) {
     return (
-      <section className="py-24">
+      <section className="flex-1 py-10 md:py-24 flex items-center justify-center">
         <div className="container max-w-md text-center space-y-4">
           <AlertCircle className="h-12 w-12 text-[#C8601A] mx-auto" />
           <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Project not found</h1>
@@ -142,7 +152,7 @@ const ProjectDetailsPage = () => {
   }
 
   return (
-    <section className="py-16">
+    <section className="flex-1 py-10 md:py-16">
       <div className="container max-w-4xl space-y-8">
         <img
           src={project.imageUrl}
@@ -184,6 +194,136 @@ const ProjectDetailsPage = () => {
             </div>
           </div>
 
+          {/* Project Completion & Impact Evidence Section */}
+          {project.status === "completed" && (
+            <div className="space-y-6 pt-6 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gradient-to-r from-emerald-50/80 to-teal-50/40 border border-emerald-200/80 rounded-xl p-5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-[#6B8E3E] text-white border-none px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Completed Project
+                    </Badge>
+                    {project.completedAt && (
+                      <span className="text-xs text-emerald-900 font-medium">
+                        Delivered on{" "}
+                        {new Date(project.completedAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-serif text-[#1E3A5F] font-bold">
+                    Project Completion & Impact
+                  </h3>
+                </div>
+
+                {project.reportUrl && (
+                  <Button
+                    asChild
+                    className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white gap-2 shadow-xs shrink-0 self-start sm:self-auto"
+                  >
+                    <a
+                      href={project.reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      <Download className="h-4 w-4" /> Download Report
+                    </a>
+                  </Button>
+                )}
+              </div>
+
+              {/* Impact Metric Cards */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {project.beneficiariesReached !== null && project.beneficiariesReached !== undefined && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-[#D4A017] shrink-0">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold font-serif text-[#1E3A5F]">
+                        {project.beneficiariesReached.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-medium">Direct Beneficiaries Reached</p>
+                    </div>
+                  </div>
+                )}
+
+                {project.completedAt && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#6B8E3E] shrink-0">
+                      <Calendar className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">
+                        {new Date(project.completedAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-medium">Completion Date</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Completion Summary */}
+              {project.completionSummary && (
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-2">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <FileText className="h-4 w-4 text-[#1E3A5F]" /> Completion Summary & Outcomes
+                  </h4>
+                  <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-line">
+                    {project.completionSummary}
+                  </p>
+                </div>
+              )}
+
+              {/* Gallery Evidence */}
+              {project.galleryUrls && project.galleryUrls.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-serif text-[#1E3A5F] font-bold">
+                      Project Evidence Gallery
+                    </h4>
+                    <span className="text-xs text-muted-foreground">
+                      {project.galleryUrls.length} photograph{project.galleryUrls.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {project.galleryUrls.map((imgUrl, i) => (
+                      <a
+                        key={i}
+                        href={imgUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-100 hover:shadow-md transition-all"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`${project.title} evidence ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = "/placeholder.svg";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium">
+                          View photo
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Milestones Section */}
           {milestones.length > 0 && (
             <div className="space-y-4 pt-6 border-t border-slate-200">
@@ -214,9 +354,10 @@ const ProjectDetailsPage = () => {
                     </div>
                   </div>
                 ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
           {/* Team Section */}
           <div className="space-y-4 pt-6 border-t border-slate-200">
             <h3 className="text-xl font-serif text-[#1E3A5F] font-bold">Active Volunteers (Team)</h3>

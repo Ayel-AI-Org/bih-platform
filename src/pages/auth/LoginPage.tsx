@@ -190,7 +190,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-[85vh] py-12 bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="flex-1 py-10 md:py-12 bg-slate-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md mb-4 text-left">
         <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
           &larr; Back to home

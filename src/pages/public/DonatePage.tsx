@@ -182,7 +182,7 @@ const DonatePage = () => {
   };
 
   return (
-    <section className="py-16 bg-[#F5F5F5] min-h-[85vh] flex items-center">
+    <section className="flex-1 py-10 md:py-16 bg-[#F5F5F5] flex items-center">
       <div className="container max-w-3xl">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>

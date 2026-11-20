@@ -912,29 +912,50 @@ const VolunteerPortfolioPage = () => {
                   <div className="space-y-2 pt-2 border-t">
                     <h4 className="font-semibold text-slate-800">Media Attachments</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {selectedViewItem.mediaUrls.map((url, index) => (
-                        <a
-                          key={`attachment-${index}`}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block overflow-hidden rounded border hover:opacity-85 transition-opacity"
-                        >
-                          <img
-                            src={url}
-                            alt={`Attachment ${index + 1}`}
-                            className="h-24 w-full object-cover bg-slate-100"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.onerror = null;
-                              target.src = "/placeholder.svg";
-                            }}
-                          />
-                          <span className="block text-[8px] text-center p-1 bg-slate-50 text-slate-500 font-mono truncate">
-                            {url}
-                          </span>
-                        </a>
-                      ))}
+                      {selectedViewItem.mediaUrls.map((url, index) => {
+                        const cleanUrl = url.toLowerCase().split("?")[0].split("#")[0];
+                        const isVideo = cleanUrl.endsWith(".mp4") || cleanUrl.endsWith(".webm") || cleanUrl.endsWith(".mov") || cleanUrl.endsWith(".ogg");
+
+                        if (isVideo) {
+                          return (
+                            <div key={`attachment-${index}`} className="block overflow-hidden rounded border bg-black">
+                              <video
+                                src={url}
+                                controls
+                                preload="metadata"
+                                className="h-24 w-full object-cover"
+                              />
+                              <span className="block text-[8px] text-center p-1 bg-slate-900 text-slate-300 font-mono truncate">
+                                {url}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <a
+                            key={`attachment-${index}`}
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded border hover:opacity-85 transition-opacity"
+                          >
+                            <img
+                              src={url}
+                              alt={`Attachment ${index + 1}`}
+                              className="h-24 w-full object-cover bg-slate-100"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = "/placeholder.svg";
+                              }}
+                            />
+                            <span className="block text-[8px] text-center p-1 bg-slate-50 text-slate-500 font-mono truncate">
+                              {url}
+                            </span>
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

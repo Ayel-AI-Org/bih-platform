@@ -1,12 +1,15 @@
 import { PRIVACY_POLICY_TEXT } from "@/config/legalContent";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { useConsent } from "@/context/ConsentContext";
 
 export const PrivacyPage = () => {
   const data = PRIVACY_POLICY_TEXT;
+  const { openPreferences } = useConsent();
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex-1 bg-slate-50 py-10 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-3 border-b pb-4 border-slate-200">
           <div className="h-10 w-10 rounded-full bg-[#1E3A5F]/10 flex items-center justify-center text-[#1E3A5F]">
@@ -42,6 +45,24 @@ export const PrivacyPage = () => {
                 <p>{section.content}</p>
               </div>
             ))}
+
+            <div className="mt-8 pt-6 border-t border-slate-200 bg-slate-50 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-semibold text-[#1E3A5F]">Your Cookie & Data Choices</h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  You can change your consent preferences or withdraw optional analytics permission at any time.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={openPreferences}
+                variant="outline"
+                className="shrink-0 flex items-center gap-2 border-[#1E3A5F]/20 text-[#1E3A5F] hover:bg-[#1E3A5F]/5"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <span>Manage Cookie Preferences</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

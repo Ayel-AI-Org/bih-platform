@@ -107,7 +107,7 @@ const PendingPage = () => {
             If you have any questions or need assistance, please reach out to our support team at{" "}
             <a href="mailto:bridgeforimpacthub@gmail.com" className="text-[#1E3A5F] underline font-medium">
               bridgeforimpacthub@gmail.com
-            </a>.
+            </a>
           </p>
 
           <Button
