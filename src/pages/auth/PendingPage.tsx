@@ -77,7 +77,7 @@ const PendingPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+    <div className="flex-1 py-10 md:py-16 flex flex-col items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md mb-4 text-left">
         <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
           &larr; Back to home
@@ -101,7 +101,13 @@ const PendingPage = () => {
           </div>
 
           <p className="text-sm text-slate-600 leading-relaxed">
-            Your account is under review. We'll notify you by email once approved.
+            Your account is under review. Kindly watch this space within the next 48 hours for updates. Thank you for your patience and understanding as we ensure a secure and welcoming environment for all our users.
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            If you have any questions or need assistance, please reach out to our support team at{" "}
+            <a href="mailto:bridgeforimpacthub@gmail.com" className="text-[#1E3A5F] underline font-medium">
+              bridgeforimpacthub@gmail.com
+            </a>.
           </p>
 
           <Button

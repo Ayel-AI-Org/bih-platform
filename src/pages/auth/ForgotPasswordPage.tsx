@@ -36,9 +36,8 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (values: ForgotPasswordFormValues) => {
     setSubmitting(true);
     try {
-      // Use exact redirectTo parameter per requirement
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: "https://www.bridgeforimpacthub.org/reset-password",
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
@@ -63,7 +62,7 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center bg-slate-50 p-4">
+    <div className="flex-1 py-10 md:py-12 flex flex-col items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md mb-4 text-left">
         <Link to="/" className="text-xs text-[#1E3A5F] hover:underline font-semibold">
           &larr; Back to home
