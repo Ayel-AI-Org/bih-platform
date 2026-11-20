@@ -194,12 +194,16 @@ const AdminOverviewPage = () => {
       };
 
       const tableName = roleTableMap[role];
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from(tableName)
         .update({ approval_status: "approved" })
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "User approved",

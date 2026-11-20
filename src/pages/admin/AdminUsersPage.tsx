@@ -2,36 +2,46 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/database/client";
 import { sendRegistrationDecisionEmail } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Search, Download, Check, X, Loader2, AlertCircle, Shield } from "lucide-react";
+import {
+  Search,
+  Check,
+  X,
+  Shield,
+  Download,
+  AlertCircle,
+  Loader2,
+  Clock,
+} from "lucide-react";
 
 interface AdminUserItem {
-  id: string; // user_id
+  id: string;
   fullName: string;
   email: string;
+  role: string;
   createdAt: string;
   approvalStatus: "pending" | "approved" | "rejected";
-  role?: string;
+  hasVolunteerHistory: boolean;
+  volunteerVerifiedHours: number;
+  ngoName?: string;
+  donorType?: string;
 }
 
 const AdminUsersPage = () => {
   const { toast } = useToast();
-  const [volunteers, setVolunteers] = useState<AdminUserItem[]>([]);
-  const [ngos, setNgos] = useState<AdminUserItem[]>([]);
-  const [donors, setDonors] = useState<AdminUserItem[]>([]);
-  const [admins, setAdmins] = useState<AdminUserItem[]>([]);
+  const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("volunteers");
+  const [activeTab, setActiveTab] = useState("all");
 
   // Rejection Modal state
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -39,7 +49,7 @@ const AdminUsersPage = () => {
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  // Deletion Modal state
+  // Delete User Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<{ id: string; role: "volunteer" | "ngo" | "donor" } | null>(null);
 
@@ -51,78 +61,61 @@ const AdminUsersPage = () => {
 
   const fetchUsersData = async () => {
     try {
-      // 1. Fetch Volunteers
-      const { data: vols, error: volsErr } = await supabase
-        .from("volunteer_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
+      // Query profiles as the central source of truth, joining child profile tables
+      const [profilesRes, volsRes, ngosRes, donorsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, role, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("volunteer_profiles")
+          .select("user_id, approval_status, total_verified_hours"),
+        supabase
+          .from("ngo_profiles")
+          .select("user_id, approval_status, organization_name"),
+        supabase
+          .from("donor_profiles")
+          .select("user_id, approval_status, donor_type"),
+      ]);
 
-      if (volsErr) throw volsErr;
+      if (profilesRes.error) throw profilesRes.error;
+      if (volsRes.error) throw volsRes.error;
+      if (ngosRes.error) throw ngosRes.error;
+      if (donorsRes.error) throw donorsRes.error;
 
-      setVolunteers(
-        (vols || []).map((v: any) => ({
-          id: v.user_id,
-          fullName: v.profiles?.full_name || "Volunteer",
-          email: v.profiles?.email || "",
-          createdAt: v.created_at,
-          approvalStatus: v.approval_status as any,
-          role: v.profiles?.role || "volunteer",
-        }))
-      );
+      const volMap = new Map((volsRes.data || []).map((v: any) => [v.user_id, v]));
+      const ngoMap = new Map((ngosRes.data || []).map((n: any) => [n.user_id, n]));
+      const donorMap = new Map((donorsRes.data || []).map((d: any) => [d.user_id, d]));
 
-      // 2. Fetch NGOs
-      const { data: ngoList, error: ngoErr } = await supabase
-        .from("ngo_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
+      const mappedUsers: AdminUserItem[] = (profilesRes.data || []).map((p: any) => {
+        const v = volMap.get(p.id);
+        const n = ngoMap.get(p.id);
+        const d = donorMap.get(p.id);
 
-      if (ngoErr) throw ngoErr;
+        let approvalStatus: "pending" | "approved" | "rejected" = "approved";
+        if (p.role === "volunteer" && v) {
+          approvalStatus = v.approval_status || "pending";
+        } else if (p.role === "ngo" && n) {
+          approvalStatus = n.approval_status || "pending";
+        } else if (p.role === "donor" && d) {
+          approvalStatus = d.approval_status || "pending";
+        }
 
-      setNgos(
-        (ngoList || []).map((n: any) => ({
-          id: n.user_id,
-          fullName: n.profiles?.full_name || "NGO Partner",
-          email: n.profiles?.email || "",
-          createdAt: n.created_at,
-          approvalStatus: n.approval_status as any,
-          role: n.profiles?.role || "ngo",
-        }))
-      );
+        return {
+          id: p.id,
+          fullName: p.full_name || "User",
+          email: p.email || "",
+          role: p.role || "volunteer",
+          createdAt: p.created_at,
+          approvalStatus,
+          hasVolunteerHistory: !!v,
+          volunteerVerifiedHours: Number(v?.total_verified_hours) || 0,
+          ngoName: n?.organization_name,
+          donorType: d?.donor_type,
+        };
+      });
 
-      // 3. Fetch Donors
-      const { data: donorList, error: donorErr } = await supabase
-        .from("donor_profiles")
-        .select("user_id, created_at, approval_status, profiles(full_name, email, role)");
-
-      if (donorErr) throw donorErr;
-
-      setDonors(
-        (donorList || []).map((d: any) => ({
-          id: d.user_id,
-          fullName: d.profiles?.full_name || "Donor Member",
-          email: d.profiles?.email || "",
-          createdAt: d.created_at,
-          approvalStatus: d.approval_status as any,
-          role: d.profiles?.role || "donor",
-        }))
-      );
-
-      // 4. Fetch Admins
-      const { data: admList, error: admErr } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, role, created_at")
-        .in("role", ["admin", "super_admin"]);
-
-      if (admErr) throw admErr;
-
-      setAdmins(
-        (admList || []).map((a: any) => ({
-          id: a.id,
-          fullName: a.full_name,
-          email: a.email,
-          createdAt: a.created_at,
-          approvalStatus: "approved",
-          role: a.role,
-        }))
-      );
+      setUsers(mappedUsers);
     } catch (err: any) {
       toast({
         title: "Database error",
@@ -153,32 +146,28 @@ const AdminUsersPage = () => {
     fetchCurrentUserRole();
   }, []);
 
-  const handleApprove = async (userId: string, role: "volunteer" | "ngo" | "donor") => {
+  const handleApprove = async (userId: string, role: string) => {
     try {
-      const roleTableMap = {
+      const roleTableMap: Record<string, string> = {
         volunteer: "volunteer_profiles",
         ngo: "ngo_profiles",
         donor: "donor_profiles",
       };
 
-      const tableName = roleTableMap[role];
-      const { error } = await supabase
+      const tableName = roleTableMap[role] || "volunteer_profiles";
+      const { data, error } = await supabase
         .from(tableName)
         .update({ approval_status: "approved" })
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select();
 
       if (error) throw error;
-
-      // Locate user details to send email notification
-      let userItem: any = null;
-      if (role === "volunteer") {
-        userItem = volunteers.find((v) => v.id === userId);
-      } else if (role === "ngo") {
-        userItem = ngos.find((n) => n.id === userId);
-      } else if (role === "donor") {
-        userItem = donors.find((d) => d.id === userId);
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
       }
 
+      // Locate user details to send email notification
+      const userItem = users.find((u) => u.id === userId);
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = role === "volunteer" ? "Volunteer" : role === "ngo" ? "NGO" : "Donor";
@@ -200,7 +189,7 @@ const AdminUsersPage = () => {
 
       toast({
         title: "User approved",
-        description: "Status successfully updated in registration record and notification triggered.",
+        description: "Status successfully updated in registration record.",
       });
 
       fetchUsersData();
@@ -213,8 +202,8 @@ const AdminUsersPage = () => {
     }
   };
 
-  const handleOpenReject = (userId: string, role: "volunteer" | "ngo" | "donor") => {
-    setRejectingUser({ id: userId, role });
+  const handleOpenReject = (userId: string, role: string) => {
+    setRejectingUser({ id: userId, role: role as any });
     setRejectFeedback("");
     setRejectModalOpen(true);
   };
@@ -223,30 +212,25 @@ const AdminUsersPage = () => {
     if (!rejectingUser) return;
     setProcessing(true);
     try {
-      const roleTableMap = {
+      const roleTableMap: Record<string, string> = {
         volunteer: "volunteer_profiles",
         ngo: "ngo_profiles",
         donor: "donor_profiles",
       };
 
-      const tableName = roleTableMap[rejectingUser.role];
-      const { error } = await supabase
+      const tableName = roleTableMap[rejectingUser.role] || "volunteer_profiles";
+      const { data, error } = await supabase
         .from(tableName)
         .update({ approval_status: "rejected" })
-        .eq("user_id", rejectingUser.id);
+        .eq("user_id", rejectingUser.id)
+        .select();
 
       if (error) throw error;
-
-      // Locate user details to send email notification
-      let userItem: any = null;
-      if (rejectingUser.role === "volunteer") {
-        userItem = volunteers.find((v) => v.id === rejectingUser.id);
-      } else if (rejectingUser.role === "ngo") {
-        userItem = ngos.find((n) => n.id === rejectingUser.id);
-      } else if (rejectingUser.role === "donor") {
-        userItem = donors.find((d) => d.id === rejectingUser.id);
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
       }
 
+      const userItem = users.find((u) => u.id === rejectingUser.id);
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = rejectingUser.role === "volunteer" ? "Volunteer" : rejectingUser.role === "ngo" ? "NGO" : "Donor";
@@ -269,7 +253,7 @@ const AdminUsersPage = () => {
 
       toast({
         title: "User rejected",
-        description: "Status successfully updated to rejected and notification triggered.",
+        description: "Status successfully updated to rejected.",
       });
 
       setRejectModalOpen(false);
@@ -285,8 +269,8 @@ const AdminUsersPage = () => {
     }
   };
 
-  const handleOpenDelete = (userId: string, role: "volunteer" | "ngo" | "donor") => {
-    setDeletingUser({ id: userId, role });
+  const handleOpenDelete = (userId: string, role: string) => {
+    setDeletingUser({ id: userId, role: role as any });
     setDeleteModalOpen(true);
   };
 
@@ -302,7 +286,7 @@ const AdminUsersPage = () => {
 
       toast({
         title: "User account deleted",
-        description: "The user account and all associated child data have been permanently removed.",
+        description: "The user account and associated child data have been permanently removed.",
       });
 
       setDeleteModalOpen(false);
@@ -318,11 +302,11 @@ const AdminUsersPage = () => {
     }
   };
 
+  // Phase B Requirement 2: Call the security definer RPC
   const handleRoleUpdate = async () => {
     if (!selectedUser) return;
     setProcessing(true);
     try {
-      // Safety checks:
       if (newRole === "super_admin" && currentUserRole !== "super_admin") {
         throw new Error("Only a Super Admin can grant Super Admin privileges.");
       }
@@ -330,12 +314,21 @@ const AdminUsersPage = () => {
         throw new Error("Only a Super Admin can modify or revoke Super Admin privileges.");
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", selectedUser.id);
+      const { data, error } = await supabase.rpc("admin_set_user_role", {
+        target_user_id: selectedUser.id,
+        new_role: newRole,
+      });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      // Check returned role equals requested one
+      if (!data || data.role !== newRole) {
+        throw new Error(
+          `Role change mismatch: server returned role "${data?.role || "none"}", expected "${newRole}".`
+        );
+      }
 
       toast({
         title: "Role Updated Successfully",
@@ -343,7 +336,7 @@ const AdminUsersPage = () => {
       });
 
       setManageRoleOpen(false);
-      fetchUsersData();
+      await fetchUsersData();
     } catch (err: any) {
       toast({
         title: "Role update failed",
@@ -355,21 +348,28 @@ const AdminUsersPage = () => {
     }
   };
 
+  // Driven strictly by profiles.role
   const getFilteredData = () => {
-    const dataMap: Record<string, AdminUserItem[]> = {
-      volunteers,
-      ngos,
-      donors,
-      admins,
-    };
-    const dataset = dataMap[activeTab] || [];
-    if (!searchQuery) return dataset;
+    let dataset = users;
+
+    if (activeTab === "volunteers") {
+      dataset = users.filter((u) => u.role === "volunteer");
+    } else if (activeTab === "ngos") {
+      dataset = users.filter((u) => u.role === "ngo");
+    } else if (activeTab === "donors") {
+      dataset = users.filter((u) => u.role === "donor");
+    } else if (activeTab === "admins") {
+      dataset = users.filter((u) => u.role === "admin" || u.role === "super_admin");
+    }
+
+    if (!searchQuery.trim()) return dataset;
 
     const query = searchQuery.toLowerCase();
     return dataset.filter(
       (user) =>
         user.fullName.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
+        user.email.toLowerCase().includes(query) ||
+        user.role.toLowerCase().includes(query)
     );
   };
 
@@ -384,22 +384,24 @@ const AdminUsersPage = () => {
       return;
     }
 
-    const headers = ["Full Name", "Email", "Date Registered", activeTab === "admins" ? "System Role" : "Approval Status"];
+    const headers = ["Full Name", "Email", "Date Registered", "Role", "Approval Status", "Volunteer History"];
     const rows = dataset.map((user) => [
       user.fullName,
       user.email,
       new Date(user.createdAt).toLocaleDateString(),
-      activeTab === "admins" ? user.role || "" : user.approvalStatus,
+      user.role,
+      user.approvalStatus,
+      user.hasVolunteerHistory ? `Yes (${user.volunteerVerifiedHours} verified hrs)` : "No",
     ]);
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.map(val => `"${val}"`).join(","))].join("\n");
+      [headers.join(","), ...rows.map((e) => e.map((val) => `"${val}"`).join(","))].join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `bih-${activeTab}-export.csv`);
+    link.setAttribute("download", `bih-users-${activeTab}-export.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -417,13 +419,18 @@ const AdminUsersPage = () => {
     );
   }
 
+  const volunteerCount = users.filter((u) => u.role === "volunteer").length;
+  const ngoCount = users.filter((u) => u.role === "ngo").length;
+  const donorCount = users.filter((u) => u.role === "donor").length;
+  const adminCount = users.filter((u) => u.role === "admin" || u.role === "super_admin").length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">User Management</h1>
+          <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">User Directory & Roles</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Activate or reject volunteer, NGO coordinator, and donor registry requests.
+            Manage system clearance, view volunteer histories, and approve registration requests.
           </p>
         </div>
         <Button
@@ -435,64 +442,100 @@ const AdminUsersPage = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="volunteers" onValueChange={setActiveTab} className="w-full">
+      {/* Tabs: All | Volunteers | NGOs | Donors | Admins, driven by profiles.role */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-slate-200">
-          <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+          <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex flex-wrap gap-0.5">
+            <TabsTrigger value="all">
+              All ({users.length})
+            </TabsTrigger>
             <TabsTrigger value="volunteers">
-              Volunteers
+              Volunteers ({volunteerCount})
             </TabsTrigger>
             <TabsTrigger value="ngos">
-              NGOs
+              NGOs ({ngoCount})
             </TabsTrigger>
             <TabsTrigger value="donors">
-              Donors
+              Donors ({donorCount})
             </TabsTrigger>
             <TabsTrigger value="admins" className="flex gap-1">
-              <Shield className="h-3.5 w-3.5" /> Admins & Staff
+              <Shield className="h-3.5 w-3.5" /> Admins & Staff ({adminCount})
             </TabsTrigger>
           </TabsList>
 
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email, or role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9"
+              className="pl-9 h-9 text-xs"
             />
           </div>
         </div>
 
-        {["volunteers", "ngos", "donors", "admins"].map((roleKey) => (
-          <TabsContent key={roleKey} value={roleKey} className="mt-0">
-            <Card className="shadow-sm border-slate-200">
-              <CardContent className="p-0">
-                {currentDataset.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground space-y-2">
-                    <AlertCircle className="h-8 w-8 text-slate-400 mx-auto" />
-                    <p className="text-sm">No registry accounts matched the filter query.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50/50">
-                          <TableHead>Full Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Date Registered</TableHead>
-                          <TableHead>{roleKey === "admins" ? "System Role" : "Approval Status"}</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {currentDataset.map((user) => (
+        <TabsContent value={activeTab} className="mt-0">
+          <Card className="shadow-sm border-slate-200">
+            <CardContent className="p-0">
+              {currentDataset.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground space-y-2">
+                  <AlertCircle className="h-8 w-8 text-slate-400 mx-auto" />
+                  <p className="text-sm">No registry accounts matched the filter query.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/50">
+                        <TableHead>Full Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Date Registered</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentDataset.map((user) => {
+                        const isAdminUser = user.role === "admin" || user.role === "super_admin";
+                        return (
                           <TableRow key={user.id} className="hover:bg-slate-50/50 text-xs">
+                            {/* Full Name + Volunteer History Note */}
                             <TableCell className="font-semibold text-slate-800">
-                              {user.fullName}
+                              <div className="flex flex-col gap-1">
+                                <span className="font-semibold text-slate-800">{user.fullName}</span>
+                                {user.hasVolunteerHistory && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5 w-fit font-medium">
+                                    <Clock className="h-2.5 w-2.5 text-emerald-600" />
+                                    Volunteer history: {user.volunteerVerifiedHours} verified hrs
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
+
                             <TableCell className="font-mono text-slate-500">
                               {user.email}
                             </TableCell>
+
+                            {/* Role Badge */}
+                            <TableCell>
+                              <Badge
+                                className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${
+                                  user.role === "super_admin"
+                                    ? "bg-purple-600 hover:bg-purple-700"
+                                    : user.role === "admin"
+                                    ? "bg-[#1E3A5F] hover:bg-[#1E3A5F]/90"
+                                    : user.role === "ngo"
+                                    ? "bg-[#D4A017] hover:bg-[#D4A017]/90"
+                                    : user.role === "donor"
+                                    ? "bg-teal-700 hover:bg-teal-800"
+                                    : "bg-slate-600 hover:bg-slate-700"
+                                }`}
+                              >
+                                {user.role}
+                              </Badge>
+                            </TableCell>
+
                             <TableCell className="text-slate-500 font-sans">
                               {new Date(user.createdAt).toLocaleDateString(undefined, {
                                 year: "numeric",
@@ -500,61 +543,63 @@ const AdminUsersPage = () => {
                                 day: "numeric",
                               })}
                             </TableCell>
+
+                            {/* Status */}
                             <TableCell>
                               <Badge
                                 className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${
-                                  roleKey === "admins"
-                                    ? (user.role === "super_admin" ? "bg-purple-600 hover:bg-purple-700" : "bg-indigo-600 hover:bg-indigo-700")
-                                    : (user.approvalStatus === "approved"
-                                      ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90"
-                                      : user.approvalStatus === "rejected"
-                                      ? "bg-[#C0392B] hover:bg-[#C0392B]/90"
-                                      : "bg-[#C8601A] hover:bg-[#C8601A]/90")
+                                  isAdminUser
+                                    ? "bg-[#6B8E3E]"
+                                    : user.approvalStatus === "approved"
+                                    ? "bg-[#6B8E3E]"
+                                    : user.approvalStatus === "rejected"
+                                    ? "bg-[#C0392B]"
+                                    : "bg-[#C8601A]"
                                 }`}
                               >
-                                {roleKey === "admins" ? user.role : user.approvalStatus}
+                                {isAdminUser ? "active" : user.approvalStatus}
                               </Badge>
                             </TableCell>
+
+                            {/* Actions */}
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-1.5">
-                                {roleKey !== "admins" && user.approvalStatus !== "approved" && (
+                              <div className="flex justify-end items-center gap-1.5">
+                                {!isAdminUser && user.approvalStatus !== "approved" && (
                                   <Button
                                     size="sm"
-                                    onClick={() => handleApprove(user.id, roleKey.slice(0, -1) as any)}
+                                    onClick={() => handleApprove(user.id, user.role)}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 px-2 text-[10px] flex gap-1"
                                   >
                                     <Check className="h-3 w-3" /> Approve
                                   </Button>
                                 )}
-                                {roleKey !== "admins" && user.approvalStatus !== "rejected" && (
+                                {!isAdminUser && user.approvalStatus !== "rejected" && (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleOpenReject(user.id, roleKey.slice(0, -1) as any)}
+                                    onClick={() => handleOpenReject(user.id, user.role)}
                                     className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 h-7 px-2 text-[10px] flex gap-1"
                                   >
                                     <X className="h-3 w-3" /> Reject
                                   </Button>
                                 )}
-                                {(user.approvalStatus === "approved" || roleKey === "admins") && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedUser(user);
-                                      setNewRole(user.role || "");
-                                      setManageRoleOpen(true);
-                                    }}
-                                    className="border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 h-7 px-2 text-[10px] flex gap-1"
-                                  >
-                                    Manage Role
-                                  </Button>
-                                )}
-                                {roleKey !== "admins" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setNewRole(user.role || "volunteer");
+                                    setManageRoleOpen(true);
+                                  }}
+                                  className="border-amber-300 text-amber-700 hover:bg-amber-50 h-7 px-2 text-[10px] flex gap-1"
+                                >
+                                  Manage Role
+                                </Button>
+                                {!isAdminUser && (
                                   <Button
                                     size="sm"
                                     variant="destructive"
-                                    onClick={() => handleOpenDelete(user.id, roleKey.slice(0, -1) as any)}
+                                    onClick={() => handleOpenDelete(user.id, user.role)}
                                     className="h-7 px-2 text-[10px] flex gap-1"
                                   >
                                     Delete
@@ -563,15 +608,15 @@ const AdminUsersPage = () => {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Reject Modal */}
@@ -613,13 +658,13 @@ const AdminUsersPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Manage User Role Modal */}
+      {/* Manage User Role Modal (Uses RPC) */}
       <Dialog open={manageRoleOpen} onOpenChange={setManageRoleOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Manage User Role</DialogTitle>
             <DialogDescription>
-              Update system clearance and access level for the selected account.
+              Update system clearance and access level via secure administrative RPC.
             </DialogDescription>
           </DialogHeader>
           {selectedUser && (
@@ -631,6 +676,11 @@ const AdminUsersPage = () => {
                 <p className="text-xs mt-1">
                   Current Role: <span className="font-semibold uppercase text-amber-600">{selectedUser.role}</span>
                 </p>
+                {selectedUser.hasVolunteerHistory && (
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Verified Volunteer Hours: <span className="font-semibold">{selectedUser.volunteerVerifiedHours} hrs</span>
+                  </p>
+                )}
               </div>
 
               {selectedUser.role === "super_admin" && currentUserRole !== "super_admin" ? (

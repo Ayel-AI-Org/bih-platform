@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Search, Eye, Check, AlertTriangle, Info, Play, Loader2, HelpCircle } from "lucide-react";
+import { Search, Eye, Check, AlertTriangle, Info, Play, Loader2, HelpCircle, MapPin, Calendar, Building2, Sparkles } from "lucide-react";
 
 interface SuggestionItem {
   id: string;
@@ -114,16 +114,20 @@ const AdminSuggestionsPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No admin session active.");
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("project_suggestions")
         .update({
           status: "reviewing",
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", id);
+        .eq("id", id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Status updated",
@@ -155,7 +159,7 @@ const AdminSuggestionsPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No admin session active.");
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("project_suggestions")
         .update({
           status: "approved",
@@ -163,9 +167,13 @@ const AdminSuggestionsPage = () => {
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", approveItem.id);
+        .eq("id", approveItem.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Suggestion approved",
@@ -229,7 +237,7 @@ const AdminSuggestionsPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No admin session active.");
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("project_suggestions")
         .update({
           status: "rejected",
@@ -237,9 +245,13 @@ const AdminSuggestionsPage = () => {
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", rejectItem.id);
+        .eq("id", rejectItem.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       toast({
         title: "Suggestion rejected",
@@ -637,63 +649,123 @@ const AdminSuggestionsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Details View Modal */}
+      {/* Details View Modal with Contextual Project Blueprint Preview */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
           {detailItem && (
             <>
               <DialogHeader>
-                <Badge className={`w-fit text-[8px] uppercase tracking-wider font-bold border-none text-white ${statusTone[detailItem.status]}`}>
-                  {detailItem.status}
-                </Badge>
-                <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold leading-tight">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={`w-fit text-[8px] uppercase tracking-wider font-bold border-none text-white ${statusTone[detailItem.status]}`}>
+                    {detailItem.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs text-slate-600 border-slate-300">
+                    {detailItem.category}
+                  </Badge>
+                </div>
+                <DialogTitle className="font-serif text-[#1E3A5F] text-xl font-bold leading-tight">
                   {detailItem.title}
                 </DialogTitle>
-                <DialogDescription className="text-xs pt-1">
-                  Submitted by {detailItem.submittedBy} (Organization: {detailItem.organization || "N/A"})
+                <DialogDescription className="text-xs pt-0.5">
+                  Proposed on {new Date(detailItem.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 pt-3 text-xs leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
-                <div>
-                  <Label className="text-slate-400 font-medium">Concept Category</Label>
-                  <p className="text-slate-800 font-semibold text-sm mt-0.5">{detailItem.category}</p>
-                </div>
-                <div>
-                  <Label className="text-slate-400 font-medium">Location</Label>
-                  <p className="text-slate-700 mt-0.5">{detailItem.location}</p>
-                </div>
-                <div>
-                  <Label className="text-slate-400 font-medium">Timeline Estimate</Label>
-                  <p className="text-slate-700 mt-0.5">{detailItem.timeline}</p>
-                </div>
-                <div>
-                  <Label className="text-slate-400 font-medium">Description</Label>
-                  <p className="text-slate-655 mt-1 bg-slate-50 p-3 rounded border whitespace-pre-line leading-relaxed">
-                    {detailItem.description}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-slate-400 font-medium">Beneficiaries Details</Label>
-                  <p className="text-slate-700 mt-0.5 whitespace-pre-line">{detailItem.beneficiaries || "—"}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+
+              {/* Two-Column Responsive Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-3 text-xs">
+                {/* Left Column: Submission Details (approx 60%) */}
+                <div className="md:col-span-7 space-y-4">
                   <div>
-                    <Label className="text-slate-400 font-medium">Email Address</Label>
-                    <p className="text-slate-700 mt-0.5 font-mono">{detailItem.email}</p>
+                    <Label className="text-slate-400 font-medium">Concept Description</Label>
+                    <p className="text-slate-700 mt-1 bg-slate-50 p-3 rounded-lg border border-slate-200/80 whitespace-pre-line leading-relaxed">
+                      {detailItem.description}
+                    </p>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-slate-400 font-medium">Target Location</Label>
+                      <p className="text-slate-800 font-medium mt-0.5 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-[#D4A017] shrink-0" />
+                        <span>{detailItem.location}</span>
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-400 font-medium">Timeline Estimate</Label>
+                      <p className="text-slate-800 font-medium mt-0.5 flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-[#D4A017] shrink-0" />
+                        <span>{detailItem.timeline}</span>
+                      </p>
+                    </div>
+                  </div>
+
                   <div>
-                    <Label className="text-slate-400 font-medium">Phone Number</Label>
-                    <p className="text-slate-700 mt-0.5 font-mono">{detailItem.phone || "—"}</p>
+                    <Label className="text-slate-400 font-medium">Beneficiaries Details</Label>
+                    <p className="text-slate-700 mt-0.5">{detailItem.beneficiaries || "—"}</p>
                   </div>
+
+                  {detailItem.adminNotes && (
+                    <div className="bg-amber-50 text-amber-900 p-3 rounded-lg border border-amber-200 mt-2">
+                      <Label className="text-amber-900 font-bold flex items-center gap-1">
+                        <Info className="h-3.5 w-3.5" /> Moderator Notes
+                      </Label>
+                      <p className="mt-0.5 whitespace-pre-line text-xs">{detailItem.adminNotes}</p>
+                    </div>
+                  )}
                 </div>
 
-                {detailItem.adminNotes && (
-                  <div className="bg-amber-50 text-amber-800 p-3 rounded border border-amber-100 mt-2">
-                    <Label className="text-amber-900 font-bold">Moderator / Admin Notes</Label>
-                    <p className="mt-0.5 whitespace-pre-line">{detailItem.adminNotes}</p>
+                {/* Right Column: Context & Project Blueprint Preview (approx 40%) */}
+                <div className="md:col-span-5 space-y-4">
+                  {/* Submitter Context Card */}
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1">
+                      <Building2 className="h-3.5 w-3.5 text-[#D4A017]" /> Submitter Profile
+                    </Label>
+                    <div className="space-y-1 text-slate-700">
+                      <p className="font-semibold text-slate-800">{detailItem.submittedBy}</p>
+                      {detailItem.organization && (
+                        <p className="text-slate-500 text-[11px]">{detailItem.organization}</p>
+                      )}
+                      <p className="text-slate-600 font-mono text-[11px]">{detailItem.email}</p>
+                      {detailItem.phone && (
+                        <p className="text-slate-600 font-mono text-[11px]">{detailItem.phone}</p>
+                      )}
+                    </div>
                   </div>
-                )}
+
+                  {/* Blueprint Preview Card */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5 text-[#D4A017]" /> Converted Blueprint Preview
+                      </Label>
+                      <Badge variant="outline" className="text-[9px] text-[#6B8E3E] border-[#6B8E3E]/30 bg-emerald-50">
+                        AI Polish Ready
+                      </Badge>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white shadow-xs p-3 space-y-2">
+                      <Badge className="bg-[#C8601A] text-white text-[8px] uppercase tracking-wider font-bold">
+                        Proposed Project
+                      </Badge>
+                      <h5 className="font-serif font-bold text-[#1E3A5F] text-sm leading-snug line-clamp-1">
+                        {detailItem.title}
+                      </h5>
+                      <p className="text-slate-600 line-clamp-2 text-[11px] leading-relaxed">
+                        {detailItem.description}
+                      </p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1.5 border-t border-slate-100">
+                        <span>{detailItem.location}</span>
+                        <span>{detailItem.category}</span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      On approval, AI polish refines this draft into a public proposed project blueprint.
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <DialogFooter className="gap-2 sm:gap-0 mt-6 pt-3 border-t">
                 <Button variant="ghost" onClick={() => setDetailOpen(false)} className="text-xs h-9">
                   Close Detail

@@ -143,16 +143,20 @@ const AdminHoursPage = () => {
       if (!user) throw new Error("No admin session active.");
 
       // 1. Update log status
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("commitment_logs")
         .update({
           status: "verified",
           verified_by: user.id,
           verified_at: new Date().toISOString(),
         })
-        .eq("id", log.id);
+        .eq("id", log.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       // 2. Recalculate volunteer badge & total hours
       await recalculateVolunteerBadge(log.volunteerId);
@@ -216,16 +220,20 @@ const AdminHoursPage = () => {
       if (insertErr) throw insertErr;
 
       // 2. Update the original log status to 'voided'
-      const { error: updateOrigErr } = await supabase
+      const { data: voidData, error: updateOrigErr } = await supabase
         .from("commitment_logs")
         .update({
           status: "voided",
           verified_by: user.id,
           verified_at: nowIso,
         })
-        .eq("id", voidingLog.id);
+        .eq("id", voidingLog.id)
+        .select();
 
       if (updateOrigErr) throw updateOrigErr;
+      if (!voidData || voidData.length === 0) {
+        throw new Error("Permission denied: check your admin role");
+      }
 
       // 3. Recompute volunteer hours and badge level (in case they drop)
       await recalculateVolunteerBadge(voidingLog.volunteerId);
