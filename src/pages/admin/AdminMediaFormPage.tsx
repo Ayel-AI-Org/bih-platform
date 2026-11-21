@@ -678,9 +678,7 @@ const AdminMediaFormPage = () => {
                   Live Public Card Preview
                 </h3>
               </div>
-              <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-50 font-sans">
-                Real-time Sync
-              </Badge>
+             
             </div>
 
             <Card className="overflow-hidden border-slate-200 bg-white shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">

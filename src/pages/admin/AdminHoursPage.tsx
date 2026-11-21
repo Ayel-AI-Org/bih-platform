@@ -296,25 +296,25 @@ const AdminHoursPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead>Volunteer Name</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Activity Details</TableHead>
-                <TableHead>Date Logged</TableHead>
-                <TableHead>Hours</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Verified By</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-slate-50/70 border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-slate-700">Volunteer Name</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Project</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Activity Details</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Date Logged</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Hours</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Verified By</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((log) => (
-                <TableRow key={log.id} className="hover:bg-slate-50/30 text-xs">
-                  <TableCell className="font-semibold text-slate-800">{log.volunteerName}</TableCell>
-                  <TableCell className="text-slate-655 truncate max-w-[120px]" title={log.projectTitle}>
+                <TableRow key={log.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                  <TableCell className="font-semibold text-slate-900">{log.volunteerName}</TableCell>
+                  <TableCell className="text-slate-800 font-semibold truncate max-w-[140px]" title={log.projectTitle}>
                     {log.projectTitle}
                   </TableCell>
-                  <TableCell className="text-slate-550 max-w-[200px]">
+                  <TableCell className="text-slate-700 max-w-[200px]">
                     <Tooltip delayDuration={200}>
                       <TooltipTrigger className="text-left truncate max-w-full block">
                         {truncateText(log.activityDescription)}
@@ -324,16 +324,16 @@ const AdminHoursPage = () => {
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
-                  <TableCell className="text-slate-500 font-sans">
+                  <TableCell className="text-slate-600 font-medium font-sans">
                     {new Date(log.logDate).toLocaleDateString(undefined, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     })}
                   </TableCell>
-                  <TableCell className="font-mono text-slate-700 font-bold">{log.hours.toFixed(1)} h</TableCell>
+                  <TableCell className="font-mono text-slate-800 font-bold">{log.hours.toFixed(1)} h</TableCell>
                   <TableCell>
-                    <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                    <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
                       log.status === "verified"
                         ? "bg-[#6B8E3E]"
                         : log.status === "voided"
@@ -343,7 +343,7 @@ const AdminHoursPage = () => {
                       {log.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-500 font-medium">{log.verifiedByName}</TableCell>
+                  <TableCell className="text-slate-700 font-medium">{log.verifiedByName}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
                       {log.status === "logged" && (
@@ -352,7 +352,7 @@ const AdminHoursPage = () => {
                             size="sm"
                             disabled={processingId === log.id}
                             onClick={() => handleVerify(log)}
-                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Check className="h-3 w-3" /> Verify
                           </Button>
@@ -361,7 +361,7 @@ const AdminHoursPage = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleOpenVoidDialog(log)}
-                              className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                              className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                             >
                               <AlertTriangle className="h-3 w-3" /> Void
                             </Button>
@@ -374,14 +374,14 @@ const AdminHoursPage = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleOpenVoidDialog(log)}
-                          className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                          className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                         >
                           <AlertTriangle className="h-3 w-3" /> Void
                         </Button>
                       )}
 
                       {log.status === "voided" && (
-                        <span className="text-[10px] text-rose-500 font-semibold pr-2">Voided</span>
+                        <span className="text-xs text-rose-600 font-semibold pr-2">Voided</span>
                       )}
                     </div>
                   </TableCell>
@@ -397,10 +397,10 @@ const AdminHoursPage = () => {
             <div key={log.id} className="p-4 space-y-3.5 text-xs">
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <h4 className="font-semibold text-slate-800">{log.volunteerName}</h4>
-                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">{log.projectTitle}</p>
+                  <h4 className="font-semibold text-slate-900 text-sm">{log.volunteerName}</h4>
+                  <p className="text-xs text-slate-600 font-sans mt-0.5">{log.projectTitle}</p>
                 </div>
-                <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
                   log.status === "verified"
                     ? "bg-[#6B8E3E]"
                     : log.status === "voided"
@@ -411,14 +411,14 @@ const AdminHoursPage = () => {
                 </Badge>
               </div>
 
-              <div className="space-y-1 text-slate-655 font-sans leading-relaxed">
+              <div className="space-y-1 text-slate-700 font-sans leading-relaxed">
                 <p className="italic">"{log.activityDescription}"</p>
-                <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
-                  <span>Logged: <strong>{new Date(log.logDate).toLocaleDateString()}</strong></span>
-                  <span>Hours: <strong className="font-mono text-slate-700">{log.hours.toFixed(1)} h</strong></span>
+                <div className="flex justify-between items-center text-xs text-slate-600 pt-1">
+                  <span>Logged: <strong className="text-slate-800">{new Date(log.logDate).toLocaleDateString()}</strong></span>
+                  <span>Hours: <strong className="font-mono text-slate-900 font-bold">{log.hours.toFixed(1)} h</strong></span>
                 </div>
                 {log.verifiedByName !== "—" && (
-                  <p className="text-[10px] text-slate-400 pt-0.5">Verified by: <span className="font-medium text-slate-600">{log.verifiedByName}</span></p>
+                  <p className="text-xs text-slate-600 pt-0.5">Verified by: <span className="font-semibold text-slate-800">{log.verifiedByName}</span></p>
                 )}
               </div>
 
@@ -486,35 +486,35 @@ const AdminHoursPage = () => {
       {/* Stats Summary strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Pending Verification</span>
             <Clock className="h-4 w-4 text-[#C8601A]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-[#C8601A]">{stats.pending.toFixed(1)} h</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Total hours awaiting administrator checks</p>
+            <p className="text-xs text-slate-600 mt-1">Total hours awaiting administrator checks</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Verified Platform-wide</span>
             <CheckCircle className="h-4 w-4 text-[#6B8E3E]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-[#6B8E3E]">{stats.verified.toFixed(1)} h</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Sum of all approved volunteer hours</p>
+            <p className="text-xs text-slate-600 mt-1">Sum of all approved volunteer hours</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Voided / Audit Logs</span>
             <XCircle className="h-4 w-4 text-[#C0392B]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-rose-600">{stats.voided.toFixed(1)} h</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Sum of voided/flagged historical logs</p>
+            <p className="text-xs text-slate-600 mt-1">Sum of voided/flagged historical logs</p>
           </CardContent>
         </Card>
       </div>
@@ -524,7 +524,7 @@ const AdminHoursPage = () => {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Volunteer Hours Ledger</CardTitle>
-            <CardDescription>Verify hours and update volunteer levels directly.</CardDescription>
+            <CardDescription className="text-xs text-slate-600">Verify hours and update volunteer levels directly.</CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -538,12 +538,20 @@ const AdminHoursPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="pending" className="space-y-6">
-            <div className="px-6 border-b border-slate-200">
-              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
-                <TabsTrigger value="all">All Logs</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="verified">Verified</TabsTrigger>
-                <TabsTrigger value="voided">Voided</TabsTrigger>
+            <div className="px-3 sm:px-6 border-b border-slate-200 overflow-x-auto scrollbar-none">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-max min-w-full sm:w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+                <TabsTrigger value="all" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  All Logs ({logs.length})
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Pending ({logs.filter((l) => l.status === "logged").length})
+                </TabsTrigger>
+                <TabsTrigger value="verified" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Verified ({logs.filter((l) => l.status === "verified").length})
+                </TabsTrigger>
+                <TabsTrigger value="voided" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Voided ({logs.filter((l) => l.status === "voided").length})
+                </TabsTrigger>
               </TabsList>
             </div>
 

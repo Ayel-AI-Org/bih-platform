@@ -1,4 +1,4 @@
-import { Heart, Mail, MapPin, Phone, Instagram, Share2, ExternalLink, SlidersHorizontal } from "lucide-react";
+import { Heart, Mail, MapPin, Phone, Instagram, Linkedin, Share2, ExternalLink, SlidersHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "@/database/operations";
 import { useConsent } from "@/context/ConsentContext";
@@ -77,17 +77,52 @@ const Footer = () => {
             <p className="text-primary-foreground/70 text-xs leading-relaxed max-w-xs">
               Stay connected with our community, projects, stories, and impact.
             </p>
-            <div className="flex flex-col gap-2 pt-1 w-full max-w-xs">
+
+            {/* Mobile Icon-Only Row (<sm) */}
+            <div className="flex sm:hidden items-center justify-center gap-3 pt-1 w-full">
+              <a
+                href="https://gh.linkedin.com/in/bridge-for-impact-hub-7ba11a38b"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 text-accent hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label="Follow Bridge for Impact Hub on LinkedIn"
+              >
+                <Linkedin className="w-5 h-5 shrink-0" aria-hidden="true" />
+              </a>
+
+              <a
+                href="https://instagram.com/bridgeforimpact_hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 text-accent hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label="Follow BIH on Instagram: @bridgeforimpact_hub"
+              >
+                <Instagram className="w-5 h-5 shrink-0" aria-hidden="true" />
+              </a>
+
               <a
                 href="https://linktr.ee/BridgeforImpact_Hub"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 text-accent hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 aria-label="BIH Social Links landing page on Linktree"
               >
-                <span className="flex items-center gap-2">
-                  <Share2 className="w-3.5 h-3.5 text-accent shrink-0" />
-                  <span className="font-medium">Social Hub (Linktree)</span>
+                <Share2 className="w-5 h-5 shrink-0" aria-hidden="true" />
+              </a>
+            </div>
+
+            {/* Desktop Branded Layout (>=sm) */}
+            <div className="hidden sm:flex flex-col gap-2 pt-1 w-full max-w-xs">
+              <a
+                href="https://gh.linkedin.com/in/bridge-for-impact-hub-7ba11a38b"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
+                aria-label="Follow Bridge for Impact Hub on LinkedIn"
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <Linkedin className="w-3.5 h-3.5 text-accent shrink-0" />
+                  <span className="font-medium truncate">LinkedIn</span>
                 </span>
                 <ExternalLink className="w-3 h-3 text-primary-foreground/40 group-hover:text-accent transition-colors shrink-0" />
               </a>
@@ -102,6 +137,20 @@ const Footer = () => {
                 <span className="flex items-center gap-2 truncate">
                   <Instagram className="w-3.5 h-3.5 text-accent shrink-0" />
                   <span className="font-medium truncate">@bridgeforimpact_hub</span>
+                </span>
+                <ExternalLink className="w-3 h-3 text-primary-foreground/40 group-hover:text-accent transition-colors shrink-0" />
+              </a>
+
+              <a
+                href="https://linktr.ee/BridgeforImpact_Hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-primary-foreground/90 hover:text-white transition-all group"
+                aria-label="BIH Social Links landing page on Linktree"
+              >
+                <span className="flex items-center gap-2">
+                  <Share2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                  <span className="font-medium">Social Hub (Linktree)</span>
                 </span>
                 <ExternalLink className="w-3 h-3 text-primary-foreground/40 group-hover:text-accent transition-colors shrink-0" />
               </a>

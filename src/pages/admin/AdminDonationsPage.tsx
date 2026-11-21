@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { StandardFilterTabs } from "@/components/admin/StandardFilterTabs";
 import { Search, Download, Heart, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 
 interface AdminDonationItem {
@@ -27,6 +28,7 @@ const AdminDonationsPage = () => {
   const [donations, setDonations] = useState<AdminDonationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [reconciling, setReconciling] = useState(false);
 
   const handleReconcile = async () => {
@@ -92,13 +94,20 @@ const AdminDonationsPage = () => {
     .reduce((acc, row) => acc + row.amount, 0);
 
   const getFilteredDonations = () => {
-    if (!searchQuery) return donations;
-    const query = searchQuery.toLowerCase();
-    return donations.filter(
-      (d) =>
-        d.fullName.toLowerCase().includes(query) ||
-        d.email.toLowerCase().includes(query)
-    );
+    return donations.filter((d) => {
+      if (statusFilter !== "all" && d.status !== statusFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        return (
+          d.fullName.toLowerCase().includes(query) ||
+          d.email.toLowerCase().includes(query) ||
+          d.purpose.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
   };
 
   const getExportCSVData = () => {
@@ -206,18 +215,34 @@ const AdminDonationsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Filter and Table */}
-      <div className="space-y-4">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9"
+      {/* Filter Toolbar */}
+      <div className="bg-white rounded-lg border border-slate-200/80 p-3 shadow-xs">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          <StandardFilterTabs
+            value={statusFilter}
+            onChange={setStatusFilter}
+            ariaLabel="Filter donations by status"
+            options={[
+              { value: "all", label: "All Donations", count: donations.length },
+              { value: "success", label: "Success", count: donations.filter((d) => d.status === "success").length },
+              { value: "pending", label: "Pending", count: donations.filter((d) => d.status === "pending").length },
+              { value: "failed", label: "Failed", count: donations.filter((d) => d.status === "failed").length },
+            ]}
           />
-        </div>
 
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by name, email, purpose..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-xs border-slate-200 bg-slate-50/50 focus:bg-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
         <Card className="shadow-sm border-slate-200">
           <CardContent className="p-0">
             {filteredList.length === 0 ? (
@@ -226,73 +251,133 @@ const AdminDonationsPage = () => {
                 <p className="text-sm">No donations logged in the registry matching the query.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead>Full Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Payment Method</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredList.map((d) => (
-                      <TableRow key={d.id} className="hover:bg-slate-50/50 text-xs">
-                        <TableCell className="font-semibold text-slate-800">
-                          {d.fullName}
-                        </TableCell>
-                        <TableCell className="font-mono text-slate-500">
-                          {d.email}
-                        </TableCell>
-                        <TableCell className="font-bold text-slate-800 font-mono">
+              <>
+                {/* Desktop & Tablet Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/70 border-b border-slate-200">
+                        <TableHead className="text-xs font-semibold text-slate-700">Full Name</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Email</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Amount</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Payment Method</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Purpose</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
+                        <TableHead className="text-xs font-semibold text-slate-700">Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredList.map((d) => (
+                        <TableRow key={d.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                          <TableCell className="font-semibold text-slate-900">
+                            {d.fullName}
+                          </TableCell>
+                          <TableCell className="font-mono text-slate-600">
+                            {d.email}
+                          </TableCell>
+                          <TableCell className="font-bold text-slate-900 font-mono">
+                            {d.amount.toFixed(2)} GHS
+                          </TableCell>
+                          <TableCell className="capitalize text-slate-700">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm ${
+                                d.paymentMethod === "mobile_money"
+                                  ? "border-purple-200 bg-purple-50 text-purple-700"
+                                  : d.paymentMethod === "card"
+                                  ? "border-blue-200 bg-blue-50 text-blue-700"
+                                  : "border-slate-200 bg-slate-50 text-slate-700"
+                              }`}
+                            >
+                              {d.paymentMethod.replace("_", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-700 truncate max-w-[150px]">
+                            {d.purpose}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
+                                d.status === "success"
+                                  ? "bg-[#6B8E3E]"
+                                  : d.status === "failed"
+                                  ? "bg-[#C0392B]"
+                                  : "bg-[#C8601A]"
+                              }`}
+                            >
+                              {d.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 font-medium font-sans">
+                            {new Date(d.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card Stack (<md) */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                  {filteredList.map((d) => (
+                    <div key={d.id} className="p-4 space-y-2.5 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-900 text-sm">{d.fullName}</p>
+                          <p className="text-xs text-slate-600 font-mono mt-0.5">{d.email}</p>
+                        </div>
+                        <span className="font-bold text-slate-900 font-mono text-sm shrink-0">
                           {d.amount.toFixed(2)} GHS
-                        </TableCell>
-                        <TableCell className="capitalize text-slate-600">
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] font-semibold ${
-                              d.paymentMethod === "mobile_money"
-                                ? "border-purple-200 bg-purple-50 text-purple-700"
-                                : d.paymentMethod === "card"
-                                ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : "border-slate-200 bg-slate-50 text-slate-700"
-                            }`}
-                          >
-                            {d.paymentMethod.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-slate-600 truncate max-w-[150px]">
-                          {d.purpose}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`text-[10px] uppercase font-bold tracking-wider font-sans border-none text-white ${
-                              d.status === "success"
-                                ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90"
-                                : d.status === "failed"
-                                ? "bg-[#C0392B] hover:bg-[#C0392B]/90"
-                                : "bg-[#C8601A] hover:bg-[#C8601A]/90"
-                            }`}
-                          >
-                            {d.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-slate-500 font-sans">
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm ${
+                            d.paymentMethod === "mobile_money"
+                              ? "border-purple-200 bg-purple-50 text-purple-700"
+                              : d.paymentMethod === "card"
+                              ? "border-blue-200 bg-blue-50 text-blue-700"
+                              : "border-slate-200 bg-slate-50 text-slate-700"
+                          }`}
+                        >
+                          {d.paymentMethod.replace("_", " ")}
+                        </Badge>
+
+                        <Badge
+                          className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
+                            d.status === "success"
+                              ? "bg-[#6B8E3E]"
+                              : d.status === "failed"
+                              ? "bg-[#C0392B]"
+                              : "bg-[#C8601A]"
+                          }`}
+                        >
+                          {d.status}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs text-slate-600 font-medium">
+                        <span className="truncate max-w-[200px]" title={d.purpose}>
+                          Purpose: <strong className="text-slate-800 font-semibold">{d.purpose}</strong>
+                        </span>
+                        <span className="shrink-0 font-sans">
                           {new Date(d.createdAt).toLocaleDateString(undefined, {
-                            year: "numeric",
                             month: "short",
                             day: "numeric",
+                            year: "numeric",
                           })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

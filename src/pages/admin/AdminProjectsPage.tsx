@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,10 +15,44 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash, Download, Loader2, AlertCircle, MapPin, Calendar, Info } from "lucide-react";
+import { ProjectStatusBadge, ProjectCategoryBadge } from "@/components/admin/ProjectBadges";
+import { StandardFilterTabs } from "@/components/admin/StandardFilterTabs";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Download,
+  Loader2,
+  AlertCircle,
+  AlertTriangle,
+  MapPin,
+  Calendar,
+  Info,
+  Search,
+  X,
+  FilterX,
+  MoreHorizontal,
+  Eye,
+  ExternalLink,
+  Clock,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  CheckCircle2,
+  ChevronDown,
+} from "lucide-react";
+import { canDeleteProject, deleteProject, type ProjectDeletionEligibility } from "@/database/operations";
 
-interface AdminProjectItem {
+export interface AdminProjectItem {
   id: string;
   title: string;
   description: string;
@@ -35,6 +69,16 @@ interface AdminProjectItem {
   galleryUrls?: string[];
   reportUrl?: string | null;
 }
+
+const COMMON_SECTORS = [
+  "Education & Skills",
+  "Healthcare & Wellbeing",
+  "Water & Sanitation",
+  "Environment & Forestry",
+  "Agriculture & Livelihoods",
+  "Renewable Energy & Tech",
+  "Community Development",
+];
 
 const projectFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -61,6 +105,17 @@ const AdminProjectsPage = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Search & Filtering
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ongoing" | "proposed" | "completed">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Project Inspection / Overview Modal
+  const [previewProject, setPreviewProject] = useState<AdminProjectItem | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   // Form Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<AdminProjectItem | null>(null);
@@ -68,7 +123,9 @@ const AdminProjectsPage = () => {
 
   // Delete Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingProject, setDeletingProject] = useState<AdminProjectItem | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [deletionEligibility, setDeletionEligibility] = useState<ProjectDeletionEligibility | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
@@ -194,7 +251,6 @@ const AdminProjectsPage = () => {
         reportUrl: "",
       });
       setModalOpen(true);
-      // Clear parameters to prevent modal reopening on later operations
       setSearchParams({});
     }
   }, [searchParams, reset, setSearchParams]);
@@ -242,6 +298,11 @@ const AdminProjectsPage = () => {
     setModalOpen(true);
   };
 
+  const handleOpenPreview = (project: AdminProjectItem) => {
+    setPreviewProject(project);
+    setPreviewOpen(true);
+  };
+
   const handleSaveProject = async (values: ProjectFormValues) => {
     setSaving(true);
     try {
@@ -284,7 +345,6 @@ const AdminProjectsPage = () => {
       };
 
       if (editingProject) {
-        // Update existing row
         const { data, error } = await supabase
           .from("projects")
           .update(payload)
@@ -301,7 +361,6 @@ const AdminProjectsPage = () => {
           description: `"${values.title}" has been successfully updated.`,
         });
       } else {
-        // Insert new row
         const { data, error } = await supabase
           .from("projects")
           .insert(payload)
@@ -344,7 +403,6 @@ const AdminProjectsPage = () => {
       return;
     }
 
-    // Moving to proposed or ongoing (including admin correction completed -> ongoing)
     setUpdatingStatusId(project.id);
     try {
       const updatePayload: Record<string, any> = { status: newStatus };
@@ -401,7 +459,7 @@ const AdminProjectsPage = () => {
 
       toast({
         title: "Project completed",
-        description: `"${completingProject.title}" marked as completed. Use "Edit" to attach gallery photos and report evidence.`,
+        description: `"${completingProject.title}" marked as completed. You may edit the project to attach gallery photos and report evidence.`,
       });
 
       setCompletionModalOpen(false);
@@ -418,17 +476,36 @@ const AdminProjectsPage = () => {
     }
   };
 
-  const handleOpenDelete = (id: string) => {
-    setDeletingId(id);
+  const handleOpenDelete = async (project: AdminProjectItem) => {
+    setDeletingProject(project);
     setDeleteDialogOpen(true);
+    setCheckingEligibility(true);
+    try {
+      const eligibility = await canDeleteProject(project.id);
+      setDeletionEligibility(eligibility);
+    } catch (err: any) {
+      toast({
+        title: "Dependency check failed",
+        description: err.message,
+        variant: "destructive",
+      });
+      setDeletionEligibility({
+        canDelete: false,
+        reason: "Could not verify project dependencies. Deletion is blocked as a precaution.",
+        linkedHoursCount: 0,
+        linkedPortfolioCount: 0,
+      });
+    } finally {
+      setCheckingEligibility(false);
+    }
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deletingId) return;
-    if (currentUserRole !== "super_admin") {
+    if (!deletingProject) return;
+    if (currentUserRole !== "super_admin" && currentUserRole !== "admin") {
       toast({
         title: "Unauthorized action",
-        description: "Only a Super Admin has the clearance to delete project blueprints.",
+        description: "Only an authorized Administrator has clearance to delete project blueprints.",
         variant: "destructive",
       });
       setDeleteDialogOpen(false);
@@ -436,23 +513,16 @@ const AdminProjectsPage = () => {
     }
     setDeleting(true);
     try {
-      const { data, error } = await supabase
-        .from("projects")
-        .delete()
-        .eq("id", deletingId)
-        .select();
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        throw new Error("Permission denied: check your admin role");
-      }
+      await deleteProject(deletingProject.id);
 
       toast({
         title: "Project deleted",
-        description: "The project record has been removed.",
+        description: `"${deletingProject.title}" has been permanently removed.`,
       });
 
       setDeleteDialogOpen(false);
+      setDeletingProject(null);
+      setDeletionEligibility(null);
       fetchProjects();
     } catch (err: any) {
       toast({
@@ -465,25 +535,116 @@ const AdminProjectsPage = () => {
     }
   };
 
+  // Extract unique categories present in the dataset
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach((p) => {
+      if (p.category && p.category.trim()) {
+        set.add(p.category.trim());
+      }
+    });
+    COMMON_SECTORS.forEach((s) => set.add(s));
+    return Array.from(set).sort();
+  }, [projects]);
+
+  // Dynamic Metrics Calculation
+  const metrics = useMemo(() => {
+    const total = projects.length;
+    const ongoing = projects.filter((p) => p.status === "ongoing").length;
+    const proposed = projects.filter((p) => p.status === "proposed").length;
+    const completed = projects.filter((p) => p.status === "completed").length;
+    const totalBeneficiaries = projects.reduce(
+      (sum, p) => sum + (Number(p.beneficiariesReached) || 0),
+      0
+    );
+    return { total, ongoing, proposed, completed, totalBeneficiaries };
+  }, [projects]);
+
+  // Filtered dataset
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p) => {
+      // Status filter
+      if (statusFilter !== "all" && p.status !== statusFilter) {
+        return false;
+      }
+
+      // Category filter
+      if (categoryFilter !== "all") {
+        if (!p.category || p.category.toLowerCase() !== categoryFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesTitle = p.title.toLowerCase().includes(q);
+        const matchesDesc = p.description.toLowerCase().includes(q);
+        const matchesLoc = p.location.toLowerCase().includes(q);
+        const matchesCat = p.category?.toLowerCase().includes(q);
+        const matchesPartners = p.partners?.some((partner) => partner.toLowerCase().includes(q));
+
+        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesCat && !matchesPartners) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [projects, statusFilter, categoryFilter, searchQuery]);
+
+  // Pagination slice
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
+  const paginatedProjects = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProjects.slice(start, start + pageSize);
+  }, [filteredProjects, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, categoryFilter, searchQuery]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "all" || categoryFilter !== "all";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setCurrentPage(1);
+  };
+
   const getExportCSVData = () => {
-    if (projects.length === 0) {
+    const exportData = filteredProjects.length > 0 ? filteredProjects : projects;
+    if (exportData.length === 0) {
       toast({
         title: "No data to export",
-        description: "Add projects before downloading registry details.",
+        description: "Add projects or adjust your active filters before downloading.",
         variant: "destructive",
       });
       return;
     }
 
-    const headers = ["Title", "Location", "Category", "Status", "Date Created", "Partners", "Beneficiaries Reached"];
-    const rows = projects.map((p) => [
+    const headers = [
+      "Title",
+      "Location",
+      "Category",
+      "Status",
+      "Timeline",
+      "Date Created",
+      "Partners",
+      "Beneficiaries Reached",
+      "Completed Date",
+    ];
+    const rows = exportData.map((p) => [
       p.title,
       p.location,
-      p.category,
+      p.category || "Unassigned",
       p.status,
-      new Date(p.createdAt).toLocaleDateString(),
-      p.partners.join(";"),
+      p.timeline || "",
+      new Date(p.createdAt).toISOString().split("T")[0],
+      p.partners.join("; "),
       p.beneficiariesReached ?? "",
+      p.completedAt ? new Date(p.completedAt).toISOString().split("T")[0] : "",
     ]);
 
     const csvContent =
@@ -493,163 +654,876 @@ const AdminProjectsPage = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `bih-projects-export.csv`);
+    link.setAttribute("download", `bih-projects-${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    toast({
+      title: "Export Generated",
+      description: `Downloaded ${exportData.length} project blueprints as CSV.`,
+    });
   };
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="flex justify-between items-center">
-          <div className="h-9 w-48" />
-          <div className="h-9 w-28" />
+      <div className="space-y-6 animate-pulse max-w-7xl mx-auto">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-4 w-96" />
         </div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-96 w-full rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-serif text-[#1E3A5F] font-bold">Projects Coordination</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Build and coordinate cause blueprints, timeline milestones, and organization partners.
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 1. Refined Page Header & Breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#D4A017] font-sans">
+            Operations / Cause Initiatives
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-serif text-[#1E3A5F] font-bold tracking-tight">
+            Projects
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-sans max-w-2xl">
+            Manage initiatives, track progress, and coordinate community impact across Ghana.
           </p>
         </div>
-        <div className="flex gap-2.5">
+
+        <div className="flex items-center gap-2.5 shrink-0">
           <Button
             onClick={getExportCSVData}
             variant="outline"
-            className="border-slate-300 text-slate-700 hover:bg-slate-50 gap-1.5 h-9"
+            size="sm"
+            className="border-slate-300 text-slate-700 hover:bg-slate-50 gap-1.5 h-9 text-xs font-medium"
           >
-            <Download className="h-4 w-4" /> Export
+            <Download className="h-3.5 w-3.5 text-slate-500" />
+            Export (.csv)
           </Button>
+
           <Button
             onClick={handleOpenCreate}
-            className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white gap-1.5 h-9"
+            size="sm"
+            className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white gap-1.5 h-9 text-xs font-medium shadow-2xs"
           >
-            <Plus className="h-4 w-4" /> New Project
+            <Plus className="h-3.5 w-3.5" />
+            New Project
           </Button>
         </div>
       </div>
 
-      <Card className="shadow-sm border-slate-200">
-        <CardContent className="p-0">
-          {projects.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground space-y-2">
-              <AlertCircle className="h-8 w-8 text-slate-400 mx-auto" />
-              <p className="text-sm">No projects registered. Click "New Project" to register.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+      {/* 2. Restrained Project Overview Metrics Row */}
+      <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-4 grid grid-cols-2 sm:grid-cols-5 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 shadow-xs">
+        <div className="pt-2 sm:pt-0 sm:px-2 first:pt-0 first:pl-0">
+          <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+            Total Initiatives
+          </span>
+          <p className="text-xl sm:text-2xl font-serif font-bold text-[#1E3A5F] mt-0.5">{metrics.total}</p>
+          <span className="text-[10px] text-slate-400">All registered blueprints</span>
+        </div>
+
+        <div className="pt-2 sm:pt-0 sm:px-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+              Ongoing
+            </span>
+            {metrics.ongoing > 0 && (
+              <span className="h-2 w-2 rounded-full bg-[#1E3A5F] animate-pulse" title="Active operations" />
+            )}
+          </div>
+          <p className="text-xl sm:text-2xl font-serif font-bold text-[#1E3A5F] mt-0.5">{metrics.ongoing}</p>
+          <span className="text-[10px] text-slate-400">Active field projects</span>
+        </div>
+
+        <div className="pt-2 sm:pt-0 sm:px-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+              Proposed
+            </span>
+            {metrics.proposed > 0 && (
+              <span className="h-2 w-2 rounded-full bg-amber-500" title="Awaiting assignment" />
+            )}
+          </div>
+          <p className="text-xl sm:text-2xl font-serif font-bold text-amber-700 mt-0.5">{metrics.proposed}</p>
+          <span className="text-[10px] text-slate-400">Awaiting NGO partners</span>
+        </div>
+
+        <div className="pt-2 sm:pt-0 sm:px-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+              Completed
+            </span>
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          </div>
+          <p className="text-xl sm:text-2xl font-serif font-bold text-emerald-700 mt-0.5">{metrics.completed}</p>
+          <span className="text-[10px] text-slate-400">Archived in impact gallery</span>
+        </div>
+
+        <div className="pt-2 sm:pt-0 sm:px-4">
+          <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+            Impact Reach
+          </span>
+          <p className="text-xl sm:text-2xl font-serif font-bold text-[#1E3A5F] mt-0.5">
+            {metrics.totalBeneficiaries > 0 ? metrics.totalBeneficiaries.toLocaleString() : "—"}
+          </p>
+          <span className="text-[10px] text-slate-400">Citizens directly supported</span>
+        </div>
+      </div>
+
+      {/* 3. Search & Filtering Toolbar */}
+      <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-3 shadow-xs">
+        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search initiatives by title, location, sector, or partners..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 h-9 text-xs border-slate-200 bg-slate-50/50 focus:bg-white"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Status Tabs and Category Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Standard Filter Tabs with Gold Underline */}
+            <StandardFilterTabs
+              value={statusFilter}
+              onChange={setStatusFilter}
+              ariaLabel="Filter projects by operational status"
+              options={[
+                { value: "all", label: "All", count: metrics.total },
+                { value: "ongoing", label: "Ongoing", count: metrics.ongoing },
+                { value: "proposed", label: "Proposed", count: metrics.proposed },
+                { value: "completed", label: "Completed", count: metrics.completed },
+              ]}
+            />
+
+            {/* Category Sector Dropdown */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[160px] h-9 text-xs border-slate-200 bg-white">
+                <SelectValue placeholder="Filter by sector" />
+              </SelectTrigger>
+              <SelectContent className="text-xs">
+                <SelectItem value="all">All Sectors</SelectItem>
+                {availableCategories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-9 px-2 text-xs text-slate-500 hover:text-slate-800 gap-1"
+                title="Reset all filters"
+              >
+                <FilterX className="h-3.5 w-3.5" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Counter bar */}
+        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+          <span>
+            Showing <strong className="text-slate-700 font-semibold">{filteredProjects.length}</strong> of{" "}
+            {projects.length} cause initiatives
+          </span>
+          {hasActiveFilters && (
+            <span className="text-[#1E3A5F] font-medium">Filtered subset active</span>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Desktop & Tablet Redesigned Table View */}
+      <div className="hidden md:block">
+        <Card className="shadow-xs border-slate-200/90 overflow-hidden">
+          <CardContent className="p-0">
+            {filteredProjects.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 space-y-2">
+                <AlertCircle className="h-8 w-8 text-slate-300 mx-auto" />
+                <p className="text-sm font-medium text-slate-700">No matching projects found</p>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Try adjusting your search query, selecting another sector, or clearing filters.
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearAllFilters} className="mt-3 text-xs h-8">
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/50">
-                    <TableHead>Title</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase font-semibold text-slate-700 tracking-wider">
+                    <TableHead className="py-3 px-4 w-[42%] text-slate-700">Cause Initiative / Scope</TableHead>
+                    <TableHead className="py-3 px-3 w-[18%] text-slate-700">Location</TableHead>
+                    <TableHead className="py-3 px-3 w-[16%] text-slate-700">Operational Status</TableHead>
+                    <TableHead className="py-3 px-3 w-[14%] text-slate-700">Timeline / Created</TableHead>
+                    <TableHead className="py-3 px-4 text-right w-[10%] text-slate-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {projects.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-slate-50/50 text-xs">
-                      <TableCell className="font-semibold text-slate-800">
-                        {p.title}
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {p.location}
-                      </TableCell>
-                      <TableCell className="capitalize text-slate-500">
-                        {p.category || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {updatingStatusId === p.id ? (
-                            <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-500 font-sans">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1E3A5F]" />
-                              Updating...
-                            </div>
-                          ) : (
-                            <Select
-                              value={p.status}
-                              onValueChange={(val: "proposed" | "ongoing" | "completed") =>
-                                handleInlineStatusChange(p, val)
-                              }
-                            >
-                              <SelectTrigger
-                                className={`h-7 w-[110px] text-[11px] font-bold uppercase tracking-wider border-none text-white shadow-xs focus:ring-1 focus:ring-offset-1 ${
-                                  p.status === "completed"
-                                    ? "bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 focus:ring-[#6B8E3E]"
-                                    : p.status === "ongoing"
-                                    ? "bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 focus:ring-[#1E3A5F]"
-                                    : "bg-[#C8601A] hover:bg-[#C8601A]/90 focus:ring-[#C8601A]"
-                                }`}
+                <TableBody className="divide-y divide-slate-100">
+                  {paginatedProjects.map((p) => {
+                    const isCompleted = p.status === "completed";
+                    const isUpdating = updatingStatusId === p.id;
+
+                    return (
+                      <TableRow key={p.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                        {/* 1. Combined Identity Cell: Title + Category Pill + Partners */}
+                        <TableCell className="py-3 px-4">
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPreview(p)}
+                                className="font-semibold text-slate-900 hover:text-[#1E3A5F] hover:underline text-left text-sm leading-snug line-clamp-1"
+                                title="Click to view full project dossier"
                               >
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="proposed" className="text-xs">
-                                  Proposed
-                                </SelectItem>
-                                <SelectItem value="ongoing" className="text-xs">
-                                  Ongoing
-                                </SelectItem>
-                                <SelectItem value="completed" className="text-xs">
-                                  Completed
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-500 font-sans">
-                        {new Date(p.createdAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenEdit(p)}
-                            className="h-8 px-2.5 text-xs text-slate-700 hover:text-slate-900 border-slate-300 gap-1.5"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          {currentUserRole === "super_admin" && (
+                                {p.title}
+                              </button>
+                              {p.category && (
+                                <ProjectCategoryBadge category={p.category} />
+                              )}
+                            </div>
+
+                            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                              {p.description}
+                            </p>
+
+                            {p.partners && p.partners.length > 0 && (
+                              <p className="text-xs text-slate-600 flex items-center gap-1.5 truncate mt-0.5">
+                                <Users className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                                <span>Partners: <strong className="text-slate-800 font-medium">{p.partners.join(", ")}</strong></span>
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* 2. Concise Location */}
+                        <TableCell className="py-3 px-3 text-slate-800 font-medium text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="h-3.5 w-3.5 text-[#D4A017] shrink-0" />
+                            <span className="truncate">{p.location}</span>
+                          </div>
+                        </TableCell>
+
+                        {/* 3. Refined Status Control (Compact Dropdown Affordance) */}
+                        <TableCell className="py-3 px-3">
+                          <div className="flex items-center">
+                            {isUpdating ? (
+                              <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-600 font-sans">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1E3A5F]" />
+                                <span className="text-xs">Updating...</span>
+                              </div>
+                            ) : (
+                              <Select
+                                value={p.status}
+                                onValueChange={(val: "proposed" | "ongoing" | "completed") =>
+                                  handleInlineStatusChange(p, val)
+                                }
+                              >
+                                <SelectTrigger
+                                  className="h-7 w-[120px] text-xs font-medium border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs gap-1 focus:ring-1 focus:ring-[#1E3A5F] px-2"
+                                  title="Change operational status"
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0 truncate">
+                                    <span
+                                      className={`h-2 w-2 rounded-full shrink-0 ${
+                                        p.status === "completed"
+                                          ? "bg-emerald-600"
+                                          : p.status === "ongoing"
+                                          ? "bg-[#1E3A5F]"
+                                          : "bg-amber-500"
+                                      }`}
+                                    />
+                                    <span className="capitalize truncate text-slate-900 text-xs font-medium">
+                                      {p.status}
+                                    </span>
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent className="text-xs">
+                                  <SelectItem value="proposed" className="text-xs cursor-pointer font-medium">
+                                    <span className="inline-flex items-center gap-1.5 text-amber-900">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                      Proposed
+                                    </span>
+                                  </SelectItem>
+                                  <SelectItem value="ongoing" className="text-xs cursor-pointer font-medium">
+                                    <span className="inline-flex items-center gap-1.5 text-[#1E3A5F]">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A5F]" />
+                                      Ongoing
+                                    </span>
+                                  </SelectItem>
+                                  <SelectItem value="completed" className="text-xs cursor-pointer font-medium">
+                                    <span className="inline-flex items-center gap-1.5 text-emerald-900">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                                      Completed
+                                    </span>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* 4. Timeline / Created */}
+                        <TableCell className="py-3 px-3 text-slate-600 font-sans">
+                          <div className="space-y-0.5">
+                            {p.timeline ? (
+                              <span className="block font-semibold text-slate-800 text-xs truncate">
+                                {p.timeline}
+                              </span>
+                            ) : null}
+                            <span className="block text-xs text-slate-500">
+                              Created {new Date(p.createdAt).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        {/* 5. Contextual Action Menu */}
+                        <TableCell className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button
-                              size="icon"
+                              size="sm"
                               variant="ghost"
-                              onClick={() => handleOpenDelete(p.id)}
-                              className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                              title="Delete project"
+                              onClick={() => handleOpenEdit(p)}
+                              className="h-8 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 font-medium"
+                              title="Edit project details"
                             >
-                              <Trash className="h-4 w-4" />
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                  aria-label={`Actions for ${p.title}`}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52 text-xs font-sans">
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenPreview(p)}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-slate-500" />
+                                  View Project Dossier
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEdit(p)}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                                  Edit Full Blueprint
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    to={`/projects/${p.id}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="gap-2 cursor-pointer flex items-center"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                                    View Live Public Page
+                                  </Link>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    to="/admin/hours"
+                                    className="gap-2 cursor-pointer flex items-center"
+                                  >
+                                    <Clock className="h-3.5 w-3.5 text-slate-500" />
+                                    Verify Linked Hours
+                                  </Link>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    to="/admin/portfolio"
+                                    className="gap-2 cursor-pointer flex items-center"
+                                  >
+                                    <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                    Review Portfolio Entries
+                                  </Link>
+                                </DropdownMenuItem>
+
+                                {(currentUserRole === "super_admin" || currentUserRole === "admin") && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenDelete(p)}
+                                      className="gap-2 text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete Project Blueprint
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
 
-      {/* Slide-over Form Modal with Responsive Two-Column Workspace */}
+            {/* Pagination Controls */}
+            {filteredProjects.length > pageSize && (
+              <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50/50 text-xs">
+                <span className="text-slate-500">
+                  Page <strong className="text-slate-700">{currentPage}</strong> of {totalPages}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 5. Mobile Native Card Stack View (< 768px) */}
+      <div className="md:hidden space-y-3">
+        {filteredProjects.length === 0 ? (
+          <div className="bg-white rounded-lg border border-slate-200 p-8 text-center text-slate-400 space-y-2">
+            <AlertCircle className="h-7 w-7 text-slate-300 mx-auto" />
+            <p className="text-sm font-medium text-slate-700">No matching projects found</p>
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={clearAllFilters} className="text-xs h-8">
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          paginatedProjects.map((p) => {
+            const isUpdating = updatingStatusId === p.id;
+
+            return (
+              <div
+                key={p.id}
+                className="bg-white rounded-lg border border-slate-200/90 p-4 space-y-3 shadow-xs"
+              >
+                {/* Header: Title, Category & Contextual Action Menu */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPreview(p)}
+                      className="font-serif font-bold text-slate-900 text-base leading-snug text-left hover:text-[#1E3A5F]"
+                    >
+                      {p.title}
+                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ProjectStatusBadge status={p.status} />
+                      {p.category && <ProjectCategoryBadge category={p.category} />}
+                    </div>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 p-0 text-slate-500 hover:text-slate-800 shrink-0"
+                        aria-label={`Actions for ${p.title}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52 text-xs font-sans">
+                      <DropdownMenuItem
+                        onClick={() => handleOpenPreview(p)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-slate-500" />
+                        View Dossier
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={() => handleOpenEdit(p)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                        Edit Blueprint
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild>
+                        <Link
+                          to={`/projects/${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="gap-2 cursor-pointer flex items-center"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                          View Live Public Page
+                        </Link>
+                      </DropdownMenuItem>
+
+                      {(currentUserRole === "super_admin" || currentUserRole === "admin") && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleOpenDelete(p)}
+                            className="gap-2 text-rose-600 focus:bg-rose-50 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete Blueprint
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Description snippet */}
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  {p.description}
+                </p>
+
+                {/* Metadata Row: Location & Timeline */}
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 gap-y-1 pt-1 border-t border-slate-100">
+                  <span className="flex items-center gap-1 font-medium text-slate-700">
+                    <MapPin className="h-3.5 w-3.5 text-[#D4A017] shrink-0" />
+                    {p.location}
+                  </span>
+                  {p.timeline && (
+                    <span className="flex items-center gap-1 text-xs text-slate-600 font-medium">
+                      <Calendar className="h-3 w-3 text-slate-500 shrink-0" />
+                      {p.timeline}
+                    </span>
+                  )}
+                </div>
+
+                {/* Partners List */}
+                {p.partners && p.partners.length > 0 && (
+                  <p className="text-xs text-slate-600 flex items-center gap-1.5 bg-slate-50/80 p-2 rounded border border-slate-200/60 truncate">
+                    <Users className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                    <span className="truncate">Partners: <strong className="text-slate-800 font-medium">{p.partners.join(", ")}</strong></span>
+                  </p>
+                )}
+
+                {/* Action Buttons & Status Selector */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex-1">
+                    {isUpdating ? (
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1E3A5F]" />
+                        <span>Updating...</span>
+                      </div>
+                    ) : (
+                      <Select
+                        value={p.status}
+                        onValueChange={(val: "proposed" | "ongoing" | "completed") =>
+                          handleInlineStatusChange(p, val)
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs border-slate-200 bg-white">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent className="text-xs">
+                          <SelectItem value="proposed">Proposed</SelectItem>
+                          <SelectItem value="ongoing">Ongoing</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenEdit(p)}
+                    className="h-8 text-xs px-3 border-slate-300 gap-1"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleOpenPreview(p)}
+                    className="h-8 text-xs px-2 text-slate-600 hover:text-slate-900"
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Details
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* Mobile Pagination */}
+        {filteredProjects.length > pageSize && (
+          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 text-xs">
+            <span className="text-slate-500">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-8 text-xs"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="h-8 text-xs"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 6. Comprehensive Project Overview / Inspection Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {previewProject && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ProjectStatusBadge status={previewProject.status} />
+                      {previewProject.category && (
+                        <ProjectCategoryBadge category={previewProject.category} />
+                      )}
+                    </div>
+                    <DialogTitle className="font-serif text-[#1E3A5F] text-xl font-bold leading-snug">
+                      {previewProject.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 flex items-center gap-1.5 pt-0.5">
+                      <MapPin className="h-3.5 w-3.5 text-[#D4A017] shrink-0" />
+                      <span>{previewProject.location}</span>
+                      {previewProject.timeline && (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>{previewProject.timeline}</span>
+                        </>
+                      )}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-2 text-xs">
+                {/* Cover Image */}
+                {previewProject.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border border-slate-200 h-48 bg-slate-100">
+                    <img
+                      src={previewProject.imageUrl}
+                      alt={previewProject.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80";
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Description Dossier */}
+                <div className="p-3.5 bg-slate-50/80 rounded-lg border border-slate-200/80 space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Initiative Description
+                  </span>
+                  <p className="text-slate-700 leading-relaxed text-xs whitespace-pre-line">
+                    {previewProject.description}
+                  </p>
+                </div>
+
+                {/* Partners List */}
+                {previewProject.partners && previewProject.partners.length > 0 && (
+                  <div className="p-3 bg-white rounded-lg border border-slate-200/80 space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Cooperating Partners
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {previewProject.partners.map((partner, idx) => (
+                        <span
+                          key={idx}
+                          className="bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded text-[11px]"
+                        >
+                          {partner}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completion Data if completed */}
+                {previewProject.status === "completed" && (
+                  <div className="p-3.5 bg-emerald-50/50 rounded-lg border border-emerald-200/80 space-y-3">
+                    <div className="flex items-center gap-1.5 text-emerald-900 font-semibold text-xs">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>Concluded Impact Assessment</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-slate-700">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">
+                          Official Completion Date
+                        </span>
+                        <span className="font-medium">
+                          {previewProject.completedAt
+                            ? new Date(previewProject.completedAt).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })
+                            : "Recorded as completed"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">
+                          Beneficiaries Reached
+                        </span>
+                        <strong className="text-emerald-800 text-sm font-semibold">
+                          {previewProject.beneficiariesReached
+                            ? `${previewProject.beneficiariesReached.toLocaleString()} citizens`
+                            : "Unspecified"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {previewProject.completionSummary && (
+                      <div className="pt-2 border-t border-emerald-100">
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold mb-1">
+                          Impact Summary
+                        </span>
+                        <p className="text-slate-700 leading-relaxed text-xs">
+                          {previewProject.completionSummary}
+                        </p>
+                      </div>
+                    )}
+
+                    {previewProject.reportUrl && (
+                      <div className="pt-1">
+                        <a
+                          href={previewProject.reportUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-emerald-800 hover:text-emerald-900 font-medium underline text-xs"
+                        >
+                          <FileText className="h-3.5 w-3.5 text-emerald-700" /> Download Concluded Project Report (.pdf)
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Associated Admin Modules Quicklinks */}
+                <div className="p-3 bg-slate-50/60 rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-500 font-medium">Associated Operations:</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button asChild variant="outline" size="sm" className="h-7 text-xs border-slate-300">
+                      <Link to="/admin/hours">
+                        <Clock className="h-3 w-3 mr-1 text-[#D4A017]" /> Verified Hours
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-7 text-xs border-slate-300">
+                      <Link to="/admin/portfolio">
+                        <FileText className="h-3 w-3 mr-1 text-[#1E3A5F]" /> Portfolios
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-7 text-xs border-slate-300">
+                      <Link to={`/projects/${previewProject.id}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-3 w-3 mr-1 text-slate-500" /> Public Page
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-3 border-t border-slate-100 mt-2">
+                <Button
+                  onClick={() => {
+                    const p = previewProject;
+                    setPreviewOpen(false);
+                    if (p) handleOpenEdit(p);
+                  }}
+                  className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white text-xs h-9 gap-1.5 font-medium"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit Project
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPreviewOpen(false)}
+                  className="text-xs h-9"
+                >
+                  Close Dossier
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 7. Slide-over Form Modal with Responsive Two-Column Workspace */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -657,7 +1531,7 @@ const AdminProjectsPage = () => {
               {editingProject ? "Edit Project Details" : "Register New Project"}
             </DialogTitle>
             <DialogDescription>
-              Complete the project dossier details. Reconcile timelines and NGO coordinators with real-time card preview.
+              Complete the project dossier details. Reconcile timelines, sectors, and NGO coordinators with real-time card preview.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(handleSaveProject)} className="space-y-4 pt-2">
@@ -710,10 +1584,27 @@ const AdminProjectsPage = () => {
                     <Label htmlFor="category">Category / Sector</Label>
                     <Input
                       id="category"
-                      placeholder="e.g. Water Sanitation"
+                      placeholder="e.g. Water & Sanitation"
                       disabled={saving}
                       {...register("category")}
                     />
+                    {/* Common sector suggestions */}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {COMMON_SECTORS.map((sector) => (
+                        <button
+                          key={sector}
+                          type="button"
+                          onClick={() => setValue("category", sector, { shouldDirty: true })}
+                          className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                            watchCategory === sector
+                              ? "bg-[#1E3A5F] text-white border-[#1E3A5F]"
+                              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                          }`}
+                        >
+                          {sector}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -859,9 +1750,7 @@ const AdminProjectsPage = () => {
                         Live Public Card Preview
                       </h4>
                     </div>
-                    <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-50 font-sans">
-                      Real-time Sync
-                    </Badge>
+                
                   </div>
 
                   {/* Public Project Card */}
@@ -877,21 +1766,13 @@ const AdminProjectsPage = () => {
                           target.src = "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80";
                         }}
                       />
-                      <Badge
-                        className={`absolute top-2.5 left-2.5 text-[9px] font-bold uppercase tracking-wider border-none text-white shadow-xs ${
-                          watchStatus === "completed"
-                            ? "bg-[#6B8E3E]"
-                            : watchStatus === "ongoing"
-                            ? "bg-[#1E3A5F]"
-                            : "bg-[#C8601A]"
-                        }`}
-                      >
-                        {watchStatus}
-                      </Badge>
+                      <div className="absolute top-2.5 left-2.5">
+                        <ProjectStatusBadge status={watchStatus} />
+                      </div>
                       {watchCategory && (
-                        <Badge variant="secondary" className="absolute top-2.5 right-2.5 text-[9px] bg-white/90 text-slate-700 font-sans shadow-xs">
-                          {watchCategory}
-                        </Badge>
+                        <div className="absolute top-2.5 right-2.5">
+                          <ProjectCategoryBadge category={watchCategory} className="bg-white/95 shadow-2xs" />
+                        </div>
                       )}
                     </div>
 
@@ -948,7 +1829,7 @@ const AdminProjectsPage = () => {
               <Button
                 type="submit"
                 disabled={saving}
-                className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white text-xs h-9 flex gap-1.5"
+                className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white text-xs h-9 flex gap-1.5 font-medium shadow-2xs"
               >
                 {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Save Project
@@ -958,20 +1839,20 @@ const AdminProjectsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Completion Confirmation Dialog */}
+      {/* 8. Completion Confirmation Dialog */}
       <Dialog open={completionModalOpen} onOpenChange={setCompletionModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">
               Mark Project as Completed
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               Marking <span className="font-semibold text-slate-800">"{completingProject?.title}"</span> as completed.
               Please specify the official project completion date.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 text-xs">
             <div className="space-y-1.5">
               <Label htmlFor="completionDateInput">Completion Date</Label>
               <Input
@@ -979,6 +1860,7 @@ const AdminProjectsPage = () => {
                 type="date"
                 value={completionDate}
                 onChange={(e) => setCompletionDate(e.target.value)}
+                className="text-xs"
               />
               <p className="text-[11px] text-muted-foreground">
                 Defaults to today ({new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}).
@@ -987,7 +1869,7 @@ const AdminProjectsPage = () => {
             <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-md text-xs text-amber-800 space-y-1">
               <p className="font-semibold">Next Step:</p>
               <p>
-                After setting the date, you can edit the project at any time to attach completion summaries, beneficiary reach counts, gallery photos, and final report PDFs.
+                After confirming, edit the project anytime to attach completion summaries, beneficiary reach counts, gallery photos, and final report PDFs.
               </p>
             </div>
           </div>
@@ -1004,7 +1886,7 @@ const AdminProjectsPage = () => {
             <Button
               onClick={handleConfirmComplete}
               disabled={updatingStatusId !== null || !completionDate}
-              className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white text-xs h-9 flex gap-1.5"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 flex gap-1.5 font-medium"
             >
               {updatingStatusId !== null && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Confirm Completion
@@ -1013,31 +1895,112 @@ const AdminProjectsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Alert */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm">
+      {/* 9. Delete Confirmation Alert with Active Records Safeguard */}
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleting) {
+            setDeleteDialogOpen(open);
+            if (!open) {
+              setDeletingProject(null);
+              setDeletionEligibility(null);
+            }
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to permanently delete this project record? This action is irreversible.
+            <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              Delete Project Blueprint
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 text-xs pt-1">
+              {deletingProject ? (
+                <>Target: <span className="font-semibold text-slate-900">{deletingProject.title}</span></>
+              ) : (
+                "Project deletion safeguard"
+              )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+
+          <div className="py-2 text-xs space-y-3">
+            {checkingEligibility ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin text-[#1E3A5F]" />
+                <span>Checking volunteer hours and portfolio dependencies...</span>
+              </div>
+            ) : deletionEligibility && !deletionEligibility.canDelete ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-amber-900 text-xs">Deletion Blocked: Project Has Linked Records</p>
+                    <p className="text-amber-800 text-[11px] leading-relaxed">
+                      {deletionEligibility.reason}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[11px] text-slate-600 bg-white/80 p-2.5 rounded border border-amber-150">
+                  <p className="font-medium text-slate-700">Audit & Recognition Protection:</p>
+                  <p className="mt-0.5">To preserve volunteer hours and showcase entries for community recognition, mark this project as <strong>"Completed"</strong> instead of deleting it.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-rose-100 bg-rose-50/60 p-3 text-rose-900 text-xs space-y-1.5">
+                  <p className="font-semibold flex items-center gap-1.5 text-rose-800">
+                    <AlertTriangle className="h-4 w-4 text-rose-600" /> Irreversible Action
+                  </p>
+                  <p className="text-[11px] text-rose-700 leading-relaxed">
+                    This project has zero linked volunteer hours or portfolio records. Deleting it will permanently erase the project dossier and all milestones from the system.
+                  </p>
+                </div>
+                <p className="text-slate-500 text-[11px] italic">
+                  Are you sure you want to permanently delete <strong>"{deletingProject?.title}"</strong>?
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
             <Button
               variant="ghost"
-              onClick={() => setDeleteDialogOpen(false)}
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeletingProject(null);
+                setDeletionEligibility(null);
+              }}
               className="text-xs h-9"
+              disabled={deleting}
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5"
-            >
-              {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Delete Project
-            </Button>
+
+            {deletionEligibility && !deletionEligibility.canDelete ? (
+              <Button
+                onClick={() => {
+                  const target = deletingProject;
+                  setDeleteDialogOpen(false);
+                  setDeletingProject(null);
+                  setDeletionEligibility(null);
+                  if (target) {
+                    handleInlineStatusChange(target, "completed");
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 font-medium"
+              >
+                Mark as Completed Instead
+              </Button>
+            ) : (
+              <Button
+                onClick={handleDeleteConfirm}
+                disabled={deleting || checkingEligibility || (deletionEligibility ? !deletionEligibility.canDelete : false)}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5 font-medium"
+              >
+                {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Delete Project
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -13,7 +13,7 @@ serve(async (req: Request) => {
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail = Deno.env.get("ADMIN_ALERT_EMAIL_FROM") || Deno.env.get("REGISTRATION_EMAIL_FROM") || "BIH Alerts <no-reply@bridgeforimpacthub.org>";
-    const toEmail = Deno.env.get("ADMIN_ALERT_EMAIL") || "admin@bridgeforimpacthub.org";
+    const toEmail = Deno.env.get("ADMIN_ALERT_EMAIL") || "support@bridgeforimpacthub.org";
 
     if (!resendApiKey) {
       return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY in environment." }), {

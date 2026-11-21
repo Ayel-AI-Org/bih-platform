@@ -9,8 +9,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StandardFilterTabs } from "@/components/admin/StandardFilterTabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Pencil, Eye, Trash, Pin, Calendar, MapPin, ExternalLink, FileText, Info, Loader2, Download, Video } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Search,
+  Plus,
+  Pencil,
+  Eye,
+  Trash,
+  Pin,
+  Calendar,
+  MapPin,
+  ExternalLink,
+  Info,
+  Loader2,
+  Download,
+  MoreHorizontal,
+  Globe,
+  FileEdit,
+} from "lucide-react";
 import { type UpdateType } from "@/database/types";
 import { VideoEmbed } from "@/components/common/VideoEmbed";
 
@@ -291,7 +321,8 @@ const AdminMediaPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -320,75 +351,50 @@ const AdminMediaPage = () => {
       </div>
 
       {/* Type Tabs & Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        {/* Type Tabs */}
-        <Tabs
-          value={typeFilter}
-          onValueChange={(val) => setTypeFilter(val as any)}
-          className="w-full sm:w-auto"
-        >
-          <TabsList className="bg-slate-100 p-1">
-            <TabsTrigger value="all" className="text-xs">
-              All Types ({articles.length})
-            </TabsTrigger>
-            <TabsTrigger value="announcement" className="text-xs">
-              Announcements ({articles.filter((a) => a.type === "announcement").length})
-            </TabsTrigger>
-            <TabsTrigger value="event" className="text-xs">
-              Events ({articles.filter((a) => a.type === "event").length})
-            </TabsTrigger>
-            <TabsTrigger value="media" className="text-xs">
-              Media ({articles.filter((a) => a.type === "media").length})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-3 shadow-xs">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          {/* Type Filter Tabs with Gold Underline */}
+          <StandardFilterTabs
+            value={typeFilter}
+            onChange={(val) => setTypeFilter(val as any)}
+            ariaLabel="Filter updates by content type"
+            options={[
+              { value: "all", label: "All Types", count: articles.length },
+              { value: "announcement", label: "Announcements", count: articles.filter((a) => a.type === "announcement").length },
+              { value: "event", label: "Events", count: articles.filter((a) => a.type === "event").length },
+              { value: "media", label: "Media", count: articles.filter((a) => a.type === "media").length },
+            ]}
+          />
 
-        {/* Search & Draft Filter Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search title, category, author..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-xs"
+          {/* Search & Status Filter Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <div className="relative w-full sm:w-60 md:w-64">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search title, category, author..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-xs w-full border-slate-200 bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+
+            {/* Standard Status Filter Tabs */}
+            <StandardFilterTabs
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val as any)}
+              ariaLabel="Filter updates by publication status"
+              options={[
+                { value: "all", label: "All Status", count: articles.length },
+                { value: "published", label: "Published", count: articles.filter((a) => a.isPublished).length },
+                { value: "draft", label: "Drafts", count: articles.filter((a) => !a.isPublished).length },
+              ]}
             />
-          </div>
-
-          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("all")}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                statusFilter === "all" ? "bg-[#1E3A5F] text-white" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("published")}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                statusFilter === "published" ? "bg-[#6B8E3E] text-white" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Published
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("draft")}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                statusFilter === "draft" ? "bg-amber-600 text-white" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Drafts ({articles.filter((a) => !a.isPublished).length})
-            </button>
           </div>
         </div>
       </div>
 
       {/* Table Content */}
-      <Card className="shadow-sm border-slate-200">
+      <Card className="shadow-xs border-slate-200 overflow-hidden">
         <CardContent className="p-0">
           {filteredArticles.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground space-y-2">
@@ -397,137 +403,352 @@ const AdminMediaPage = () => {
               <p className="text-xs text-slate-400">Click "New Update" or clear active search and filters.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/50">
-                    <TableHead className="w-10">Pin</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Category / Timing</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Visibility</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredArticles.map((art) => (
-                    <TableRow key={art.id} className="hover:bg-slate-50/40 text-xs">
-                      {/* Pin Toggle */}
-                      <TableCell>
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePin(art)}
-                          disabled={togglingPinId === art.id}
-                          className={`p-1.5 rounded-md transition-colors ${
-                            art.isPinned
-                              ? "text-amber-500 bg-amber-50 hover:bg-amber-100"
-                              : "text-slate-300 hover:text-slate-600 hover:bg-slate-100"
-                          }`}
-                          title={art.isPinned ? "Pinned to top. Click to unpin." : "Click to pin to top"}
-                        >
-                          {togglingPinId === art.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Pin className={`h-3.5 w-3.5 ${art.isPinned ? "fill-amber-500" : ""}`} />
-                          )}
-                        </button>
-                      </TableCell>
+            <>
+              {/* Desktop & Tablet Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/70 border-b border-slate-200">
+                      <TableHead className="w-[42%] min-w-[260px] text-xs font-semibold text-slate-700 py-3 pl-4">Title</TableHead>
+                      <TableHead className="w-[12%] min-w-[110px] text-xs font-semibold text-slate-700 py-3">Type</TableHead>
+                      <TableHead className="w-[18%] min-w-[140px] text-xs font-semibold text-slate-700 py-3">Category & Timing</TableHead>
+                      <TableHead className="w-[12%] min-w-[100px] text-xs font-semibold text-slate-700 py-3">Author</TableHead>
+                      <TableHead className="w-[10%] min-w-[95px] text-xs font-semibold text-slate-700 py-3">Visibility</TableHead>
+                      <TableHead className="w-[6%] min-w-[140px] text-right text-xs font-semibold text-slate-700 py-3 pr-4">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredArticles.map((art) => (
+                      <TableRow
+                        key={art.id}
+                        className={`group text-xs transition-colors ${
+                          art.isPinned
+                            ? "bg-amber-50/20 hover:bg-amber-50/40 border-l-2 border-l-amber-400"
+                            : "hover:bg-slate-50/60"
+                        }`}
+                      >
+                        {/* Title - primary space with subtle pin indicator and accessible tooltip */}
+                        <TableCell className="font-semibold text-slate-900 py-3 pl-4">
+                          <div className="flex items-center gap-2 max-w-md lg:max-w-lg xl:max-w-xl">
+                            {/* Pinned toggle button / indicator */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePin(art);
+                                  }}
+                                  disabled={togglingPinId === art.id}
+                                  className={`p-1 rounded transition-colors shrink-0 ${
+                                    art.isPinned
+                                      ? "text-amber-500 hover:text-amber-600 bg-amber-50 hover:bg-amber-100"
+                                      : "text-slate-300 hover:text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  }`}
+                                  aria-label={art.isPinned ? "Unpin update" : "Pin update to top"}
+                                >
+                                  {togglingPinId === art.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Pin className={`h-3.5 w-3.5 ${art.isPinned ? "fill-amber-500" : ""}`} />
+                                  )}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {art.isPinned ? "Pinned to top. Click to unpin." : "Click to pin to top"}
+                              </TooltipContent>
+                            </Tooltip>
 
-                      {/* Title */}
-                      <TableCell className="font-semibold text-slate-800 max-w-[240px]">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <span className="truncate" title={art.title}>
-                            {art.title}
-                          </span>
-                          {art.isPinned && (
-                            <span className="shrink-0 text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded">
-                              PINNED
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
+                            {/* Accessible Title with Tooltip & Clickable to Preview */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPreview(art)}
+                                  className="text-left font-semibold text-slate-900 hover:text-[#1E3A5F] hover:underline underline-offset-2 transition-colors truncate focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1E3A5F] rounded-xs"
+                                >
+                                  {art.title}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs sm:max-w-sm text-xs font-normal">
+                                <p className="font-semibold text-slate-900">{art.title}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">Click to view full preview</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
 
-                      {/* Type Badge */}
-                      <TableCell>
+                        {/* Type Badge */}
+                        <TableCell className="py-3">
+                          {getTypeBadge(art.type)}
+                        </TableCell>
+
+                        {/* Category & Timing */}
+                        <TableCell className="py-3">
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-slate-800">{art.category}</span>
+                            {art.type === "event" && art.eventDate && (
+                              <p className="text-xs text-amber-900 font-medium font-sans flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-amber-600 shrink-0" />
+                                <span>
+                                  {new Date(art.eventDate).toLocaleDateString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Author */}
+                        <TableCell className="py-3 text-slate-700 font-medium">{art.author}</TableCell>
+
+                        {/* Visibility / Publish Toggle */}
+                        <TableCell className="py-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={togglingPublishId === art.id}
+                            onClick={() => handleTogglePublish(art)}
+                            className={`h-6 px-2 text-[10px] font-bold uppercase tracking-wider rounded-full flex gap-1 items-center ${
+                              art.isPublished
+                                ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                                : "bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200"
+                            }`}
+                            aria-label={art.isPublished ? "Published. Click to move to drafts." : "Draft. Click to publish."}
+                          >
+                            {togglingPublishId === art.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                            {art.isPublished ? "Published" : "Draft"}
+                          </Button>
+                        </TableCell>
+
+                        {/* Actions - Preview, Edit, and Overflow Menu */}
+                        <TableCell className="text-right py-3 pr-4">
+                          <div className="flex justify-end items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenPreview(art)}
+                              className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] bg-blue-50/50 border-blue-200/80 hover:bg-[#1E3A5F] hover:text-white hover:border-[#1E3A5F] focus-visible:ring-2 focus-visible:ring-[#1E3A5F] focus-visible:ring-offset-1 transition-colors flex gap-1.5 items-center"
+                              aria-label={`Preview "${art.title}"`}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span>Preview</span>
+                            </Button>
+
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#1E3A5F] transition-colors flex gap-1 items-center"
+                              aria-label={`Edit "${art.title}"`}
+                            >
+                              <Link to={`/admin/media/edit/${art.id}`}>
+                                <Pencil className="h-3 w-3" />
+                                <span>Edit</span>
+                              </Link>
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E3A5F]"
+                                  aria-label={`More options for "${art.title}"`}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44 text-xs">
+                                <DropdownMenuItem
+                                  onClick={() => handleTogglePin(art)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  <Pin className={`h-3.5 w-3.5 ${art.isPinned ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                                  <span>{art.isPinned ? "Unpin from top" : "Pin to top"}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleTogglePublish(art)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  {art.isPublished ? (
+                                    <>
+                                      <FileEdit className="h-3.5 w-3.5 text-amber-600" />
+                                      <span>Move to drafts</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Globe className="h-3.5 w-3.5 text-emerald-600" />
+                                      <span>Publish live</span>
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenDelete(art.id)}
+                                  className="cursor-pointer gap-2 text-rose-600 focus:text-rose-700 focus:bg-rose-50 font-medium"
+                                >
+                                  <Trash className="h-3.5 w-3.5" />
+                                  <span>Delete update</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card-Based Layout (<md) */}
+              <div className="block md:hidden divide-y divide-slate-100">
+                {filteredArticles.map((art) => (
+                  <div
+                    key={art.id}
+                    className={`p-3.5 sm:p-4 space-y-2.5 text-xs transition-colors ${
+                      art.isPinned ? "bg-amber-50/20 border-l-2 border-l-amber-400" : ""
+                    }`}
+                  >
+                    {/* Top row: Type badge, Category, and Visibility toggle */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         {getTypeBadge(art.type)}
-                      </TableCell>
+                        <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-sm border border-slate-200">
+                          {art.category}
+                        </span>
+                        {art.isPinned && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-sm font-semibold border border-amber-200">
+                            <Pin className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                            <span>Pinned</span>
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Category & Timing */}
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <span className="font-medium text-slate-700">{art.category}</span>
-                          {art.type === "event" && art.eventDate && (
-                            <p className="text-[11px] text-amber-700 font-sans flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
+                      {/* Visibility toggle pill */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={togglingPublishId === art.id}
+                        onClick={() => handleTogglePublish(art)}
+                        className={`h-6 px-2 text-[10px] font-bold uppercase tracking-wider rounded-full shrink-0 flex items-center gap-1 ${
+                          art.isPublished
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                            : "bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200"
+                        }`}
+                        aria-label={art.isPublished ? "Published. Click to move to drafts." : "Draft. Click to publish."}
+                      >
+                        {togglingPublishId === art.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                        {art.isPublished ? "Published" : "Draft"}
+                      </Button>
+                    </div>
+
+                    {/* Middle row: Full Title (clickable to preview) & Timing/Author */}
+                    <div className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPreview(art)}
+                        className="text-left font-semibold text-slate-900 text-sm leading-snug hover:text-[#1E3A5F] hover:underline underline-offset-2 transition-colors w-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1E3A5F] rounded-xs"
+                      >
+                        {art.title}
+                      </button>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600 font-medium">
+                        <span>By <strong className="text-slate-800 font-semibold">{art.author}</strong></span>
+                        {art.type === "event" && art.eventDate && (
+                          <span className="text-amber-900 flex items-center gap-1 font-medium">
+                            <Calendar className="h-3 w-3 text-amber-600 shrink-0" />
+                            <span>
                               {new Date(art.eventDate).toLocaleDateString(undefined, {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
                               })}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                      {/* Author */}
-                      <TableCell className="text-slate-600 font-medium">{art.author}</TableCell>
+                    {/* Bottom Action Row: Preview, Edit, Overflow (...) */}
+                    <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-slate-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenPreview(art)}
+                        className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] bg-blue-50/50 border-blue-200/70 hover:bg-[#1E3A5F] hover:text-white transition-colors flex gap-1 items-center"
+                        aria-label={`Preview "${art.title}"`}
+                      >
+                        <Eye className="h-3 w-3" />
+                        <span>Preview</span>
+                      </Button>
 
-                      {/* Visibility / Publish Toggle */}
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={togglingPublishId === art.id}
-                          onClick={() => handleTogglePublish(art)}
-                          className={`h-6 px-2 text-[10px] font-bold uppercase tracking-wider rounded-full flex gap-1 items-center ${
-                            art.isPublished
-                              ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-                              : "bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200"
-                          }`}
-                        >
-                          {togglingPublishId === art.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-                          {art.isPublished ? "Published" : "Draft"}
-                        </Button>
-                      </TableCell>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-xs font-medium text-slate-700 hover:text-slate-900 border-slate-200 flex gap-1 items-center"
+                        aria-label={`Edit "${art.title}"`}
+                      >
+                        <Link to={`/admin/media/edit/${art.id}`}>
+                          <Pencil className="h-3 w-3" />
+                          <span>Edit</span>
+                        </Link>
+                      </Button>
 
-                      {/* Actions */}
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenPreview(art)}
-                            className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] bg-blue-50/60 border-blue-200/80 hover:bg-[#1E3A5F] hover:text-white hover:border-[#1E3A5F] focus-visible:ring-2 focus-visible:ring-[#1E3A5F] focus-visible:ring-offset-1 transition-colors flex gap-1.5 items-center"
-                          >
-                            <Eye className="h-3.5 w-3.5" /> Preview
-                          </Button>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-xs text-slate-700 hover:text-slate-900 border-slate-300 gap-1.5"
-                          >
-                            <Link to={`/admin/media/edit/${art.id}`}>
-                              <Pencil className="h-3 w-3" /> Edit
-                            </Link>
-                          </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button
                             size="icon"
                             variant="ghost"
+                            className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                            aria-label={`More options for "${art.title}"`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44 text-xs">
+                          <DropdownMenuItem
+                            onClick={() => handleTogglePin(art)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Pin className={`h-3.5 w-3.5 ${art.isPinned ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
+                            <span>{art.isPinned ? "Unpin from top" : "Pin to top"}</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleTogglePublish(art)}
+                            className="cursor-pointer gap-2"
+                          >
+                            {art.isPublished ? (
+                              <>
+                                <FileEdit className="h-3.5 w-3.5 text-amber-600" />
+                                <span>Move to drafts</span>
+                              </>
+                            ) : (
+                              <>
+                                <Globe className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Publish live</span>
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
                             onClick={() => handleOpenDelete(art.id)}
-                            className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                            title="Delete update"
+                            className="cursor-pointer gap-2 text-rose-600 focus:text-rose-700 focus:bg-rose-50 font-medium"
                           >
                             <Trash className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                            <span>Delete update</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -660,7 +881,7 @@ const AdminMediaPage = () => {
                 <Button variant="outline" onClick={() => setPreviewOpen(false)} className="text-xs">
                   Close
                 </Button>
-                <Button asChild className="bg-[#1E3A5F] text-white text-xs">
+                <Button asChild className="bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white text-xs">
                   <Link to={`/admin/media/edit/${previewArticle.id}`}>Edit Details</Link>
                 </Button>
               </DialogFooter>
@@ -697,7 +918,8 @@ const AdminMediaPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 

@@ -329,30 +329,30 @@ const AdminSuggestionsPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead>Title</TableHead>
-                <TableHead>Submitted By</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Expected Budget</TableHead>
-                <TableHead>Date Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-slate-50/70 border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-slate-700">Title</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Submitted By</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Email</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Category</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Expected Budget</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Date Submitted</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((sug) => (
-                <TableRow key={sug.id} className="hover:bg-slate-50/30 text-xs">
-                  <TableCell className="font-semibold text-slate-800 truncate max-w-[140px]" title={sug.title}>
+                <TableRow key={sug.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                  <TableCell className="font-semibold text-slate-900 truncate max-w-[150px]" title={sug.title}>
                     {sug.title}
                   </TableCell>
-                  <TableCell className="text-slate-655 font-medium">{sug.submittedBy}</TableCell>
-                  <TableCell className="text-slate-500 font-mono">{sug.email}</TableCell>
-                  <TableCell className="text-slate-500 font-sans">{sug.category}</TableCell>
-                  <TableCell className="font-mono text-slate-700 font-bold">
+                  <TableCell className="text-slate-800 font-semibold">{sug.submittedBy}</TableCell>
+                  <TableCell className="text-slate-600 font-mono">{sug.email}</TableCell>
+                  <TableCell className="text-slate-700 font-medium font-sans">{sug.category}</TableCell>
+                  <TableCell className="font-mono text-slate-800 font-bold">
                     {sug.expectedBudget !== null ? `GHS ${sug.expectedBudget.toLocaleString()}` : "—"}
                   </TableCell>
-                  <TableCell className="text-slate-450 font-sans">
+                  <TableCell className="text-slate-600 font-medium font-sans">
                     {new Date(sug.createdAt).toLocaleDateString(undefined, {
                       year: "numeric",
                       month: "short",
@@ -360,7 +360,7 @@ const AdminSuggestionsPage = () => {
                     })}
                   </TableCell>
                   <TableCell>
-                    <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${statusTone[sug.status]}`}>
+                    <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${statusTone[sug.status]}`}>
                       {sug.status}
                     </Badge>
                   </TableCell>
@@ -370,7 +370,7 @@ const AdminSuggestionsPage = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleOpenDetail(sug)}
-                        className="h-7 px-2 text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
+                        className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
                       >
                         <Eye className="h-3.5 w-3.5" /> View
                       </Button>
@@ -382,14 +382,14 @@ const AdminSuggestionsPage = () => {
                             variant="outline"
                             disabled={actioningId === sug.id}
                             onClick={() => handleMarkReviewing(sug.id)}
-                            className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Play className="h-3 w-3" /> Review
                           </Button>
                           <Button
                             size="sm"
                             onClick={() => handleOpenApprove(sug)}
-                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Check className="h-3 w-3" /> Approve
                           </Button>
@@ -397,7 +397,7 @@ const AdminSuggestionsPage = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleOpenReject(sug)}
-                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <AlertTriangle className="h-3 w-3" /> Reject
                           </Button>
@@ -409,7 +409,7 @@ const AdminSuggestionsPage = () => {
                           <Button
                             size="sm"
                             onClick={() => handleOpenApprove(sug)}
-                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Check className="h-3 w-3" /> Approve
                           </Button>
@@ -417,7 +417,7 @@ const AdminSuggestionsPage = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleOpenReject(sug)}
-                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <AlertTriangle className="h-3 w-3" /> Reject
                           </Button>
@@ -437,21 +437,21 @@ const AdminSuggestionsPage = () => {
             <div key={sug.id} className="p-4 space-y-3.5 text-xs">
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <h4 className="font-semibold text-slate-800">{sug.title}</h4>
-                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">Submitted by: {sug.submittedBy}</p>
+                  <h4 className="font-semibold text-slate-900 text-sm">{sug.title}</h4>
+                  <p className="text-xs text-slate-600 font-sans mt-0.5">Submitted by: <strong className="text-slate-800 font-semibold">{sug.submittedBy}</strong></p>
                 </div>
-                <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${statusTone[sug.status]}`}>
+                <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${statusTone[sug.status]}`}>
                   {sug.status}
                 </Badge>
               </div>
 
-              <div className="space-y-1.5 text-slate-655 font-sans leading-relaxed">
+              <div className="space-y-1.5 text-slate-700 font-sans leading-relaxed">
                 <p>Email: <code className="font-mono text-slate-700">{sug.email}</code></p>
                 {sug.expectedBudget !== null && (
-                  <p>Expected Budget: <strong className="text-slate-700 font-mono">GHS {sug.expectedBudget.toLocaleString()}</strong></p>
+                  <p>Expected Budget: <strong className="text-slate-900 font-mono font-bold">GHS {sug.expectedBudget.toLocaleString()}</strong></p>
                 )}
-                <p className="text-[10px] text-slate-400 pt-0.5 flex justify-between">
-                  <span>Category: <span className="font-medium text-slate-600">{sug.category}</span></span>
+                <p className="text-xs text-slate-600 pt-0.5 flex justify-between">
+                  <span>Category: <span className="font-semibold text-slate-800">{sug.category}</span></span>
                   <span>{new Date(sug.createdAt).toLocaleDateString()}</span>
                 </p>
               </div>
@@ -534,7 +534,7 @@ const AdminSuggestionsPage = () => {
       {/* Stats summary strip */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Pending suggestions</span>
             <span className="h-2 w-2 rounded-full bg-[#C8601A]" />
           </CardHeader>
@@ -544,7 +544,7 @@ const AdminSuggestionsPage = () => {
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">In review checks</span>
             <span className="h-2 w-2 rounded-full bg-[#1E3A5F]" />
           </CardHeader>
@@ -554,7 +554,7 @@ const AdminSuggestionsPage = () => {
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Approved</span>
             <span className="h-2 w-2 rounded-full bg-[#6B8E3E]" />
           </CardHeader>
@@ -564,7 +564,7 @@ const AdminSuggestionsPage = () => {
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Rejected</span>
             <span className="h-2 w-2 rounded-full bg-[#C0392B]" />
           </CardHeader>
@@ -579,7 +579,7 @@ const AdminSuggestionsPage = () => {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Suggestions dossier</CardTitle>
-            <CardDescription>Approve submitted concepts and convert them to active projects.</CardDescription>
+            <CardDescription className="text-xs text-slate-600">Approve submitted concepts and convert them to active projects.</CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -593,37 +593,37 @@ const AdminSuggestionsPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="pending" className="space-y-6">
-            <div className="px-6 border-b border-slate-200">
-              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+            <div className="px-3 sm:px-6 border-b border-slate-200 overflow-x-auto scrollbar-none">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-max min-w-full sm:w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
                 <TabsTrigger
                   value="all"
-                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none whitespace-nowrap"
                 >
-                  All
+                  All ({suggestions.length})
                 </TabsTrigger>
                 <TabsTrigger
                   value="pending"
-                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none whitespace-nowrap"
                 >
-                  Pending
+                  Pending ({stats.pending})
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviewing"
-                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none whitespace-nowrap"
                 >
-                  Reviewing
+                  Reviewing ({stats.reviewing})
                 </TabsTrigger>
                 <TabsTrigger
                   value="approved"
-                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none whitespace-nowrap"
                 >
-                  Approved
+                  Approved ({stats.approved})
                 </TabsTrigger>
                 <TabsTrigger
                   value="rejected"
-                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-5 py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none"
+                  className="rounded-t-lg rounded-b-none border-b-2 border-transparent px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-slate-600 transition-all hover:text-slate-800 hover:bg-slate-50/50 data-[state=active]:border-b-2 data-[state=active]:border-[#D4A017] data-[state=active]:text-[#1E3A5F] data-[state=active]:bg-white data-[state=active]:shadow-none whitespace-nowrap"
                 >
-                  Rejected
+                  Rejected ({stats.rejected})
                 </TabsTrigger>
               </TabsList>
             </div>
