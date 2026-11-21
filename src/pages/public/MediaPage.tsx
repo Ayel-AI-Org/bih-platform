@@ -23,6 +23,7 @@ import {
   X,
   Star,
   Share2,
+  InstagramIcon,
 } from "lucide-react";
 import { VideoEmbed } from "@/components/common/VideoEmbed";
 
@@ -373,13 +374,13 @@ const MediaPage = () => {
           </div>
 
           <a
-            href="https://linktr.ee/BridgeforImpact_Hub"
+            href="https://instagram.com/bridgeforimpact_hub"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-[#1E3A5F] shadow-xs hover:shadow-sm transition-all self-start sm:self-auto shrink-0 group"
             aria-label="Connect with BIH on social media (@bridgeforimpact_hub)"
           >
-            <Share2 className="h-3.5 w-3.5 text-[#D4A017] group-hover:scale-110 transition-transform" />
+            <InstagramIcon className="h-3.5 w-3.5 text-[#D4A017] group-hover:scale-110 transition-transform" />
             <span>Connect @bridgeforimpact_hub</span>
             <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-[#1E3A5F] transition-colors" />
           </a>

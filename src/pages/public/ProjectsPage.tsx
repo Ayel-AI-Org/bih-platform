@@ -161,11 +161,11 @@ const ProjectsPage = () => {
           </div>
         ) : (
           <Tabs defaultValue="ongoing" className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200">
-              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
-                <TabsTrigger value="proposed">Pending</TabsTrigger>
-                <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 overflow-x-auto scrollbar-none">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-max sm:w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5 shrink-0">
+                <TabsTrigger value="proposed" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">Pending</TabsTrigger>
+                <TabsTrigger value="ongoing" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">Ongoing</TabsTrigger>
+                <TabsTrigger value="completed" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">Completed</TabsTrigger>
               </TabsList>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />

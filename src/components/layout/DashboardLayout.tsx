@@ -135,20 +135,33 @@ const DashboardLayout = () => {
     return (
       <div className="flex flex-col h-full bg-white text-[#1E3A5F]">
         {/* Header */}
-        <div className={`p-6 border-b border-slate-100 flex items-center justify-center ${isCollapsed ? "px-2" : "px-6"}`}>
-          <Link to="/" title="Go to homepage" className="flex items-center gap-3 hover:opacity-85 transition-opacity">
-            <img
-              src="/BIH_logo.jpeg"
-              alt="BIH Logo"
-              className="h-9 w-9 rounded-full border border-slate-205 object-cover bg-white flex-shrink-0"
-            />
+        <div className={`p-4 sm:p-5 border-b border-slate-100 flex items-center ${isMobile ? "justify-between" : isCollapsed ? "justify-center px-2" : "justify-between px-5"}`}>
+          <Link to="/" title="Go to homepage" className={`flex items-center gap-3 hover:opacity-85 transition-opacity ${isCollapsed ? "justify-center" : ""}`}>
+            <div className="h-10 w-10 min-w-[40px] rounded-full bg-white flex items-center justify-center p-0.5 shadow-xs border border-slate-200 shrink-0">
+              <img
+                src="/BIH_logo.jpeg"
+                alt="BIH Logo"
+                className="h-full w-full rounded-full object-contain"
+              />
+            </div>
             {!isCollapsed && (
-              <div>
-                <h2 className="font-serif font-bold text-sm tracking-wide text-[#1E3A5F]">BIH Portal</h2>
-                <p className="text-[10px] text-slate-400 font-sans uppercase font-bold tracking-wider">{role}</p>
+              <div className="min-w-0">
+                <h2 className="font-serif font-bold text-sm tracking-wide text-[#1E3A5F] truncate">BIH Portal</h2>
+                <p className="text-[10px] text-slate-400 font-sans uppercase font-bold tracking-wider truncate">{role}</p>
               </div>
             )}
           </Link>
+          {isMobile && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setMobileOpen(false)}
+              className="h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100 shrink-0"
+              aria-label="Close navigation sidebar"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Nav list items */}
@@ -261,9 +274,18 @@ const DashboardLayout = () => {
       
       {/* Mobile Top Header */}
       <header className="lg:hidden bg-white text-[#1E3A5F] px-4 py-3 flex items-center justify-between border-b border-slate-150">
-        <div className="flex items-center gap-2">
-          <HandHeart className="h-5 w-5 text-[#D4A017]" />
-          <span className="font-serif font-bold text-sm tracking-wide text-[#1E3A5F]">BIH Portal</span>
+        <div className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-full bg-white flex items-center justify-center p-0.5 border border-slate-200 shrink-0">
+            <img
+              src="/BIH_logo.jpeg"
+              alt="BIH Logo"
+              className="h-full w-full rounded-full object-contain"
+            />
+          </div>
+          <div>
+            <span className="font-serif font-bold text-sm tracking-wide text-[#1E3A5F] block leading-tight">BIH Portal</span>
+            <span className="text-[10px] text-slate-400 font-sans uppercase font-bold tracking-wider block leading-tight">{role}</span>
+          </div>
         </div>
         <Button
           size="icon"
@@ -309,7 +331,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 bg-white p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 bg-white p-4 sm:p-6 md:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <Outlet />
         </div>

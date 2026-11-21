@@ -147,22 +147,37 @@ const AdminLayout = () => {
     return (
       <div className="flex flex-col h-full bg-[#1E3A5F] text-white">
         {/* Header */}
-        <div className={`p-6 border-b border-slate-700 flex items-center justify-center ${isCollapsed ? "px-2" : "px-6"}`}>
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-[#D4A017] flex items-center justify-center text-white flex-shrink-0">
-              <ShieldAlert className="h-5 w-5" />
+        <div className={`p-4 border-b border-slate-700/80 flex items-center justify-between ${isCollapsed ? "px-2 justify-center" : "px-4"}`}>
+          <Link to="/" title="Go to homepage" className={`flex items-center gap-3 hover:opacity-90 transition-opacity ${isCollapsed ? "justify-center" : ""}`}>
+            <div className="h-10 w-10 min-w-[40px] rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm border border-white/20 shrink-0">
+              <img
+                src="/BIH_logo.jpeg"
+                alt="BIH Logo"
+                className="h-full w-full rounded-full object-contain"
+              />
             </div>
             {!isCollapsed && (
-              <div>
-                <h2 className="font-serif font-bold text-sm tracking-wide">BIH Ecosystem</h2>
-                <p className="text-[10px] text-slate-300 font-sans">Admin Console</p>
+              <div className="min-w-0">
+                <h2 className="font-serif font-bold text-sm tracking-wide text-white truncate">BIH Ecosystem</h2>
+                <p className="text-[10px] text-slate-300 font-sans tracking-wide truncate">Admin Console</p>
               </div>
             )}
-          </div>
+          </Link>
+          {isMobile && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setMobileOpen(false)}
+              className="text-slate-300 hover:text-white hover:bg-slate-800 h-8 w-8 shrink-0"
+              aria-label="Close navigation sidebar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {/* Nav List */}
-        <nav className={`flex-1 py-6 space-y-1.5 ${isCollapsed ? "px-0" : "px-4"}`}>
+        <nav className={`flex-1 py-4 space-y-1 ${isCollapsed ? "px-0" : "px-3"}`}>
           <TooltipProvider>
             {sidebarItems.map((item) => {
               const Icon = item.icon;
@@ -173,8 +188,8 @@ const AdminLayout = () => {
                   onClick={() => isMobile && setMobileOpen(false)}
                   className={`flex items-center transition-all border-l-[3px] ${
                     isCollapsed
-                      ? "w-full justify-center py-3 px-0 rounded-none"
-                      : "gap-3 pl-4 pr-3 py-3 text-sm font-medium rounded-r-lg"
+                      ? "w-full justify-center py-2.5 px-0 rounded-none"
+                      : "gap-3 pl-3.5 pr-3 py-2.5 text-sm font-medium rounded-r-md"
                   } ${
                     active
                       ? "bg-[#243d5c] text-white border-l-[#D4A017]"
@@ -218,14 +233,14 @@ const AdminLayout = () => {
         )}
 
         {/* Footer Profile & Sign out */}
-        <div className={`p-4 border-t border-slate-700 bg-slate-900/50 space-y-3 ${isCollapsed ? "p-2" : "p-4"}`}>
+        <div className={`p-4 border-t border-slate-700/80 bg-slate-900/60 space-y-2.5 ${isCollapsed ? "p-2" : "p-4"}`}>
           <div className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : "px-2"}`}>
-            <div className="h-7 w-7 rounded-full bg-slate-750 flex items-center justify-center font-bold text-xs uppercase text-slate-200 flex-shrink-0">
+            <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs uppercase text-slate-200 flex-shrink-0">
               {adminName.charAt(0)}
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold truncate">{adminName}</p>
+                <p className="text-xs font-semibold text-white truncate">{adminName}</p>
                 <p className="text-[10px] text-slate-400 truncate">Super Admin</p>
               </div>
             )}
@@ -233,7 +248,7 @@ const AdminLayout = () => {
           <Button
             onClick={() => window.dispatchEvent(new CustomEvent("bih-restart-tour"))}
             variant="ghost"
-            className={`w-full text-xs text-[#1E3A5F] hover:text-[#D4A017] hover:bg-slate-100/50 flex gap-2 h-9 ${
+            className={`w-full text-xs text-slate-300 hover:text-[#D4A017] hover:bg-slate-800/60 flex gap-2 h-8.5 ${
               isCollapsed ? "justify-center px-0" : "justify-start px-3"
             }`}
           >
@@ -244,7 +259,7 @@ const AdminLayout = () => {
           <Button
             onClick={handleSignOut}
             variant="ghost"
-            className={`w-full text-xs text-rose-450 hover:text-rose-300 hover:bg-rose-500/10 flex gap-2 h-9 ${
+            className={`w-full text-xs text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 flex gap-2 h-8.5 ${
               isCollapsed ? "justify-center px-0" : "justify-start px-3"
             }`}
           >
@@ -263,9 +278,18 @@ const AdminLayout = () => {
 
       {/* Mobile Top Header */}
       <header className="lg:hidden bg-[#1E3A5F] text-white px-4 py-3 flex items-center justify-between border-b border-slate-700">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="h-5 w-5 text-[#D4A017]" />
-          <span className="font-serif font-bold text-sm tracking-wide">BIH Admin</span>
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center p-0.5 shadow-xs border border-white/20 shrink-0">
+            <img
+              src="/BIH_logo.jpeg"
+              alt="BIH Logo"
+              className="h-full w-full rounded-full object-contain"
+            />
+          </div>
+          <div>
+            <span className="font-serif font-bold text-sm tracking-wide block leading-tight">BIH Ecosystem</span>
+            <span className="text-[10px] text-slate-300 font-sans block leading-tight">Admin Console</span>
+          </div>
         </div>
         <Button
           size="icon"
@@ -311,7 +335,7 @@ const AdminLayout = () => {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 bg-white p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 bg-white p-4 sm:p-6 md:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <Outlet />
         </div>

@@ -276,32 +276,32 @@ const AdminPortfolioPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead>Submitter Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Entry Title</TableHead>
-                <TableHead>Project Linked</TableHead>
-                <TableHead>Date Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-slate-50/70 border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-slate-700">Submitter Name</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Role</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Entry Title</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Project Linked</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Date Submitted</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((entry) => (
-                <TableRow key={entry.id} className="hover:bg-slate-50/30 text-xs">
-                  <TableCell className="font-semibold text-slate-800">{entry.submitterName}</TableCell>
+                <TableRow key={entry.id} className="hover:bg-slate-50/60 text-xs transition-colors">
+                  <TableCell className="font-semibold text-slate-900">{entry.submitterName}</TableCell>
                   <TableCell>
-                    <Badge className={`text-[8px] uppercase tracking-wider font-bold border-none text-white ${
+                    <Badge className={`text-[10px] uppercase tracking-wide font-semibold border-none text-white px-2 py-0.5 rounded-sm ${
                       entry.submitterRole === "ngo" ? "bg-[#1E3A5F]" : "bg-[#D4A017]"
                     }`}>
                       {entry.submitterRole}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-655 font-medium truncate max-w-[140px]">{entry.title}</TableCell>
-                  <TableCell className="text-slate-500 truncate max-w-[140px]" title={entry.projectTitle}>
+                  <TableCell className="text-slate-800 font-semibold truncate max-w-[150px]">{entry.title}</TableCell>
+                  <TableCell className="text-slate-700 font-medium truncate max-w-[150px]" title={entry.projectTitle}>
                     {entry.projectTitle}
                   </TableCell>
-                  <TableCell className="text-slate-450 font-sans">
+                  <TableCell className="text-slate-600 font-medium font-sans">
                     {new Date(entry.createdAt).toLocaleDateString(undefined, {
                       year: "numeric",
                       month: "short",
@@ -309,11 +309,11 @@ const AdminPortfolioPage = () => {
                     })}
                   </TableCell>
                   <TableCell>
-                    <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                    <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
                       entry.status === "published"
                         ? "bg-[#6B8E3E]"
                         : entry.status === "archived"
-                        ? "bg-slate-400"
+                        ? "bg-slate-500"
                         : entry.status === "pending"
                         ? "bg-[#C8601A]"
                         : "bg-[#C0392B]"
@@ -337,7 +337,7 @@ const AdminPortfolioPage = () => {
                             size="sm"
                             disabled={actioningId === entry.id}
                             onClick={() => handleApprove(entry.id)}
-                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Check className="h-3 w-3" /> Approve
                           </Button>
@@ -345,7 +345,7 @@ const AdminPortfolioPage = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleOpenReturnModal(entry)}
-                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="border-[#C0392B] text-[#C0392B] hover:bg-rose-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <RefreshCw className="h-3 w-3" /> Return
                           </Button>
@@ -358,7 +358,7 @@ const AdminPortfolioPage = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleOpenPreview(entry)}
-                            className="h-7 px-2 text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
+                            className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
                           >
                             <Eye className="h-3.5 w-3.5" /> View
                           </Button>
@@ -366,7 +366,7 @@ const AdminPortfolioPage = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleOpenArchiveModal(entry)}
-                            className="border-slate-300 text-slate-500 hover:bg-slate-50 h-7 px-2 text-[10px] flex gap-1 items-center"
+                            className="border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-50 h-7 px-2.5 text-xs font-medium flex gap-1 items-center"
                           >
                             <Archive className="h-3 w-3" /> Archive
                           </Button>
@@ -378,7 +378,7 @@ const AdminPortfolioPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleOpenPreview(entry)}
-                          className="h-7 px-2 text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
+                          className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
                         >
                           <Eye className="h-3.5 w-3.5" /> View
                         </Button>
@@ -397,14 +397,14 @@ const AdminPortfolioPage = () => {
             <div key={entry.id} className="p-4 space-y-3.5 text-xs">
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <h4 className="font-semibold text-slate-800">{entry.submitterName}</h4>
-                  <p className="text-[10px] text-slate-400 font-sans mt-0.5 uppercase tracking-wider">{entry.submitterRole}</p>
+                  <h4 className="font-semibold text-slate-900 text-sm">{entry.submitterName}</h4>
+                  <p className="text-xs font-semibold text-slate-600 font-sans mt-0.5 uppercase tracking-wider">{entry.submitterRole}</p>
                 </div>
-                <Badge className={`text-[8px] uppercase font-bold tracking-wider border-none text-white ${
+                <Badge className={`text-[10px] uppercase font-semibold tracking-wide border-none text-white px-2 py-0.5 rounded-sm ${
                   entry.status === "published"
                     ? "bg-[#6B8E3E]"
                     : entry.status === "archived"
-                    ? "bg-slate-400"
+                    ? "bg-slate-500"
                     : entry.status === "pending"
                     ? "bg-[#C8601A]"
                     : "bg-[#C0392B]"
@@ -413,10 +413,10 @@ const AdminPortfolioPage = () => {
                 </Badge>
               </div>
 
-              <div className="space-y-1.5 text-slate-655">
-                <p className="font-medium text-slate-800">{entry.title}</p>
-                <div className="flex justify-between text-[10px] text-slate-500 font-sans pt-1">
-                  <span>Project: <strong className="text-slate-700">{entry.projectTitle}</strong></span>
+              <div className="space-y-1.5 text-slate-700">
+                <p className="font-semibold text-slate-900 text-sm">{entry.title}</p>
+                <div className="flex justify-between text-xs text-slate-600 font-sans pt-1">
+                  <span>Project: <strong className="text-slate-800 font-semibold">{entry.projectTitle}</strong></span>
                   <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -465,7 +465,7 @@ const AdminPortfolioPage = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleOpenArchiveModal(entry)}
-                      className="border-slate-350 text-slate-500 h-8 text-xs flex-1 justify-center"
+                      className="border-slate-300 text-slate-700 h-8 text-xs flex-1 justify-center"
                     >
                       Archive
                     </Button>
@@ -512,35 +512,35 @@ const AdminPortfolioPage = () => {
       {/* Stats Summary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Pending Review</span>
             <span className="h-2 w-2 rounded-full bg-[#C8601A]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-[#C8601A]">{stats.pending}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Submissions awaiting moderator review</p>
+            <p className="text-xs text-slate-600 mt-1">Submissions awaiting moderator review</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Published</span>
             <span className="h-2 w-2 rounded-full bg-[#6B8E3E]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-[#6B8E3E]">{stats.published}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Entries approved and live on public feeds</p>
+            <p className="text-xs text-slate-600 mt-1">Entries approved and live on public feeds</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 text-slate-700">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Archived</span>
             <span className="h-2 w-2 rounded-full bg-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-slate-600">{stats.archived}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Submissions locked in historical archives</p>
+            <div className="text-2xl font-bold font-mono text-slate-700">{stats.archived}</div>
+            <p className="text-xs text-slate-600 mt-1">Submissions locked in historical archives</p>
           </CardContent>
         </Card>
       </div>
@@ -550,7 +550,7 @@ const AdminPortfolioPage = () => {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Submissions Registry</CardTitle>
-            <CardDescription>Verify media resources and descriptors for user showcases.</CardDescription>
+            <CardDescription className="text-xs text-slate-600">Verify media resources and descriptors for user showcases.</CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -564,13 +564,23 @@ const AdminPortfolioPage = () => {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs defaultValue="pending" className="space-y-6">
-            <div className="px-6 border-b border-slate-200">
-              <TabsList className="bg-slate-100/80 p-0 border-none w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="published">Published</TabsTrigger>
-                <TabsTrigger value="returned">Returned</TabsTrigger>
-                <TabsTrigger value="archived">Archived</TabsTrigger>
+            <div className="px-3 sm:px-6 border-b border-slate-200 overflow-x-auto scrollbar-none">
+              <TabsList className="bg-slate-100/80 p-0 border-none w-max min-w-full sm:w-fit rounded-b-none rounded-t-lg -mb-px flex gap-0.5">
+                <TabsTrigger value="all" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  All ({entries.length})
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Pending ({stats.pending})
+                </TabsTrigger>
+                <TabsTrigger value="published" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Published ({stats.published})
+                </TabsTrigger>
+                <TabsTrigger value="returned" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Returned ({entries.filter((e) => e.status === "draft" && e.adminNotes !== "").length})
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs whitespace-nowrap">
+                  Archived ({stats.archived})
+                </TabsTrigger>
               </TabsList>
             </div>
 

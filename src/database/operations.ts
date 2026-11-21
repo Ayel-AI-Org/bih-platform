@@ -926,7 +926,7 @@ export async function suggestProject(payload: {
 export async function updateSuggestionStatus(suggestionId: string, status: SuggestionStatus, adminNotes?: string) {
   const { data: suggestion, error: suggestionError } = await supabase
     .from("project_suggestions")
-    .select("id, title, description, location, timeline, submitted_by, email")
+    .select("id, title, description, location, timeline, submitted_by, email, category")
     .eq("id", suggestionId)
     .maybeSingle();
 
@@ -965,6 +965,7 @@ export async function updateSuggestionStatus(suggestionId: string, status: Sugge
       title: polished.title,
       description: polished.description,
       location: suggestion.location,
+      category: (suggestion as any).category || null,
       status: "proposed" as ProjectStatus,
       partners: ["Pending BIH Assignment"],
       timeline: suggestion.timeline,
@@ -1509,4 +1510,67 @@ export async function uploadStorageFile(bucket: string, path: string, file: File
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
   return publicUrl;
 }
+
+export type ProjectDeletionEligibility = {
+  canDelete: boolean;
+  reason?: string;
+  linkedHoursCount: number;
+  linkedPortfolioCount: number;
+};
+
+export async function canDeleteProject(projectId: string): Promise<ProjectDeletionEligibility> {
+  const [hoursResult, portfolioResult] = await Promise.all([
+    supabase
+      .from("commitment_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId),
+    supabase
+      .from("portfolio_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId),
+  ]);
+
+  if (hoursResult.error) throw new Error(hoursResult.error.message);
+  if (portfolioResult.error) throw new Error(portfolioResult.error.message);
+
+  const linkedHoursCount = hoursResult.count || 0;
+  const linkedPortfolioCount = portfolioResult.count || 0;
+
+  if (linkedHoursCount > 0 || linkedPortfolioCount > 0) {
+    const reasons: string[] = [];
+    if (linkedHoursCount > 0) {
+      reasons.push(`${linkedHoursCount} volunteer hour log${linkedHoursCount > 1 ? "s" : ""}`);
+    }
+    if (linkedPortfolioCount > 0) {
+      reasons.push(`${linkedPortfolioCount} portfolio item${linkedPortfolioCount > 1 ? "s" : ""}`);
+    }
+    return {
+      canDelete: false,
+      reason: `This project cannot be deleted because it is linked to ${reasons.join(" and ")}. Mark the project as "Completed" instead to preserve historical records.`,
+      linkedHoursCount,
+      linkedPortfolioCount,
+    };
+  }
+
+  return {
+    canDelete: true,
+    linkedHoursCount: 0,
+    linkedPortfolioCount: 0,
+  };
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  const eligibility = await canDeleteProject(projectId);
+  if (!eligibility.canDelete) {
+    throw new Error(eligibility.reason || "Project cannot be deleted because it has linked records.");
+  }
+
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", projectId);
+
+  throwIfError(error);
+}
+
 
