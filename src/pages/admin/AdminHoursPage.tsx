@@ -296,20 +296,20 @@ const AdminHoursPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/70 border-b border-slate-200">
-                <TableHead className="text-xs font-semibold text-slate-700">Volunteer Name</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Project</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Activity Details</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Date Logged</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Hours</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Verified By</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
+              <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Volunteer Name</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Project</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Activity Details</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date Logged</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Hours</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Verified By</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((log) => (
-                <TableRow key={log.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                <TableRow key={log.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                   <TableCell className="font-semibold text-slate-900">{log.volunteerName}</TableCell>
                   <TableCell className="text-slate-800 font-semibold truncate max-w-[140px]" title={log.projectTitle}>
                     {log.projectTitle}

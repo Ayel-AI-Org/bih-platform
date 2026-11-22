@@ -74,39 +74,27 @@ const VolunteerBadgesPage = () => {
       const hoursSum = (logs || []).reduce((sum, l) => sum + Number(l.hours), 0);
       setVerifiedHours(hoursSum);
 
-      // 2. Fetch volunteer profile details
+      // 2. Fetch authoritative volunteer profile details (synced server-side by DB trigger)
       const { data: volProfile } = await supabase
         .from("volunteer_profiles")
         .select("badge_level")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const profileLevel = volProfile?.badge_level || "Newcomer";
-      setDbBadgeLevel(profileLevel);
-
-      // 3. Compute correct level based on hours sum
-      let calculatedLevel = "Newcomer";
-      for (const level of levels) {
-        if (hoursSum >= level.minHours) {
-          calculatedLevel = level.name;
+      // Fallback to server-side sync RPC if present
+      let profileLevel = volProfile?.badge_level;
+      if (!profileLevel) {
+        try {
+          const { data: rpcData } = await supabase.rpc("get_or_sync_volunteer_badge", { p_user_id: user.id });
+          if (rpcData?.badge_level) {
+            profileLevel = rpcData.badge_level;
+          }
+        } catch {
+          // Fallback handled below
         }
       }
 
-      // 4. Sync profile level to database if mismatch occurs
-      if (calculatedLevel !== profileLevel) {
-        const { error: syncErr } = await supabase
-          .from("volunteer_profiles")
-          .update({ badge_level: calculatedLevel })
-          .eq("user_id", user.id);
-
-        if (syncErr) throw syncErr;
-        setDbBadgeLevel(calculatedLevel);
-
-        toast({
-          title: "Badge level updated!",
-          description: `Congratulations! Your new badge status is "${calculatedLevel}".`,
-        });
-      }
+      setDbBadgeLevel(profileLevel || "Newcomer");
     } catch (err: any) {
       toast({
         title: "Badges load failed",

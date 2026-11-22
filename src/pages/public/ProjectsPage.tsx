@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Users, AlertCircle, Search } from "lucide-react";
+import { MapPin, Users, AlertCircle, Search, ArrowRight } from "lucide-react";
 import { supabase } from "@/database/client";
 import type { ProjectStatus } from "@/database/types";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { CardImageRotator } from "@/components/ui/CardImageRotator";
 
 interface CatalogProject {
   id: string;
@@ -20,6 +21,7 @@ interface CatalogProject {
   timeline: string;
   imageUrl: string;
   partners: string[];
+  galleryUrls?: string[];
 }
 
 const statusTone: Record<ProjectStatus, string> = {
@@ -60,6 +62,7 @@ const ProjectsPage = () => {
             timeline: row.timeline || "",
             imageUrl: row.image_url || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700&q=80",
             partners: row.partners || [],
+            galleryUrls: Array.isArray(row.gallery_urls) ? row.gallery_urls : [],
           }))
         );
       } catch (err) {
@@ -100,15 +103,11 @@ const ProjectsPage = () => {
         {items.map((project) => (
           <Card key={project.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
             <div>
-              <img
-                src={project.imageUrl}
+              <CardImageRotator
+                images={[project.imageUrl, ...(project.galleryUrls || [])]}
+                fallbackImage="/placeholder.svg"
                 alt={project.title}
-                className="h-44 w-full object-cover bg-slate-100"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  target.src = "/placeholder.svg";
-                }}
+                className="relative h-44 w-full bg-slate-100 shrink-0"
               />
               <CardHeader className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -127,9 +126,17 @@ const ProjectsPage = () => {
                 <p><span className="font-semibold text-slate-700">Timeline:</span> {project.timeline}</p>
               </CardContent>
             </div>
-            <div className="px-6 pb-6 pt-0">
-              <Button asChild variant="outline" className="w-full text-xs h-9 border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50">
-                <Link to={`/projects/${project.id}`}>View project details</Link>
+            <div className="px-6 pb-6 pt-0 flex justify-start">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto text-xs h-8.5 px-4 font-semibold border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all duration-150 group shadow-2xs"
+              >
+                <Link to={`/projects/${project.id}`} className="inline-flex items-center justify-center gap-1.5">
+                  View Details
+                  <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] transition-transform duration-150 group-hover:translate-x-0.5" />
+                </Link>
               </Button>
             </div>
           </Card>

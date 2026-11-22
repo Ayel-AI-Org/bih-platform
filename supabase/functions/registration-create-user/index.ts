@@ -140,11 +140,23 @@ serve(async (req: Request) => {
       });
     }
 
-    if (payload.password.length < 8) {
-      return new Response(JSON.stringify({ error: "Password must be at least 8 characters." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (
+      payload.password.length < 8 ||
+      !/[A-Z]/.test(payload.password) ||
+      !/[a-z]/.test(payload.password) ||
+      !/[0-9]/.test(payload.password) ||
+      !/[^A-Za-z0-9]/.test(payload.password)
+    ) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {

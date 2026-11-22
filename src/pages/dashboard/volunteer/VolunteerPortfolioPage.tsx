@@ -390,17 +390,17 @@ const VolunteerPortfolioPage = () => {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead>Showcase Title</TableHead>
-                      <TableHead>Linked Project</TableHead>
-                      <TableHead>Date Created</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                    <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Showcase Title</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Linked Project</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date Created</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                      <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {portfolio.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-slate-50/30 text-xs">
+                      <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                         <TableCell className="font-semibold text-slate-800">{item.title}</TableCell>
                         <TableCell className="text-slate-600 truncate max-w-[150px]">{item.projectTitle}</TableCell>
                         <TableCell className="text-slate-500 font-sans">

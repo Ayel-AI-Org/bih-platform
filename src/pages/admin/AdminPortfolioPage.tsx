@@ -276,19 +276,19 @@ const AdminPortfolioPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/70 border-b border-slate-200">
-                <TableHead className="text-xs font-semibold text-slate-700">Submitter Name</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Role</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Entry Title</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Project Linked</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Date Submitted</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
+              <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Submitter Name</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Role</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Entry Title</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Project Linked</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date Submitted</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((entry) => (
-                <TableRow key={entry.id} className="hover:bg-slate-50/60 text-xs transition-colors">
+                <TableRow key={entry.id} className="hover:bg-slate-50/80 text-xs transition-colors duration-150">
                   <TableCell className="font-semibold text-slate-900">{entry.submitterName}</TableCell>
                   <TableCell>
                     <Badge className={`text-[10px] uppercase tracking-wide font-semibold border-none text-white px-2 py-0.5 rounded-sm ${

@@ -712,6 +712,7 @@ export async function updateRegistrationApprovalStatus(payload: {
   role: "volunteer" | "ngo" | "donor";
   userId: string;
   status: ApprovalStatus;
+  adminNotes?: string;
 }) {
   const tableMap = {
     volunteer: "volunteer_profiles",
@@ -720,11 +721,26 @@ export async function updateRegistrationApprovalStatus(payload: {
   } as const;
 
   const table = tableMap[payload.role];
-  const { data, error } = await supabase
+  const updateData: Record<string, any> = { approval_status: payload.status };
+  if (payload.adminNotes !== undefined) {
+    updateData.admin_notes = payload.adminNotes;
+  }
+
+  let { data, error } = await supabase
     .from(table)
-    .update({ approval_status: payload.status })
+    .update(updateData)
     .eq("user_id", payload.userId)
     .select();
+
+  if (error && error.message && error.message.toLowerCase().includes("admin_notes")) {
+    const fallback = await supabase
+      .from(table)
+      .update({ approval_status: payload.status })
+      .eq("user_id", payload.userId)
+      .select();
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   throwIfError(error);
   if (!data || data.length === 0) {
@@ -733,18 +749,20 @@ export async function updateRegistrationApprovalStatus(payload: {
 }
 
 export async function sendRegistrationDecisionEmail(payload: {
+  userId?: string;
   to: string;
   name: string;
-  role: "Volunteer" | "NGO" | "Donor";
+  role: "Volunteer" | "NGO" | "Donor" | string;
   status: ApprovalStatus;
   adminNote?: string;
   requestMoreInfo?: boolean;
 }) {
-  const { error } = await supabase.functions.invoke("registration-decision-email", {
+  const { data, error } = await supabase.functions.invoke("registration-decision-email", {
     body: payload,
   });
 
   throwIfError(error);
+  return data;
 }
 
 export async function login(email: string, password: string): Promise<Session> {
@@ -876,12 +894,15 @@ export async function suggestProject(payload: {
   expectedBudget?: number;
   beneficiaries?: string;
 }) {
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { error } = await supabase.from("project_suggestions").insert({
     title: payload.title,
     description: payload.description,
     location: payload.location,
     timeline: payload.timeline,
     submitted_by: payload.submittedBy,
+    submitter_id: user?.id || null,
     email: payload.email,
     phone: payload.phone,
     organization: payload.organization,
@@ -916,6 +937,7 @@ export async function suggestProject(payload: {
     location: payload.location,
     timeline: payload.timeline,
     submitted_by: payload.submittedBy,
+    submitter_id: user?.id || null,
     email: payload.email,
     status: "pending" as SuggestionStatus,
   });
@@ -1013,11 +1035,12 @@ export async function sendSuggestionDecisionEmail(payload: {
   status: "approved" | "rejected";
   adminNotes?: string;
 }) {
-  const { error } = await supabase.functions.invoke("suggestion-decision-email", {
+  const { data, error } = await supabase.functions.invoke("suggestion-decision-email", {
     body: payload,
   });
 
   throwIfError(error);
+  return data;
 }
 
 export async function polishProjectSuggestion(payload: {

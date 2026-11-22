@@ -12,7 +12,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import ErrorBoundary from "@/components/layout/ErrorBoundary";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { initializePlatformData } from "@/database/operations";
-import { ProtectedRoute, PublicRoute, PendingRoute } from "@/components/layout/AuthGuards";
+import { ProtectedRoute, PublicRoute, PendingRoute, VolunteerProfileCompletionGuard } from "@/components/layout/AuthGuards";
 import { ConsentProvider } from "@/context/ConsentContext";
 import GatedAnalytics from "@/components/analytics/GatedAnalytics";
 import CookieConsentBanner from "@/components/consent/CookieConsentBanner";
@@ -126,7 +126,14 @@ const App = () => {
 
                   {/* Auth OAuth Callback and Profile Completion */}
                   <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                  <Route path="/complete-profile/volunteer" element={<CompleteProfileVolunteerPage />} />
+                  <Route
+                    path="/complete-profile/volunteer"
+                    element={
+                      <VolunteerProfileCompletionGuard>
+                        <CompleteProfileVolunteerPage />
+                      </VolunteerProfileCompletionGuard>
+                    }
+                  />
 
                   <Route path="/suggest-project" element={<SuggestProjectPage />} />
                   <Route path="/donate" element={<DonatePage />} />

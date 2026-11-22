@@ -34,15 +34,19 @@ const Footer = () => {
             <div className="space-y-1.5 md:space-y-2 text-sm text-primary-foreground/70 w-full">
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <Mail className="w-4 h-4 shrink-0 text-accent" />
-                <span>bridgeforimpacthub@gmail.com</span>
+                <a href="mailto:bridgeforimpacthub@gmail.com" className="hover:text-primary-foreground transition-colors">
+                  bridgeforimpacthub@gmail.com
+                </a>
               </div>
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <Phone className="w-4 h-4 shrink-0 text-accent" />
-                <span>+233 (0) 53 880 9478</span>
+                <a href="tel:+233578809478" className="hover:text-primary-foreground transition-colors">
+                  +233 (0) 57 880 9478
+                </a>
               </div>
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <MapPin className="w-4 h-4 shrink-0 text-accent" />
-                <span>University of Ghana, Legon Campus</span>
+                <span>Accra, Ghana</span>
               </div>
             </div>
           </div>

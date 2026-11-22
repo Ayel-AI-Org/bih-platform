@@ -40,6 +40,15 @@ const statusTone: Record<SuggestionItem["status"], string> = {
   rejected: "bg-[#C0392B] text-white hover:bg-[#C0392B]/90",
 };
 
+export const PROJECT_REJECTION_REASONS = [
+  "Incomplete project proposal",
+  "Insufficient supporting information",
+  "Proposal does not align with BIH's mission or current priorities",
+  "Insufficient feasibility information",
+  "Proposal requires further development",
+  "Other",
+] as const;
+
 const AdminSuggestionsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -61,7 +70,8 @@ const AdminSuggestionsPage = () => {
   const [approvedItemToConvert, setApprovedItemToConvert] = useState<SuggestionItem | null>(null);
 
   const [rejectItem, setRejectItem] = useState<SuggestionItem | null>(null);
-  const [rejectNotes, setRejectNotes] = useState("");
+  const [rejectReasonSelect, setRejectReasonSelect] = useState<string>("");
+  const [rejectCustomReason, setRejectCustomReason] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejecting, setRejecting] = useState(false);
 
@@ -226,12 +236,27 @@ const AdminSuggestionsPage = () => {
 
   const handleOpenReject = (item: SuggestionItem) => {
     setRejectItem(item);
-    setRejectNotes("");
+    setRejectReasonSelect("");
+    setRejectCustomReason("");
     setRejectOpen(true);
   };
 
   const handleRejectConfirm = async () => {
     if (!rejectItem) return;
+    const finalReason =
+      rejectReasonSelect === "Other"
+        ? rejectCustomReason.trim()
+        : rejectReasonSelect;
+
+    if (!finalReason) {
+      toast({
+        title: "Validation error",
+        description: "Please select or provide a rejection reason.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setRejecting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -241,7 +266,7 @@ const AdminSuggestionsPage = () => {
         .from("project_suggestions")
         .update({
           status: "rejected",
-          admin_notes: rejectNotes,
+          admin_notes: finalReason,
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
         })
@@ -253,21 +278,30 @@ const AdminSuggestionsPage = () => {
         throw new Error("Permission denied: check your admin role");
       }
 
-      toast({
-        title: "Suggestion rejected",
-        description: "Reason successfully saved to admin notes.",
-      });
-
+      let emailResult: any = null;
       try {
-        await sendSuggestionDecisionEmail({
+        emailResult = await sendSuggestionDecisionEmail({
           to: rejectItem.email,
           submittedBy: rejectItem.submittedBy,
           title: rejectItem.title,
           status: "rejected",
-          adminNotes: rejectNotes || undefined,
+          adminNotes: finalReason,
         });
       } catch (emailErr: any) {
         console.error("Failed to send rejection email:", emailErr);
+        emailResult = { emailSent: false, emailError: emailErr.message };
+      }
+
+      if (emailResult?.emailSent) {
+        toast({
+          title: "Suggestion rejected",
+          description: `Proposal rejected and decision email sent to ${rejectItem.email}.`,
+        });
+      } else {
+        toast({
+          title: "Suggestion rejected",
+          description: `Reason saved to admin notes.${emailResult?.emailError ? ` Note: ${emailResult.emailError}` : ""}`,
+        });
       }
 
       setRejectOpen(false);
@@ -329,20 +363,20 @@ const AdminSuggestionsPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/70 border-b border-slate-200">
-                <TableHead className="text-xs font-semibold text-slate-700">Title</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Submitted By</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Email</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Category</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Expected Budget</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Date Submitted</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-slate-700">Actions</TableHead>
+              <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Title</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Submitted By</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Email</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Category</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Expected Budget</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date Submitted</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {finalFiltered.map((sug) => (
-                <TableRow key={sug.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                <TableRow key={sug.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                   <TableCell className="font-semibold text-slate-900 truncate max-w-[150px]" title={sug.title}>
                     {sug.title}
                   </TableCell>
@@ -365,14 +399,15 @@ const AdminSuggestionsPage = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-1.5">
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => handleOpenDetail(sug)}
-                        className="h-7 px-2.5 text-xs font-medium text-[#1E3A5F] hover:bg-slate-100 flex gap-1 items-center"
+                        aria-label={`View suggestion details for ${sug.title}`}
+                        className="h-7 px-2.5 text-xs font-semibold bg-[#1E3A5F]/10 border-[#1E3A5F]/20 text-[#1E3A5F] hover:bg-[#1E3A5F]/20 hover:border-[#1E3A5F]/40 hover:text-[#1E3A5F] focus-visible:ring-2 focus-visible:ring-[#1E3A5F] focus-visible:ring-offset-1 transition-all duration-150 shadow-2xs flex gap-1.5 items-center cursor-pointer"
                       >
-                        <Eye className="h-3.5 w-3.5" /> View
+                        <Eye className="h-3.5 w-3.5 text-[#1E3A5F]" /> View
                       </Button>
 
                       {sug.status === "pending" && (
@@ -461,9 +496,10 @@ const AdminSuggestionsPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => handleOpenDetail(sug)}
-                  className="h-8 text-xs text-[#1E3A5F] border-slate-200 flex-1 justify-center"
+                  aria-label={`View suggestion details for ${sug.title}`}
+                  className="h-8 text-xs font-semibold bg-[#1E3A5F]/10 border-[#1E3A5F]/20 text-[#1E3A5F] hover:bg-[#1E3A5F]/20 hover:border-[#1E3A5F]/40 flex-1 justify-center transition-all duration-150 gap-1"
                 >
-                  View Detail
+                  <Eye className="h-3.5 w-3.5 text-[#1E3A5F]" /> View Detail
                 </Button>
                 {sug.status === "pending" && (
                   <>
@@ -867,22 +903,57 @@ const AdminSuggestionsPage = () => {
 
       {/* Reject Dialogue Notes */}
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Reject Suggestion</DialogTitle>
-            <DialogDescription>
-              A rejection reason is required and will be saved in the suggestion log record.
+            <DialogDescription className="text-xs">
+              Select a standardized rejection reason or specify a custom reason. This will be stored in the suggestion record and communicated in the notification email.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 pt-2">
-            <Label htmlFor="rejectNotes">Rejection Reason</Label>
-            <Textarea
-              id="rejectNotes"
-              rows={3}
-              placeholder="e.g. Budget excessive, out of geographic focus area scope..."
-              value={rejectNotes}
-              onChange={(e) => setRejectNotes(e.target.value)}
-            />
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label htmlFor="projectRejectReasonSelect" className="text-xs font-semibold text-slate-700">
+                Rejection Reason (Required)
+              </Label>
+              <select
+                id="projectRejectReasonSelect"
+                value={rejectReasonSelect}
+                onChange={(e) => setRejectReasonSelect(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] mt-1"
+              >
+                <option value="">-- Select a standardized reason --</option>
+                {PROJECT_REJECTION_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {rejectReasonSelect === "Other" && (
+              <div className="space-y-1">
+                <Label htmlFor="projectRejectCustomReason" className="text-xs font-semibold text-slate-700">
+                  Custom Reason (Required)
+                </Label>
+                <Textarea
+                  id="projectRejectCustomReason"
+                  rows={3}
+                  placeholder="e.g. Budget exceeds funding scope, duplicates active initiative..."
+                  value={rejectCustomReason}
+                  onChange={(e) => setRejectCustomReason(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            )}
+
+            {rejectReasonSelect && (
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-md text-xs">
+                <span className="text-slate-500 font-medium block">Reason to be recorded & emailed:</span>
+                <p className="text-slate-800 font-semibold mt-0.5">
+                  {rejectReasonSelect === "Other" ? (rejectCustomReason.trim() || "<Awaiting custom reason>") : rejectReasonSelect}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button variant="ghost" onClick={() => setRejectOpen(false)} className="text-xs h-9">
@@ -890,7 +961,11 @@ const AdminSuggestionsPage = () => {
             </Button>
             <Button
               onClick={handleRejectConfirm}
-              disabled={rejecting || !rejectNotes.trim()}
+              disabled={
+                rejecting ||
+                !rejectReasonSelect ||
+                (rejectReasonSelect === "Other" && !rejectCustomReason.trim())
+              }
               className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5"
             >
               {rejecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

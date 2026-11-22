@@ -53,6 +53,7 @@ create table public.volunteer_profiles (
   badge_level text default 'newcomer',
   approval_status approval_status default 'pending',
   linkedin_url text,
+  admin_notes text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -65,6 +66,7 @@ create table public.ngo_profiles (
   registration_number text,
   website_url text,
   approval_status approval_status default 'pending',
+  admin_notes text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -75,6 +77,7 @@ create table public.donor_profiles (
   interests text[] default '{}',
   total_donated numeric default 0,
   approval_status approval_status default 'pending',
+  admin_notes text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -207,7 +210,7 @@ as $$
   select exists (
     select 1 from public.profiles
     where id = auth.uid()
-    and role = 'admin'
+    and (role = 'admin' or role::text = 'super_admin')
   );
 $$;
 

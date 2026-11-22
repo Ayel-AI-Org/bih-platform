@@ -408,13 +408,13 @@ const AdminMediaPage = () => {
               <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/70 border-b border-slate-200">
-                      <TableHead className="w-[42%] min-w-[260px] text-xs font-semibold text-slate-700 py-3 pl-4">Title</TableHead>
-                      <TableHead className="w-[12%] min-w-[110px] text-xs font-semibold text-slate-700 py-3">Type</TableHead>
-                      <TableHead className="w-[18%] min-w-[140px] text-xs font-semibold text-slate-700 py-3">Category & Timing</TableHead>
-                      <TableHead className="w-[12%] min-w-[100px] text-xs font-semibold text-slate-700 py-3">Author</TableHead>
-                      <TableHead className="w-[10%] min-w-[95px] text-xs font-semibold text-slate-700 py-3">Visibility</TableHead>
-                      <TableHead className="w-[6%] min-w-[140px] text-right text-xs font-semibold text-slate-700 py-3 pr-4">Actions</TableHead>
+                    <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                      <TableHead className="w-[42%] min-w-[260px] text-xs font-semibold text-[#1E3A5F] py-3 pl-4">Title</TableHead>
+                      <TableHead className="w-[12%] min-w-[110px] text-xs font-semibold text-[#1E3A5F] py-3">Type</TableHead>
+                      <TableHead className="w-[18%] min-w-[140px] text-xs font-semibold text-[#1E3A5F] py-3">Category & Timing</TableHead>
+                      <TableHead className="w-[12%] min-w-[100px] text-xs font-semibold text-[#1E3A5F] py-3">Author</TableHead>
+                      <TableHead className="w-[10%] min-w-[95px] text-xs font-semibold text-[#1E3A5F] py-3">Visibility</TableHead>
+                      <TableHead className="w-[6%] min-w-[140px] text-right text-xs font-semibold text-[#1E3A5F] py-3 pr-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

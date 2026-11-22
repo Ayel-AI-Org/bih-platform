@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/database/client";
-import { sendRegistrationDecisionEmail } from "@/database/operations";
+import { sendRegistrationDecisionEmail, updateRegistrationApprovalStatus } from "@/database/operations";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -80,6 +80,15 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+export const VOLUNTEER_REJECTION_REASONS = [
+  "Incomplete application",
+  "Information could not be verified",
+  "Eligibility requirements not met",
+  "Application does not currently align with organizational needs",
+  "Duplicate application",
+  "Other",
+] as const;
+
 const AdminUsersPage = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<AdminUserItem[]>([]);
@@ -97,12 +106,14 @@ const AdminUsersPage = () => {
   // Rejection Modal state
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectingUser, setRejectingUser] = useState<{ id: string; role: "volunteer" | "ngo" | "donor" } | null>(null);
-  const [rejectFeedback, setRejectFeedback] = useState("");
+  const [rejectReasonSelect, setRejectReasonSelect] = useState<string>("");
+  const [rejectCustomReason, setRejectCustomReason] = useState("");
   const [processing, setProcessing] = useState(false);
 
   // Delete User Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<{ id: string; role: "volunteer" | "ngo" | "donor"; name: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   // Role Management state
   const [manageRoleOpen, setManageRoleOpen] = useState(false);
@@ -270,52 +281,66 @@ const AdminUsersPage = () => {
 
   const handleOpenReject = (userId: string, role: string) => {
     setRejectingUser({ id: userId, role: role as any });
-    setRejectFeedback("");
+    setRejectReasonSelect("");
+    setRejectCustomReason("");
     setRejectModalOpen(true);
   };
 
   const handleRejectConfirm = async () => {
     if (!rejectingUser) return;
+    const finalReason =
+      rejectReasonSelect === "Other"
+        ? rejectCustomReason.trim()
+        : rejectReasonSelect;
+
+    if (!finalReason) {
+      toast({
+        title: "Validation error",
+        description: "Please select or provide a rejection reason.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
-      const roleTableMap: Record<string, string> = {
-        volunteer: "volunteer_profiles",
-        ngo: "ngo_profiles",
-        donor: "donor_profiles",
-      };
-
-      const tableName = roleTableMap[rejectingUser.role] || "volunteer_profiles";
-      const { data, error } = await supabase
-        .from(tableName)
-        .update({ approval_status: "rejected" })
-        .eq("user_id", rejectingUser.id)
-        .select();
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        throw new Error("Permission denied: check your admin role");
-      }
+      await updateRegistrationApprovalStatus({
+        role: rejectingUser.role,
+        userId: rejectingUser.id,
+        status: "rejected",
+        adminNotes: finalReason,
+      });
 
       const userItem = users.find((u) => u.id === rejectingUser.id);
+      let emailResult: any = null;
       if (userItem && userItem.email) {
         try {
           const capitalizedRole = rejectingUser.role === "volunteer" ? "Volunteer" : rejectingUser.role === "ngo" ? "NGO Partner" : "Donor";
-          await sendRegistrationDecisionEmail({
+          emailResult = await sendRegistrationDecisionEmail({
+            userId: rejectingUser.id,
             to: userItem.email,
             name: userItem.fullName,
             role: capitalizedRole,
             status: "rejected",
-            adminNote: rejectFeedback || undefined,
+            adminNote: finalReason,
           });
         } catch (emailErr: any) {
           console.error("Failed to send rejection email:", emailErr);
+          emailResult = { emailSent: false, emailError: emailErr.message };
         }
       }
 
-      toast({
-        title: "Registration Rejected",
-        description: `Status updated for ${userItem?.fullName || "account"}.`,
-      });
+      if (emailResult?.emailSent) {
+        toast({
+          title: "Registration Rejected",
+          description: `Application rejected and notification email sent to ${userItem?.email || "applicant"}.`,
+        });
+      } else {
+        toast({
+          title: "Registration Rejected",
+          description: `Status updated to rejected.${emailResult?.emailError ? ` Note: ${emailResult.emailError}` : ""}`,
+        });
+      }
 
       setUsers((prev) =>
         prev.map((u) => (u.id === rejectingUser.id ? { ...u, approvalStatus: "rejected" } : u))
@@ -337,23 +362,44 @@ const AdminUsersPage = () => {
 
   const handleOpenDelete = (user: AdminUserItem) => {
     setDeletingUser({ id: user.id, role: user.role as any, name: user.fullName });
+    setDeleteReason("");
     setDeleteModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
     if (!deletingUser) return;
+    const trimmedReason = deleteReason.trim();
+    if (!trimmedReason) {
+      toast({
+        title: "Validation error",
+        description: "Please enter a reason for deleting this user account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
-      const { error } = await supabase.functions.invoke("account-deletion-email", {
-        body: { userId: deletingUser.id },
+      const { data, error } = await supabase.functions.invoke("account-deletion-email", {
+        body: {
+          userId: deletingUser.id,
+          reason: trimmedReason,
+        },
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Account Removed",
-        description: `Account record for ${deletingUser.name} has been permanently deleted.`,
-      });
+      if (data?.emailSent) {
+        toast({
+          title: "Account Removed",
+          description: `Account for ${deletingUser.name} deleted and notification email delivered.`,
+        });
+      } else {
+        toast({
+          title: "Account Removed",
+          description: `Account for ${deletingUser.name} has been permanently deleted.${data?.emailError ? ` (${data.emailError})` : ""}`,
+        });
+      }
 
       setUsers((prev) => prev.filter((u) => u.id !== deletingUser.id));
       if (detailsUser?.id === deletingUser.id) {
@@ -692,12 +738,12 @@ const AdminUsersPage = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/70 border-b border-slate-200/80 text-xs uppercase font-semibold text-slate-700 tracking-wider">
-                    <TableHead className="py-3 px-4 w-[40%] text-slate-700 font-semibold text-xs">Community Member</TableHead>
-                    <TableHead className="py-3 px-3 w-[18%] text-slate-700 font-semibold text-xs">Role / Clearance</TableHead>
-                    <TableHead className="py-3 px-3 w-[18%] text-slate-700 font-semibold text-xs">Status</TableHead>
-                    <TableHead className="py-3 px-3 w-[14%] text-slate-700 font-semibold text-xs">Registered</TableHead>
-                    <TableHead className="py-3 px-4 text-right w-[10%] text-slate-700 font-semibold text-xs">Actions</TableHead>
+                  <TableRow className="bg-[#F1F5F9] border-b border-slate-200 text-xs uppercase font-semibold text-[#1E3A5F] tracking-wider">
+                    <TableHead className="py-3 px-4 w-[40%] text-[#1E3A5F] font-semibold text-xs">Community Member</TableHead>
+                    <TableHead className="py-3 px-3 w-[18%] text-[#1E3A5F] font-semibold text-xs">Role / Clearance</TableHead>
+                    <TableHead className="py-3 px-3 w-[18%] text-[#1E3A5F] font-semibold text-xs">Status</TableHead>
+                    <TableHead className="py-3 px-3 w-[14%] text-[#1E3A5F] font-semibold text-xs">Registered</TableHead>
+                    <TableHead className="py-3 px-4 text-right w-[10%] text-[#1E3A5F] font-semibold text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-slate-100">
@@ -706,7 +752,7 @@ const AdminUsersPage = () => {
                     const isPending = user.approvalStatus === "pending";
 
                     return (
-                      <TableRow key={user.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                      <TableRow key={user.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                         {/* Combined Identity Cell */}
                         <TableCell className="py-3 px-4">
                           <div className="flex items-center gap-3 min-w-0">
@@ -1290,21 +1336,53 @@ const AdminUsersPage = () => {
           <DialogHeader>
             <DialogTitle className="font-serif text-[#1E3A5F] text-lg font-bold">Reject Application</DialogTitle>
             <DialogDescription className="text-xs">
-              Are you sure you want to reject this registration request? You may provide constructive feedback notes for the applicant.
+              Select a standardized reason or provide custom feedback. This reason will be recorded and included in the notification email to the applicant.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <Label htmlFor="rejectReason" className="text-xs font-semibold text-slate-700">
-              Rejection Feedback Notes (Optional)
-            </Label>
-            <Textarea
-              id="rejectReason"
-              placeholder="e.g. Incomplete details, invalid contact channels, mismatch in focus area..."
-              value={rejectFeedback}
-              onChange={(e) => setRejectFeedback(e.target.value)}
-              className="text-xs"
-              rows={3}
-            />
+            <div>
+              <Label htmlFor="rejectReasonSelect" className="text-xs font-semibold text-slate-700">
+                Rejection Reason (Required)
+              </Label>
+              <select
+                id="rejectReasonSelect"
+                value={rejectReasonSelect}
+                onChange={(e) => setRejectReasonSelect(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] mt-1"
+              >
+                <option value="">-- Select a standardized reason --</option>
+                {VOLUNTEER_REJECTION_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {rejectReasonSelect === "Other" && (
+              <div className="space-y-1">
+                <Label htmlFor="rejectCustomReason" className="text-xs font-semibold text-slate-700">
+                  Custom Reason (Required)
+                </Label>
+                <Textarea
+                  id="rejectCustomReason"
+                  placeholder="Provide detailed explanation for rejection..."
+                  value={rejectCustomReason}
+                  onChange={(e) => setRejectCustomReason(e.target.value)}
+                  className="text-xs"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {rejectReasonSelect && (
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-md text-xs">
+                <span className="text-slate-500 font-medium block">Reason to be recorded & emailed:</span>
+                <p className="text-slate-800 font-semibold mt-0.5">
+                  {rejectReasonSelect === "Other" ? (rejectCustomReason.trim() || "<Awaiting custom reason>") : rejectReasonSelect}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button
@@ -1316,7 +1394,11 @@ const AdminUsersPage = () => {
             </Button>
             <Button
               onClick={handleRejectConfirm}
-              disabled={processing}
+              disabled={
+                processing ||
+                !rejectReasonSelect ||
+                (rejectReasonSelect === "Other" && !rejectCustomReason.trim())
+              }
               className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5"
             >
               {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -1405,6 +1487,19 @@ const AdminUsersPage = () => {
               <strong className="text-slate-900">{deletingUser?.name}</strong>? All associated profiles, logs, and files will be permanently purged. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="deleteReason" className="text-xs font-semibold text-slate-700">
+              Deletion Reason (Required for user notification email)
+            </Label>
+            <Textarea
+              id="deleteReason"
+              placeholder="e.g. Inactive duplicate profile, violation of platform terms, requested by user..."
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              className="text-xs"
+              rows={3}
+            />
+          </div>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button
               variant="ghost"
@@ -1415,7 +1510,7 @@ const AdminUsersPage = () => {
             </Button>
             <Button
               onClick={handleDeleteConfirm}
-              disabled={processing}
+              disabled={processing || !deleteReason.trim()}
               className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 flex gap-1.5 font-medium"
             >
               {processing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

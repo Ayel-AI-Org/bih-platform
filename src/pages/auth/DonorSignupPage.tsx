@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import PasswordRequirementsHelper from "@/components/auth/PasswordRequirementsHelper";
 
 const INTEREST_AREAS = [
   "Education",
@@ -28,7 +29,13 @@ const donorSchema = z
       .min(1, "Full name is required")
       .regex(/^[A-Za-z\s-]+$/, "Name must contain only letters, spaces, and hyphens"),
     email: z.string().min(1, "Email is required").email("Invalid email format"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     phone: z
       .string()
@@ -266,6 +273,8 @@ const DonorSignupPage = () => {
                 )}
             </div>
             </div>
+
+            <PasswordRequirementsHelper password={watch("password")} className="mt-1" />
 
             <div className="space-y-2">
               <Label htmlFor="donorType">Donor Type</Label>

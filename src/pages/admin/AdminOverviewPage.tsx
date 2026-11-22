@@ -410,7 +410,7 @@ const AdminOverviewPage = () => {
           variant="outline"
           onClick={handleSendQuarterlySummaries}
           disabled={sendingSummaries}
-          className="border-slate-300 text-slate-700 hover:text-[#1E3A5F] hover:bg-slate-50 font-medium text-xs h-9 shadow-2xs gap-2 self-start sm:self-auto shrink-0"
+          className="border-slate-300 text-slate-700 hover:text-[#1E3A5F] hover:bg-slate-100 hover:border-slate-400 font-medium text-xs h-9 shadow-2xs gap-2 self-start sm:self-auto shrink-0 transition-colors"
           title="Compile and dispatch impact summaries to registered donors"
         >
           {sendingSummaries ? (
@@ -507,7 +507,7 @@ const AdminOverviewPage = () => {
                       Applicants awaiting review
                     </p>
                   </div>
-                  <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-[#1E3A5F] hover:bg-white p-0 justify-start font-semibold">
+                  <Button asChild size="sm" className="h-7 text-xs text-[#1E3A5F] bg-white border-slate-200/90 hover:bg-slate-100 hover:text-[#1E3A5F] hover:border-slate-300 px-2 justify-start font-semibold transition-colors">
                     <Link to="/admin/users">
                       Open Queue <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Link>
@@ -533,7 +533,7 @@ const AdminOverviewPage = () => {
                       Showcases pending check
                     </p>
                   </div>
-                  <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-[#1E3A5F] hover:bg-white p-0 justify-start font-semibold">
+                  <Button asChild size="sm" className="h-7 text-xs text-[#1E3A5F] bg-white border-slate-200/90 hover:bg-slate-100 hover:text-[#1E3A5F] hover:border-slate-300 px-2 justify-start font-semibold transition-colors">
                     <Link to="/admin/portfolio">
                       Open Queue <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Link>
@@ -559,7 +559,7 @@ const AdminOverviewPage = () => {
                       Project concepts submitted
                     </p>
                   </div>
-                  <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-[#1E3A5F] hover:bg-white p-0 justify-start font-semibold">
+                  <Button asChild size="sm" className="h-7 text-xs text-[#1E3A5F] bg-white border-slate-200/90 hover:bg-slate-100 hover:text-[#1E3A5F] hover:border-slate-300 px-2 justify-start font-semibold transition-colors">
                     <Link to="/admin/suggestions">
                       Open Queue <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Link>
@@ -608,7 +608,7 @@ const AdminOverviewPage = () => {
                             size="sm"
                             onClick={() => handleApproveInline(item.id, item.role)}
                             disabled={approvingId === item.id}
-                            className="bg-[#6B8E3E] hover:bg-[#6B8E3E]/90 text-white gap-1 h-7 text-xs px-2.5 shrink-0 font-medium"
+                            className="bg-[#6B8E3E] hover:bg-[#567431] active:bg-[#455d27] text-white gap-1 h-7 text-xs px-2.5 shrink-0 font-medium transition-colors"
                           >
                             {approvingId === item.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -635,7 +635,7 @@ const AdminOverviewPage = () => {
                   Status distribution across registered initiatives ({stats.totalProjects} total)
                 </CardDescription>
               </div>
-              <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-[#1E3A5F] hover:text-[#D4A017] px-2 gap-1 font-medium">
+              <Button asChild variant="outline" size="sm" className="h-7 text-xs text-[#1E3A5F] bg-white border-slate-200/80 hover:bg-slate-100 hover:text-[#1E3A5F] hover:border-slate-300 px-2.5 gap-1 font-medium transition-colors">
                 <Link to="/admin/projects">
                   Manage Projects <ChevronRight className="h-3 w-3" />
                 </Link>
