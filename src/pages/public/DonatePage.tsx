@@ -98,15 +98,6 @@ const DonatePage = () => {
       return;
     }
 
-    if (form.paymentMethod === "card") {
-      toast({
-        title: "Coming soon",
-        description: "Card payments will be available soon. Please use Mobile Money for now.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!paystackPublicKey) {
       toast({
         title: "Paystack not configured",
@@ -206,42 +197,22 @@ const DonatePage = () => {
 
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input id="amount" required disabled={submitting} type="number" min={1} value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
+                  <Label htmlFor="amount">Amount (GHS)</Label>
+                  <Input id="amount" required disabled={submitting} type="number" min={1} placeholder="50" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Select
-                    disabled={true}
-                    value={form.currency}
-                    onValueChange={(val) => setForm((prev) => ({ ...prev, currency: val }))}
-                  >
-                    <SelectTrigger id="currency">
-                      <SelectValue placeholder="GHS" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="GHS">GHS (Ghana Cedi)</SelectItem>
-                      <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                      <SelectItem value="GBP">GBP (British Pound)</SelectItem>
-                      <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="h-10 px-3 py-2 rounded-md border border-slate-200 bg-slate-100/70 text-slate-700 text-sm font-medium flex items-center justify-between">
+                    <span>GHS (Ghana Cedi)</span>
+                    <span className="text-[11px] text-muted-foreground uppercase font-semibold">Active</span>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select
-                    disabled={submitting}
-                    value={form.paymentMethod}
-                    onValueChange={(value: "mobile_money" | "card") => setForm((prev) => ({ ...prev, paymentMethod: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                      <SelectItem value="card">Card (Coming soon)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Payment Channel</Label>
+                  <div className="h-10 px-3 py-2 rounded-md border border-slate-200 bg-slate-100/70 text-slate-700 text-sm font-medium flex items-center justify-between">
+                    <span>Mobile Money</span>
+                    <span className="text-[11px] text-muted-foreground">MTN / Telecel / AT</span>
+                  </div>
                 </div>
               </div>
 

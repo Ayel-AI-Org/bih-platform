@@ -39,12 +39,47 @@ const CompleteProfileVolunteerPage = () => {
 
         setUser(user);
 
-        // Fetch current values (if any exist)
+        // Fetch role from profiles
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profile?.role !== "volunteer") {
+          toast({
+            title: "Access Restricted",
+            description: "Only volunteers may access the volunteer profile completion page.",
+            variant: "destructive",
+          });
+          navigate(
+            profile?.role === "admin" || profile?.role === "super_admin"
+              ? "/admin"
+              : profile?.role === "ngo"
+              ? "/dashboard/ngo"
+              : profile?.role === "donor"
+              ? "/dashboard/donor"
+              : "/",
+            { replace: true }
+          );
+          return;
+        }
+
+        // Fetch current values (if any exist) and approval status
         const { data: volProfile } = await supabase
           .from("volunteer_profiles")
-          .select("phone, location, skills, availability")
+          .select("phone, location, skills, availability, approval_status")
           .eq("user_id", user.id)
           .maybeSingle();
+
+        if (volProfile?.approval_status === "approved") {
+          toast({
+            title: "Profile Already Active",
+            description: "Your volunteer profile is already verified and active.",
+          });
+          navigate("/dashboard/volunteer", { replace: true });
+          return;
+        }
 
         if (volProfile) {
           if (volProfile.phone && volProfile.phone !== "pending") setPhone(volProfile.phone);
@@ -94,6 +129,14 @@ const CompleteProfileVolunteerPage = () => {
 
     setSubmitting(true);
     try {
+      const { data: currentVol } = await supabase
+        .from("volunteer_profiles")
+        .select("approval_status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const targetStatus = currentVol?.approval_status === "approved" ? "approved" : "pending";
+
       const { error } = await supabase
         .from("volunteer_profiles")
         .update({
@@ -101,7 +144,7 @@ const CompleteProfileVolunteerPage = () => {
           location: location.trim(),
           skills: skills,
           availability: availability.trim(),
-          approval_status: "pending",
+          approval_status: targetStatus,
         })
         .eq("user_id", user.id);
 
@@ -109,10 +152,12 @@ const CompleteProfileVolunteerPage = () => {
 
       toast({
         title: "Profile completed successfully!",
-        description: "Your registration is now submitted for administrator approval.",
+        description: targetStatus === "approved" 
+          ? "Your profile has been updated." 
+          : "Your registration is now submitted for administrator approval.",
       });
 
-      navigate("/pending", { replace: true });
+      navigate(targetStatus === "approved" ? "/dashboard/volunteer" : "/pending", { replace: true });
     } catch (err: any) {
       toast({
         title: "Submission failed",

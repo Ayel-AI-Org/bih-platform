@@ -4,6 +4,7 @@ import { getAiChatReply } from "@/database/operations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import FormattedAiMessage from "@/components/layout/FormattedAiMessage";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -14,22 +15,26 @@ const getLocalFallbackReply = (input: string) => {
   const text = input.toLowerCase();
 
   if (text.includes("refine") || text.includes("project idea") || text.includes("suggest")) {
-    return "Great idea. Start with: 1) problem statement, 2) target beneficiaries, 3) location, 4) timeline, 5) expected budget, 6) measurable outcomes. I can help you draft each section now.";
+    return "To propose a community initiative:\n1. Visit the Suggest Project page (/suggest-project)\n2. Provide your project concept, target location, timeline, and estimated budget\n3. Submit for review by our project committee";
   }
 
   if (text.includes("donat") || text.includes("paystack") || text.includes("momo")) {
-    return "To donate, open Donate, choose Mobile Money, enter amount, and complete Paystack checkout. If you came from a project page, the purpose is auto-linked to that project.";
+    return "To donate to community initiatives:\n1. Visit the Donate page (/donate)\n2. Select your donation amount and payment method (Mobile Money or Card via Paystack)\n3. Complete your transaction securely";
   }
 
   if (text.includes("register") || text.includes("volunteer") || text.includes("ngo") || text.includes("donor")) {
-    return "Use /register and choose your path: Volunteer, NGO, or Donor. After submitting, login from /login. Admin accounts are redirected to /admin.";
+    return "To join our community:\n1. Go to Register (/register)\n2. Choose your role: Volunteer, NGO Partner, or Donor\n3. Complete the registration form and submit";
   }
 
-  if (text.includes("admin") || text.includes("approve") || text.includes("review")) {
-    return "Admin reviews project suggestions in /admin. Approve creates a proposed project; reject updates status. Decision email can be sent when the email edge function is configured.";
+  if (text.includes("phone") || text.includes("contact") || text.includes("call") || text.includes("location") || text.includes("address")) {
+    return "Bridge for Impact Hub is located in Accra, Ghana. You can reach our team at bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
   }
 
-  return "I can help with project suggestions, donations, registration, and admin review. Tell me which one you want to do now.";
+  if (text.includes("admin") || text.includes("internal") || text.includes("staff")) {
+    return "Administrative portals are restricted to authorized personnel. For organizational inquiries, please contact bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
+  }
+
+  return "I can help with questions about volunteering, project proposals, and donations. For further assistance, contact us at bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
 };
 
 const AiChatbot = () => {
@@ -39,7 +44,7 @@ const AiChatbot = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Hi, I am BIH Assistant. Ask me about project suggestions, donations, registration, or admin review.",
+      content: "Hello! I am the BIH Assistant. How can I assist you with volunteering, project proposals, or donations in Accra, Ghana?",
     },
   ]);
 
@@ -109,7 +114,11 @@ const AiChatbot = () => {
                         : "inline-block max-w-[85%] rounded-lg bg-muted px-3 py-2 text-sm text-foreground"
                     }
                   >
-                    {message.content}
+                    {message.role === "assistant" ? (
+                      <FormattedAiMessage content={message.content} />
+                    ) : (
+                      <span className="whitespace-pre-wrap">{message.content}</span>
+                    )}
                   </div>
                 </div>
               ))}

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import PasswordRequirementsHelper from "@/components/auth/PasswordRequirementsHelper";
 
 const ngoSchema = z
   .object({
@@ -20,7 +21,13 @@ const ngoSchema = z
       .min(1, "Contact person name is required")
       .regex(/^[A-Za-z\s-]+$/, "Contact person must contain only letters, spaces, and hyphens"),
     email: z.string().min(1, "Email is required").email("Invalid email format"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     phone: z
       .string()
@@ -47,6 +54,7 @@ const NgoSignupPage = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<NgoFormValues>({
     resolver: zodResolver(ngoSchema),
@@ -277,6 +285,8 @@ const NgoSignupPage = () => {
                 )}
               </div>
             </div>
+
+            <PasswordRequirementsHelper password={watch("password")} className="mt-1" />
 
             <div className="space-y-2">
               <Label htmlFor="focusArea">Focus Area & Core mission description</Label>

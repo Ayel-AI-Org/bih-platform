@@ -231,3 +231,81 @@ export const PendingRoute = ({ children }: PendingRouteProps) => {
   // If pending or rejected -> show holding page
   return <>{children}</>;
 };
+
+// 4. Volunteer Profile Completion Guard (For /complete-profile/volunteer)
+interface VolunteerProfileCompletionGuardProps {
+  children: React.ReactNode;
+  authStatusResolver?: () => Promise<Omit<UserAuthStatus, "loading">>;
+}
+
+export const VolunteerProfileCompletionGuard = ({
+  children,
+  authStatusResolver = fetchUserAuthStatus,
+}: VolunteerProfileCompletionGuardProps) => {
+  const location = useLocation();
+  const [status, setStatus] = useState<UserAuthStatus>({
+    loading: true,
+    user: null,
+    role: null,
+    approvalStatus: null,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    authStatusResolver().then((res) => {
+      if (isMounted) {
+        setStatus({ loading: false, ...res });
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname, authStatusResolver]);
+
+  if (status.loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#D4A017] border-t-transparent"></div>
+          <p className="text-muted-foreground text-sm font-medium animate-pulse">
+            Verifying profile permissions...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. Unauthenticated users cannot access profile completion -> redirect to /login
+  if (!status.user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  // 2. Non-volunteer accounts cannot complete volunteer profiles -> redirect to their portals
+  if (status.role === "admin" || status.role === "super_admin") {
+    return <Navigate to="/admin" replace />;
+  }
+  if (status.role === "ngo") {
+    return <Navigate to="/dashboard/ngo" replace />;
+  }
+  if (status.role === "donor") {
+    return <Navigate to="/dashboard/donor" replace />;
+  }
+
+  // 3. User must have role 'volunteer'
+  if (status.role !== "volunteer") {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 4. If volunteer account is already approved -> redirect to volunteer dashboard
+  if (status.approvalStatus === "approved") {
+    return <Navigate to="/dashboard/volunteer" replace />;
+  }
+
+  // 5. If volunteer account is rejected -> redirect to holding page
+  if (status.approvalStatus === "rejected") {
+    return <Navigate to="/pending" replace />;
+  }
+
+  // Eligible pending/new volunteer completing details
+  return <>{children}</>;
+};

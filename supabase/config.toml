@@ -17,5 +17,8 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.account-deletion-email]
-verify_jwt = false
+verify_jwt = true
+
+[functions.paystack-reconcile]
+verify_jwt = true
 

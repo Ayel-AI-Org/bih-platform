@@ -34,16 +34,31 @@ const AdminDonationsPage = () => {
   const handleReconcile = async () => {
     setReconciling(true);
     try {
-      // Simulate background API reconciliation check
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const { data, error } = await supabase.functions.invoke("paystack-reconcile");
+      if (error) throw error;
+
+      if (!data?.configured) {
+        toast({
+          title: "Paystack Not Configured",
+          description:
+            data?.error ||
+            "PAYSTACK_SECRET_KEY is not configured on the server. Live reconciliation cannot be performed without provider credentials.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Paystack Reconciliation Completed",
-        description: "Reconciliation sweep finished. All ledger donation entries match the Paystack API logs successfully.",
+        description:
+          data.message ||
+          `Reconciliation finished. Verified ${data.checkedCount ?? 0} records; updated ${data.reconciledCount ?? 0} discrepancies.`,
       });
+      fetchDonations();
     } catch (err: any) {
       toast({
         title: "Reconciliation failed",
-        description: err.message || "An unexpected error occurred.",
+        description: err.message || "Failed to contact the Paystack reconciliation service.",
         variant: "destructive",
       });
     } finally {
@@ -256,19 +271,19 @@ const AdminDonationsPage = () => {
                 <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50/70 border-b border-slate-200">
-                        <TableHead className="text-xs font-semibold text-slate-700">Full Name</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Email</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Amount</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Payment Method</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Purpose</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Status</TableHead>
-                        <TableHead className="text-xs font-semibold text-slate-700">Date</TableHead>
+                      <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Full Name</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Email</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Amount</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Payment Method</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Purpose</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredList.map((d) => (
-                        <TableRow key={d.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                        <TableRow key={d.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                           <TableCell className="font-semibold text-slate-900">
                             {d.fullName}
                           </TableCell>

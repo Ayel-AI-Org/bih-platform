@@ -202,19 +202,19 @@ const NgoVerifyHoursPage = () => {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead>Volunteer Name</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Activity Details</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Hours</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Volunteer Name</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Project</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Activity Details</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Hours</TableHead>
+                <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLogs.map((log) => (
-                <TableRow key={log.id} className="hover:bg-slate-50/30 text-xs">
+                <TableRow key={log.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                   <TableCell className="font-semibold text-slate-800">{log.volunteerName}</TableCell>
                   <TableCell className="text-slate-650 truncate max-w-[120px]" title={log.projectTitle}>
                     {log.projectTitle}

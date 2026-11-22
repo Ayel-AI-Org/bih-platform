@@ -206,16 +206,16 @@ const VolunteerOverviewPage = () => {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead>Project</TableHead>
-                      <TableHead>Hours</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Verification Status</TableHead>
+                    <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Project</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Hours</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date</TableHead>
+                      <TableHead className="text-right text-xs font-semibold text-[#1E3A5F]">Verification Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {activities.map((act) => (
-                      <TableRow key={act.id} className="hover:bg-slate-50/30 text-xs">
+                      <TableRow key={act.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                         <TableCell className="font-semibold text-slate-800">{act.projectTitle}</TableCell>
                         <TableCell className="font-mono text-slate-600">{act.hours.toFixed(1)} h</TableCell>
                         <TableCell className="text-slate-500 font-sans">

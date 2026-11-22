@@ -877,12 +877,12 @@ const AdminProjectsPage = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase font-semibold text-slate-700 tracking-wider">
-                    <TableHead className="py-3 px-4 w-[42%] text-slate-700">Cause Initiative / Scope</TableHead>
-                    <TableHead className="py-3 px-3 w-[18%] text-slate-700">Location</TableHead>
-                    <TableHead className="py-3 px-3 w-[16%] text-slate-700">Operational Status</TableHead>
-                    <TableHead className="py-3 px-3 w-[14%] text-slate-700">Timeline / Created</TableHead>
-                    <TableHead className="py-3 px-4 text-right w-[10%] text-slate-700">Actions</TableHead>
+                  <TableRow className="bg-[#F1F5F9] border-b border-slate-200 text-xs uppercase font-semibold text-[#1E3A5F] tracking-wider">
+                    <TableHead className="py-3 px-4 w-[42%] text-[#1E3A5F] font-semibold">Cause Initiative / Scope</TableHead>
+                    <TableHead className="py-3 px-3 w-[18%] text-[#1E3A5F] font-semibold">Location</TableHead>
+                    <TableHead className="py-3 px-3 w-[16%] text-[#1E3A5F] font-semibold">Operational Status</TableHead>
+                    <TableHead className="py-3 px-3 w-[14%] text-[#1E3A5F] font-semibold">Timeline / Created</TableHead>
+                    <TableHead className="py-3 px-4 text-right w-[10%] text-[#1E3A5F] font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-slate-100">
@@ -891,7 +891,7 @@ const AdminProjectsPage = () => {
                     const isUpdating = updatingStatusId === p.id;
 
                     return (
-                      <TableRow key={p.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                      <TableRow key={p.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                         {/* 1. Combined Identity Cell: Title + Category Pill + Partners */}
                         <TableCell className="py-3 px-4">
                           <div className="space-y-1.5 min-w-0">

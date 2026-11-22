@@ -158,18 +158,18 @@ const VolunteerHoursHistoryPage = () => {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/50">
-                      <TableHead>Date</TableHead>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Activity Details</TableHead>
-                      <TableHead>Hours</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Verified By</TableHead>
+                    <TableRow className="bg-[#F1F5F9] border-b border-slate-200">
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Date</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Project</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Activity Details</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Hours</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Status</TableHead>
+                      <TableHead className="text-xs font-semibold text-[#1E3A5F]">Verified By</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {logs.map((row) => (
-                      <TableRow key={row.id} className="hover:bg-slate-50/30 text-xs">
+                      <TableRow key={row.id} className="hover:bg-slate-50/80 transition-colors duration-150 text-xs">
                         <TableCell className="text-slate-500 font-sans">
                           {new Date(row.logDate).toLocaleDateString(undefined, {
                             year: "numeric",

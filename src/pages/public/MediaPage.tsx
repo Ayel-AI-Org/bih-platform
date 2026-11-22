@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { CardImageRotator } from "@/components/ui/CardImageRotator";
 import {
   Calendar,
   MapPin,
@@ -252,21 +253,15 @@ const MediaPage = () => {
       onClick={() => handleOpenArticle(article)}
     >
       <div>
-        <div className="relative h-48 w-full overflow-hidden bg-slate-100">
-          <img
-            src={article.imageUrl || FALLBACK_IMAGE}
-            alt={article.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = FALLBACK_IMAGE;
-            }}
-          />
-
+        <CardImageRotator
+          images={[article.imageUrl, ...(article.imageUrls || []), ...(article.galleryUrls || [])]}
+          fallbackImage={FALLBACK_IMAGE}
+          alt={article.title}
+          className="relative h-48 w-full overflow-hidden bg-slate-100 shrink-0"
+        >
           {/* Event Date Badge */}
           {article.type === "event" && article.eventDate && (
-            <div className="absolute top-3 left-3 bg-[#1E3A5F] text-white rounded-lg px-2.5 py-1.5 shadow-md flex flex-col items-center leading-none text-center border border-white/20">
+            <div className="absolute top-3 left-3 bg-[#1E3A5F] text-white rounded-lg px-2.5 py-1.5 shadow-md flex flex-col items-center leading-none text-center border border-white/20 z-10">
               <span className="text-[10px] uppercase font-bold tracking-wider text-[#D4A017]">
                 {new Date(article.eventDate).toLocaleDateString(undefined, { month: "short" })}
               </span>
@@ -279,13 +274,13 @@ const MediaPage = () => {
           {/* Pinned Badge */}
           {article.isPinned && (
             <div
-              className="absolute top-3 right-3 bg-amber-500 text-white rounded-full p-1.5 shadow-md"
+              className="absolute top-3 right-3 bg-amber-500 text-white rounded-full p-1.5 shadow-md z-10"
               title="Featured update"
             >
               <Pin className="h-3.5 w-3.5 fill-white" />
             </div>
           )}
-        </div>
+        </CardImageRotator>
 
         <CardHeader className="space-y-2.5 pt-4 pb-2">
           <div className="flex items-center gap-2 flex-wrap">
