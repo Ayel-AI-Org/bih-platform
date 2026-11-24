@@ -121,47 +121,79 @@ const Hero = () => {
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
       {/* Background image with overlay */}
       <div className="absolute inset-0">
-        <img src={heroBg} alt="Community volunteers working together" className="w-full h-full object-cover" />
+        <motion.img
+          src={heroBg}
+          alt="Community volunteers working together"
+          initial={{ scale: 1.035 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full h-full object-cover motion-reduce:transform-none hidden md:block"
+        />
+        <img src={heroBg} alt="" aria-hidden="true" className="w-full h-full object-cover md:hidden" />
         <div className="absolute inset-0 bg-primary/80" />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-transparent to-primary/60" />
       </div>
 
       <div className="container relative z-10 py-20">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.12, delayChildren: 0.08 } },
+          }}
           className="max-w-3xl"
         >
           {pinnedUpdate ? (
-            <Link
-              to={`/media?item=${pinnedUpdate.id}`}
-              className="group inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium text-xs md:text-sm mb-6 backdrop-blur-xs transition-all max-w-full"
-              title={pinnedUpdate.title}
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="flex h-2 w-2 rounded-full bg-[#D4A017] animate-pulse shrink-0" />
-              <span className="text-[#D4A017] font-semibold uppercase tracking-wider text-[11px] shrink-0">
-                Latest:
-              </span>
-              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md text-white/95 group-hover:text-white">
-                {pinnedUpdate.title}
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </Link>
+              <Link
+                to={`/media?item=${pinnedUpdate.id}`}
+                className="group inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium text-xs md:text-sm mb-6 backdrop-blur-xs transition-all max-w-full"
+                title={pinnedUpdate.title}
+              >
+                <span className="flex h-2 w-2 rounded-full bg-[#D4A017] animate-pulse shrink-0" />
+                <span className="text-[#D4A017] font-semibold uppercase tracking-wider text-[11px] shrink-0">
+                  Latest:
+                </span>
+                <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md text-white/95 group-hover:text-white">
+                  {pinnedUpdate.title}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </Link>
+            </motion.div>
           ) : (
-            <span className="inline-block px-4 py-1.5 rounded-full bg-accent/20 text-accent font-medium text-sm mb-6">
+            <motion.span
+              variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-block px-4 py-1.5 rounded-full bg-accent/20 text-accent font-medium text-sm mb-6"
+            >
               Connecting Hearts, Building Futures
-            </span>
+            </motion.span>
           )}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif text-primary-foreground leading-tight mb-6">
+          <motion.h1
+            variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }}
+            transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+            className="text-4xl md:text-6xl lg:text-7xl font-serif text-primary-foreground leading-tight mb-6"
+          >
             Bridge for{" "}
             <span className="text-accent">Impact</span> Hub
-          </h1>
-          <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mb-10 font-sans leading-relaxed">
+          </motion.h1>
+          <motion.p
+            variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mb-10 font-sans leading-relaxed"
+          >
             A central platform connecting volunteers, NGOs, philanthropists, and communities.
             Together, we make change visible, actionable, and lasting.
-          </p>
-          <div className="flex flex-wrap gap-4">
+          </motion.p>
+          <motion.div
+            variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-wrap gap-4"
+          >
             <Button variant="hero" size="lg" className="text-base px-8 py-6" asChild>
               <Link to="/donate">
                 <Heart className="w-5 h-5 mr-2" />
@@ -171,7 +203,7 @@ const Hero = () => {
             <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
               <Link to="/register">Get Involved</Link>
             </Button>
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* Quick stats strip */}

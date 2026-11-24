@@ -24,6 +24,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
 // Lazy-loaded pages
+const AboutPage = lazy(() => import("./pages/public/AboutPage"));
 const ProjectsPage = lazy(() => import("./pages/public/ProjectsPage"));
 const ProjectDetailsPage = lazy(() => import("./pages/public/ProjectDetailsPage"));
 const VolunteerSignupPage = lazy(() => import("./pages/auth/VolunteerSignupPage"));
@@ -107,6 +108,7 @@ const App = () => {
               <Routes>
                 <Route element={<SiteLayout />}>
                   <Route path="/" element={<Index />} />
+                  <Route path="/about" element={<AboutPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />
                   <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
                   

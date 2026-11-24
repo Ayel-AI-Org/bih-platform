@@ -102,7 +102,7 @@ describe("Homepage ProjectsSection Carousel Component", () => {
     expect(screen.getByLabelText("Projects pagination")).toBeInTheDocument();
   });
 
-  it("renders high-contrast frosted status badges on cover images", async () => {
+  it("renders top status accent strips and clean footer status text instead of floating badges", async () => {
     vi.spyOn(supabase, "from").mockReturnValue({
       select: vi.fn().mockReturnValue({
         order: vi.fn().mockReturnValue({
@@ -111,22 +111,29 @@ describe("Homepage ProjectsSection Carousel Component", () => {
       }),
     } as any);
 
-    render(
+    const { container } = render(
       <MemoryRouter>
         <ProjectsSection />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      // Ongoing status pill
-      const ongoingBadge = screen.getByText("Ongoing");
-      expect(ongoingBadge).toBeInTheDocument();
-      expect(ongoingBadge).toHaveClass("bg-slate-900/85", "text-white", "backdrop-blur-md");
+      // Ongoing status in footer
+      const ongoingText = screen.getByText("Ongoing");
+      expect(ongoingText).toBeInTheDocument();
+      expect(ongoingText).toHaveClass("text-[#1E3A5F]");
 
-      // Pending status pill
-      const pendingBadge = screen.getByText("Pending");
-      expect(pendingBadge).toBeInTheDocument();
-      expect(pendingBadge).toHaveClass("bg-slate-900/85", "text-white", "backdrop-blur-md");
+      // Pending status in footer
+      const pendingText = screen.getByText("Pending");
+      expect(pendingText).toBeInTheDocument();
+      expect(pendingText).toHaveClass("text-[#B8860B]");
+
+      // Verify no floating frosted badge on image
+      expect(container.querySelector(".bg-slate-900\\/85")).not.toBeInTheDocument();
+
+      // Verify top accent strip exists
+      expect(container.querySelector(".bg-\\[\\#1E3A5F\\].h-\\[3\\.5px\\]")).toBeInTheDocument();
+      expect(container.querySelector(".bg-\\[\\#D4A017\\].h-\\[3\\.5px\\]")).toBeInTheDocument();
     });
   });
 

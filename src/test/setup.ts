@@ -24,6 +24,15 @@ if (typeof window !== "undefined" && !window.ResizeObserver) {
   } as any;
 }
 
+// Mock IntersectionObserver for framer-motion and in-view observers
+if (typeof window !== "undefined" && !window.IntersectionObserver) {
+  window.IntersectionObserver = class IntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

@@ -22,18 +22,24 @@ interface PlatformProject {
   galleryUrls?: string[];
 }
 
-const statusConfig: Record<ProjectStatus, { dot: string; label: string }> = {
-  ongoing: {
-    dot: "bg-emerald-400",
-    label: "Ongoing",
+const statusConfig: Record<ProjectStatus, { dot: string; strip: string; text: string; label: string }> = {
+  completed: {
+    dot: "bg-emerald-500",
+    strip: "bg-emerald-600",
+    text: "text-emerald-700",
+    label: "Completed",
   },
   proposed: {
-    dot: "bg-amber-400",
+    dot: "bg-[#D4A017]",
+    strip: "bg-[#D4A017]",
+    text: "text-[#B8860B]",
     label: "Pending",
   },
-  completed: {
-    dot: "bg-sky-400",
-    label: "Completed",
+  ongoing: {
+    dot: "bg-[#1E3A5F]",
+    strip: "bg-[#1E3A5F]",
+    text: "text-[#1E3A5F]",
+    label: "Ongoing",
   },
 };
 
@@ -209,7 +215,7 @@ const ProjectsSection = () => {
                   size="icon"
                   onClick={() => scroll("left")}
                   disabled={!canScrollLeft}
-                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs"
+                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs carousel-arrow"
                   aria-label="Previous projects"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -263,23 +269,21 @@ const ProjectsSection = () => {
                 return (
                   <div
                     key={project.id}
-                    className="w-[85%] min-w-[280px] md:w-[calc(33.3333%-1rem)] shrink-0 snap-start self-stretch h-auto flex flex-col justify-between rounded-xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-shadow group"
+                    className="w-[85%] min-w-[280px] md:w-[calc(33.3333%-1rem)] shrink-0 snap-start self-stretch h-auto flex flex-col justify-between rounded-xl overflow-hidden bg-card border border-border shadow-sm motion-card group relative"
                   >
-                    {/* Project Cover Image */}
+                    {/* Top Accent Strip flush against card top edge (3px-4px) */}
+                    <div
+                      className={`h-[3.5px] w-full ${conf.strip} shrink-0`}
+                      aria-hidden="true"
+                    />
+
+                    {/* Project Cover Image without floating badge */}
                     <CardImageRotator
                       images={[project.imageUrl, ...(project.galleryUrls || [])]}
                       fallbackImage="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700&q=80"
                       alt={project.title}
                       className="relative h-52 overflow-hidden bg-slate-100 shrink-0"
-                    >
-                      {/* High-Contrast Frosted Status Pill */}
-                      <div
-                        className="absolute top-3.5 left-3.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-900/85 text-white backdrop-blur-md border border-white/20 shadow-md z-10"
-                      >
-                        <span className={`h-2 w-2 rounded-full ${conf.dot}`} />
-                        {conf.label}
-                      </div>
-                    </CardImageRotator>
+                    />
 
                     {/* Inner Content Wrapper below image stretches to fill remaining height */}
                     <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
@@ -308,21 +312,31 @@ const ProjectsSection = () => {
                       </div>
                     </div>
 
-                    {/* Pinned Bottom Footer Row */}
-                    <div className="px-6 pb-6 pt-3 mt-auto border-t border-slate-100/70 flex items-center justify-between">
+                    {/* Pinned Bottom Footer Row with Learn More & Clean Status */}
+                    <div className="px-6 pb-5 pt-3 mt-auto border-t border-slate-100 flex items-center justify-between gap-3">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="px-0 text-[#1E3A5F] hover:text-[#1E3A5F]/80 font-semibold"
+                        className="px-0 text-[#1E3A5F] hover:text-[#D4A017] font-semibold text-xs flex items-center gap-1 group"
                         asChild
                       >
                         <Link to={`/projects/${project.id}`}>
-                          Learn More <ArrowRight className="w-4 h-4 ml-1.5" />
+                          <span>Learn More</span>
+                          <ArrowRight className="w-4 h-4 ml-1 text-[#D4A017] transition-transform duration-150 group-hover:translate-x-1" />
                         </Link>
                       </Button>
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        {idx + 1} of {projects.length}
-                      </span>
+
+                      {/* Plain-text status with colored dot */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${conf.text}`}>
+                          <span className={`h-2 w-2 rounded-full ${conf.dot} shrink-0`} aria-hidden="true" />
+                          {conf.label}
+                        </span>
+                        <span className="text-[11px] text-slate-300 font-medium hidden sm:inline" aria-hidden="true">•</span>
+                        <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                          {idx + 1} of {projects.length}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );

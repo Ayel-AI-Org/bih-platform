@@ -101,7 +101,7 @@ const ProjectsPage = () => {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((project) => (
-          <Card key={project.id} className="overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
+          <Card key={project.id} className="group motion-card overflow-hidden flex flex-col justify-between hover:shadow-lg border-slate-200">
             <div>
               <CardImageRotator
                 images={[project.imageUrl, ...(project.galleryUrls || [])]}
@@ -126,16 +126,15 @@ const ProjectsPage = () => {
                 <p><span className="font-semibold text-slate-700">Timeline:</span> {project.timeline}</p>
               </CardContent>
             </div>
-            <div className="px-6 pb-6 pt-0 flex justify-start">
+            <div className="px-6 pb-5 pt-0 flex justify-start">
               <Button
                 asChild
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto text-xs h-8.5 px-4 font-semibold border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all duration-150 group shadow-2xs"
+                variant="link"
+                className="h-auto p-0 text-xs font-semibold text-[#1E3A5F] hover:text-[#1E3A5F] hover:underline underline-offset-4 transition-all duration-150 group cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4A017] rounded-sm"
               >
-                <Link to={`/projects/${project.id}`} className="inline-flex items-center justify-center gap-1.5">
+                <Link to={`/projects/${project.id}`} className="inline-flex items-center gap-1.5">
                   View Details
-                  <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] transition-transform duration-150 group-hover:translate-x-0.5" />
+                  <ArrowRight className="h-3.5 w-3.5 text-[#D4A017] transition-transform duration-150 group-hover:translate-x-1 shrink-0" />
                 </Link>
               </Button>
             </div>
