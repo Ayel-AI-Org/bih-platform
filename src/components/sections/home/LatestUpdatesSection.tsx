@@ -325,7 +325,7 @@ export const LatestUpdatesSection = () => {
                   size="icon"
                   onClick={() => handleManualNavigate(() => scroll("left"))}
                   disabled={!canScrollLeft}
-                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs"
+                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs carousel-arrow"
                   aria-label="Previous updates"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -335,7 +335,7 @@ export const LatestUpdatesSection = () => {
                   size="icon"
                   onClick={() => handleManualNavigate(() => scroll("right"))}
                   disabled={!canScrollRight}
-                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs"
+                  className="h-8 w-8 rounded-full border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs carousel-arrow"
                   aria-label="Next updates"
                 >
                   <ChevronRight className="h-4 w-4" />

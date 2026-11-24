@@ -93,3 +93,67 @@
     text-wrap: balance;
   }
 }
+
+@layer components {
+  .motion-card {
+    @apply transition-[transform,border-color,box-shadow,background-color] duration-300 ease-out;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .motion-card:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  .motion-card-image {
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .group:hover .motion-card-image {
+      transform: scale(1.03);
+    }
+  }
+
+  .gold-link-underlined {
+    background-image: linear-gradient(#D4A017, #D4A017);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition: background-size 200ms ease-out, color 200ms ease-out;
+  }
+
+  .gold-link-underlined:hover,
+  .gold-link-underlined:focus-visible {
+    background-size: 100% 1px;
+  }
+
+  .carousel-arrow svg {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .carousel-arrow[aria-label^="Previous"]:hover svg,
+  .carousel-arrow[aria-label^="Previous"]:focus-visible svg {
+    transform: translateX(-2px);
+  }
+
+  .carousel-arrow[aria-label^="Next"]:hover svg,
+  .carousel-arrow[aria-label^="Next"]:focus-visible svg {
+    transform: translateX(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .motion-card:hover,
+  .group:hover .motion-card-image,
+  .carousel-arrow svg {
+    transform: none !important;
+  }
+}

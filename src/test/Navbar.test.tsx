@@ -31,6 +31,7 @@ describe("Navbar Component", () => {
 
     // Verify desktop links
     expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Projects" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Suggest Project" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Media" }).length).toBeGreaterThan(0);

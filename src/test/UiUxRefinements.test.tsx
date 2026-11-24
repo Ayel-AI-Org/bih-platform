@@ -176,8 +176,8 @@ describe("UI/UX Refinements Test Suite", () => {
     });
   });
 
-  describe("Task 5: Reduce 'View Details' Button Width on Projects Page", () => {
-    it("renders compact left-aligned 'View Details' button on desktop with responsive full width on mobile", async () => {
+  describe("Projects Page 'View Details' Action Link Pattern", () => {
+    it("renders clean text-link 'View Details' action aligned with Media page pattern", async () => {
       const mockProjects = [
         {
           id: "proj-1",
@@ -214,12 +214,11 @@ describe("UI/UX Refinements Test Suite", () => {
       expect(detailsLink).toBeInTheDocument();
       expect(detailsLink.getAttribute("href")).toBe("/projects/proj-1");
 
-      // Because <Button asChild> delegates to the child <Link>, classes are directly on detailsLink
-      expect(detailsLink).toHaveClass("sm:w-auto");
-      expect(detailsLink).toHaveClass("w-full");
-      expect(detailsLink).toHaveClass("border-[#1E3A5F]");
+      // Verify clean text-link pattern without outlined pill border
       expect(detailsLink).toHaveClass("text-[#1E3A5F]");
-      expect(detailsLink).toHaveClass("px-4");
+      expect(detailsLink).toHaveClass("hover:underline");
+      expect(detailsLink).toHaveClass("underline-offset-4");
+      expect(detailsLink).not.toHaveClass("border-[#1E3A5F]");
     });
   });
 

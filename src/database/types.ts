@@ -75,6 +75,7 @@ export interface ProjectSuggestion {
   location: string;
   timeline: string;
   submittedBy: string;
+  submitterId?: string;
   email: string;
   phone?: string;
   organization?: string;

@@ -26,6 +26,18 @@ function isApprovalStatusMissingColumnError(error: { message: string }) {
     && (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find"));
 }
 
+function isMissingColumnOrSchemaError(error?: { message?: string } | null, column?: string): boolean {
+  if (!error?.message) return false;
+  const message = error.message.toLowerCase();
+  const isSchemaMismatch =
+    message.includes("does not exist") ||
+    message.includes("schema cache") ||
+    message.includes("could not find") ||
+    message.includes("column");
+  if (!column) return isSchemaMismatch;
+  return message.includes(column.toLowerCase()) && isSchemaMismatch;
+}
+
 type ProjectRow = {
   id: string;
   title: string;
@@ -49,6 +61,7 @@ type SuggestionRow = {
   location: string;
   timeline: string;
   submitted_by: string;
+  submitter_id?: string | null;
   email: string;
   phone?: string | null;
   organization?: string | null;
@@ -179,6 +192,7 @@ const mapSuggestion = (row: SuggestionRow): ProjectSuggestion => ({
   location: row.location,
   timeline: row.timeline,
   submittedBy: row.submitted_by,
+  submitterId: row.submitter_id ?? undefined,
   email: row.email,
   phone: row.phone ?? undefined,
   organization: row.organization ?? undefined,
@@ -896,30 +910,52 @@ export async function suggestProject(payload: {
 }) {
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("project_suggestions").insert({
+  const insertPayload: Record<string, any> = {
     title: payload.title,
     description: payload.description,
     location: payload.location,
     timeline: payload.timeline,
     submitted_by: payload.submittedBy,
-    submitter_id: user?.id || null,
     email: payload.email,
-    phone: payload.phone,
-    organization: payload.organization,
-    category: payload.category,
-    expected_budget: payload.expectedBudget,
-    beneficiaries: payload.beneficiaries,
+    phone: payload.phone || null,
+    organization: payload.organization || null,
+    category: payload.category || null,
+    expected_budget: payload.expectedBudget ?? null,
+    beneficiaries: payload.beneficiaries || null,
     status: "pending" as SuggestionStatus,
-  });
+  };
+
+  // Only attach submitter_id when an authenticated session exists
+  if (user?.id) {
+    insertPayload.submitter_id = user.id;
+  }
+
+  const { error } = await supabase.from("project_suggestions").insert(insertPayload);
 
   if (!error) {
     return;
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  // If error is unrelated to schema column mismatch, fail immediately
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 
+  // If submitter_id caused a schema mismatch (e.g. column not yet migrated or schema cache stale), retry without it
+  if (insertPayload.submitter_id && isMissingColumnOrSchemaError(error, "submitter_id")) {
+    const payloadWithoutSubmitter = { ...insertPayload };
+    delete payloadWithoutSubmitter.submitter_id;
+
+    const { error: retryError } = await supabase.from("project_suggestions").insert(payloadWithoutSubmitter);
+    if (!retryError) {
+      return;
+    }
+    if (!isMissingColumnOrSchemaError(retryError)) {
+      throw new Error(retryError.message);
+    }
+  }
+
+  // Fallback for older database schemas lacking optional extension columns (phone, organization, etc.)
   const details: string[] = [];
   if (payload.phone) details.push(`Phone: ${payload.phone}`);
   if (payload.organization) details.push(`Organization: ${payload.organization}`);
@@ -931,16 +967,17 @@ export async function suggestProject(payload: {
     ? `${payload.description}\n\nAdditional Submission Details:\n${details.join("\n")}`
     : payload.description;
 
-  const { error: fallbackError } = await supabase.from("project_suggestions").insert({
+  const fallbackPayload: Record<string, any> = {
     title: payload.title,
     description: fallbackDescription,
     location: payload.location,
     timeline: payload.timeline,
     submitted_by: payload.submittedBy,
-    submitter_id: user?.id || null,
     email: payload.email,
     status: "pending" as SuggestionStatus,
-  });
+  };
+
+  const { error: fallbackError } = await supabase.from("project_suggestions").insert(fallbackPayload);
 
   throwIfError(fallbackError);
 }
@@ -1007,7 +1044,7 @@ export async function updateSuggestionStatus(suggestionId: string, status: Sugge
     })
     .eq("id", suggestionId);
 
-  if (updateError && updateError.message.includes("column") && updateError.message.includes("does not exist")) {
+  if (updateError && isMissingColumnOrSchemaError(updateError)) {
     const { error: fallbackUpdateError } = await supabase
       .from("project_suggestions")
       .update({ status })
@@ -1270,7 +1307,7 @@ export async function getSuggestions() {
     return (data as SuggestionRow[]).map(mapSuggestion);
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 
@@ -1305,7 +1342,7 @@ export async function getMediaArticles() {
     return (data as MediaRow[]).map(mapMedia);
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 
@@ -1331,7 +1368,7 @@ export async function getAllPublishedMediaArticles(): Promise<MediaArticle[]> {
     return (data as MediaRow[]).map(mapMedia);
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 
@@ -1358,7 +1395,7 @@ export async function getLatestUpdates(limit = 3): Promise<MediaArticle[]> {
     return (data as MediaRow[]).map(mapMedia);
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 
@@ -1447,7 +1484,7 @@ export async function getMediaArticleById(articleId: string) {
     return data ? mapMedia(data as MediaRow) : undefined;
   }
 
-  if (!error.message.includes("column") || !error.message.includes("does not exist")) {
+  if (!isMissingColumnOrSchemaError(error)) {
     throw new Error(error.message);
   }
 

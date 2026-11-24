@@ -102,6 +102,7 @@ create table public.project_suggestions (
   location text not null,
   timeline text,
   submitted_by text not null,
+  submitter_id uuid references auth.users(id) on delete set null default auth.uid(),
   email text not null,
   phone text,
   organization text,
@@ -331,6 +332,13 @@ with check (true);
 create policy "Admins read all suggestions"
 on public.project_suggestions for select
 using (public.is_admin());
+
+create policy "Submitters read own suggestions"
+on public.project_suggestions for select
+using (
+  auth.uid() is not null
+  and auth.uid() = submitter_id
+);
 
 create policy "Admins update suggestions"
 on public.project_suggestions for update

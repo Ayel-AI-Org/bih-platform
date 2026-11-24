@@ -171,7 +171,7 @@ export const CardImageRotator: React.FC<CardImageRotatorProps> = ({
           src={validImages[0]}
           alt={alt}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover motion-card-image"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.onerror = null;
@@ -201,7 +201,7 @@ export const CardImageRotator: React.FC<CardImageRotatorProps> = ({
             src={src}
             alt={`${alt} - view ${idx + 1}`}
             loading="lazy"
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
+            className={`absolute inset-0 w-full h-full object-cover motion-card-image transition-opacity duration-500 ease-in-out ${
               isActive ? "opacity-100 z-1" : "opacity-0 pointer-events-none z-0"
             }`}
             onError={(e) => {
