@@ -176,7 +176,7 @@ serve(async (req: Request) => {
           <p>Dear ${name},</p>
           <p>We are writing to inform you that your Bridge for Impact Hub account has been deleted by an administrator.</p>
           ${reasonHtml}
-          <p>If you believe this action was taken in error or require further clarification, please contact us through our official communication channels at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 57 880 9478</strong>.</p>
+          <p>If you believe this action was taken in error or require further clarification, please contact us through our official communication channels at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 53 011 0924</strong>.</p>
           <p style="margin-top: 24px; font-size: 13px; color: #64748b;">
             Regards,<br/>
             <strong>Bridge for Impact Hub</strong>

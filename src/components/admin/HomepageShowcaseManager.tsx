@@ -288,7 +288,7 @@ export const HomepageShowcaseManager: React.FC<HomepageShowcaseManagerProps> = (
                 Mode B: Promotional Video
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Spotlights your organizational video in a cinematic container with interactive modal playback and call-to-action.
+                Spotlights your organizational video in an ivory editorial section with embedded playback and a responsive floating player.
               </p>
             </div>
           </div>
@@ -532,7 +532,7 @@ export const HomepageShowcaseManager: React.FC<HomepageShowcaseManagerProps> = (
           </div>
 
           {/* Secondary Latest Updates Visibility Toggle */}
-          <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-900 text-sm">
@@ -586,60 +586,59 @@ export const HomepageShowcaseManager: React.FC<HomepageShowcaseManagerProps> = (
           {showLivePreview && (
             <div className="rounded-xl overflow-hidden border border-slate-300 shadow-md">
               <div className="bg-slate-800 text-white/70 text-[11px] px-4 py-2 flex items-center justify-between border-b border-white/10">
-                <span>Homepage Simulation (Dark Forest Brand Palette)</span>
+                <span>Homepage Simulation (Warm Ivory Brand Palette)</span>
                 <span className="text-[#D4A017] font-medium">Unsaved Preview</span>
               </div>
-              <div className="p-6 md:p-8 bg-gradient-to-br from-[#0c1e19] via-[#132c25] to-[#0a1814] text-white">
-                <div className="grid md:grid-cols-2 gap-6 items-center max-w-4xl mx-auto">
+              <div className="relative overflow-hidden p-6 md:p-8 bg-[#F7F5EF] text-[#24312B]">
+                <div aria-hidden="true" className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#1E3A5F]/10 to-transparent" />
+                <div aria-hidden="true" className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-[#E5EBDD]/55 blur-3xl" />
+
+                <div className="relative grid md:grid-cols-2 gap-6 md:gap-8 items-center max-w-4xl mx-auto">
                   <div className="space-y-3 text-left">
-                    <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#D4A017] px-2.5 py-1 rounded-full bg-white/10 border border-white/20">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#244B38]">
+                      <Sparkles className="w-3 h-3 text-[#D4A017]" />
                       Our Story in Motion
                     </span>
-                    <h3 className="text-2xl md:text-3xl font-serif font-bold text-white leading-tight">
+                    <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#244B38] leading-[1.15] tracking-tight">
                       {settings.videoTitle || "Beyond awareness. Into impact."}
                     </h3>
-                    <p className="text-xs text-white/80 leading-relaxed">
+                    <p className="text-xs md:text-sm text-[#3F4642] leading-relaxed">
                       {settings.videoDescription ||
                         "Discover who we are, what we stand for, and the change we're working to create."}
                     </p>
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        disabled
-                        className="bg-[#D4A017] text-slate-950 text-xs font-semibold h-8"
-                      >
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button size="sm" disabled className="bg-[#D4A017] hover:bg-[#D4A017] text-slate-950 text-xs font-semibold h-9 px-4 shadow-md">
                         Watch Video
                       </Button>
                       {settings.ctaText && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled
-                          className="border-white/30 text-white bg-white/5 text-xs h-8"
-                        >
+                        <Button variant="outline" size="sm" disabled className="border-[#244B38]/25 bg-white/35 text-[#244B38] text-xs h-9">
                           {settings.ctaText}
                         </Button>
                       )}
                     </div>
                   </div>
 
-                  <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/20 relative bg-black/60 shadow-lg flex items-center justify-center">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-[#244B38]/20 relative bg-[#244B38]/10 shadow-[0_22px_55px_rgba(36,75,56,0.16)] flex items-center justify-center">
                     {settings.thumbnailUrl ? (
-                      <img
-                        src={settings.thumbnailUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={settings.thumbnailUrl} alt="Promotional video preview" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="text-center p-4">
-                        <VideoIcon className="w-8 h-8 text-[#D4A017] mx-auto mb-1 opacity-80" />
-                        <span className="text-[11px] text-white/70">
-                          {settings.videoUrl ? "Video Player Ready" : "No Video URL configured"}
-                        </span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#244B38]/5">
+                        <div className="text-center p-4">
+                          <VideoIcon className="w-8 h-8 text-[#244B38]/70 mx-auto mb-1" />
+                          <span className="text-[11px] text-[#244B38]/80 font-medium">
+                            {settings.videoUrl ? "Video Player Ready" : "No Video URL configured"}
+                          </span>
+                        </div>
                       </div>
                     )}
-                    <div className="absolute w-12 h-12 rounded-full bg-[#D4A017] text-slate-950 flex items-center justify-center shadow-md">
-                      <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-slate-950 ml-0.5" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-black/10" />
+                    <div aria-hidden="true" className="absolute inset-2 rounded-xl border border-white/10" />
+                    <div className="absolute w-14 h-14 rounded-full bg-[#D4A017] text-slate-950 flex items-center justify-center shadow-2xl">
+                      <div className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-slate-950 ml-1" />
+                    </div>
+                    <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[9px] text-white/80 pointer-events-none">
+                      <span className="font-medium">Bridge for Impact Hub</span>
+                      <span className="uppercase tracking-widest font-bold text-[#D4A017]">BIH Spotlight</span>
                     </div>
                   </div>
                 </div>
