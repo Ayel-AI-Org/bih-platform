@@ -142,7 +142,7 @@ const VolunteerSignupPage = () => {
 
       toast({
         title: "Registration submitted",
-        description: "Your volunteer application has been sent for admin review.",
+        description: "Vonlunteer registration successful. Kindly check your mailbox and confirm your email to enable login. Thank you",
       });
 
       // Clear session local state and redirect

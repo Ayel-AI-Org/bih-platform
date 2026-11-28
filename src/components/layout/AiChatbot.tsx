@@ -27,14 +27,14 @@ const getLocalFallbackReply = (input: string) => {
   }
 
   if (text.includes("phone") || text.includes("contact") || text.includes("call") || text.includes("location") || text.includes("address")) {
-    return "Bridge for Impact Hub is located in Accra, Ghana. You can reach our team at bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
+    return "Bridge for Impact Hub is located in Accra, Ghana. You can reach our team at bridgeforimpacthub@gmail.com or call +233 (0) 53 011 0924.";
   }
 
   if (text.includes("admin") || text.includes("internal") || text.includes("staff")) {
-    return "Administrative portals are restricted to authorized personnel. For organizational inquiries, please contact bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
+    return "Administrative portals are restricted to authorized personnel. For organizational inquiries, please contact bridgeforimpacthub@gmail.com or call +233 (0) 53 011 0924.";
   }
 
-  return "I can help with questions about volunteering, project proposals, and donations. For further assistance, contact us at bridgeforimpacthub@gmail.com or call +233 (0) 57 880 9478.";
+  return "I can help with questions about volunteering, project proposals, and donations. For further assistance, contact us at bridgeforimpacthub@gmail.com or call +233 (0) 53 011 0924.";
 };
 
 const AiChatbot = () => {

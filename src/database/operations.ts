@@ -2,6 +2,8 @@ import {
   type ApprovalStatus,
   type Donation,
   type DonorProfile,
+  type HomepageShowcaseMode,
+  type HomepageShowcaseSettings,
   type MediaArticle,
   type NgoProfile,
   type Project,
@@ -1632,5 +1634,109 @@ export async function deleteProject(projectId: string): Promise<void> {
 
   throwIfError(error);
 }
+
+export const DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS: HomepageShowcaseSettings = {
+  mode: "updates",
+  videoUrl: "",
+  videoTitle: "Beyond awareness. Into impact.",
+  videoDescription: "Discover who we are, what we stand for, and the change we're working to create.",
+  thumbnailUrl: "",
+  ctaText: "Discover Our Mission",
+  ctaUrl: "/about",
+  showLatestUpdatesBelow: false,
+};
+
+export async function getHomepageShowcaseSettings(): Promise<HomepageShowcaseSettings> {
+  try {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("key, value")
+      .in("key", [
+        "homepage_showcase_mode",
+        "homepage_showcase_video_url",
+        "homepage_showcase_video_title",
+        "homepage_showcase_video_description",
+        "homepage_showcase_thumbnail_url",
+        "homepage_showcase_cta_text",
+        "homepage_showcase_cta_url",
+        "homepage_show_latest_updates_below",
+      ]);
+
+    if (error || !data || data.length === 0) {
+      return { ...DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS };
+    }
+
+    const dict = new Map<string, string>();
+    for (const row of data) {
+      if (row.key && typeof row.value === "string") {
+        dict.set(row.key, row.value);
+      }
+    }
+
+    const modeVal = dict.get("homepage_showcase_mode");
+    const mode: HomepageShowcaseMode = modeVal === "video" ? "video" : "updates";
+
+    return {
+      mode,
+      videoUrl: dict.get("homepage_showcase_video_url") ?? DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.videoUrl,
+      videoTitle: dict.get("homepage_showcase_video_title") || DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.videoTitle,
+      videoDescription: dict.get("homepage_showcase_video_description") || DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.videoDescription,
+      thumbnailUrl: dict.get("homepage_showcase_thumbnail_url") ?? DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.thumbnailUrl,
+      ctaText: dict.get("homepage_showcase_cta_text") ?? DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.ctaText,
+      ctaUrl: dict.get("homepage_showcase_cta_url") ?? DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS.ctaUrl,
+      showLatestUpdatesBelow: dict.get("homepage_show_latest_updates_below") === "true",
+    };
+  } catch (err) {
+    if (import.meta.env?.DEV) {
+      console.warn("Failed to fetch homepage showcase settings, falling back to defaults:", err);
+    }
+    return { ...DEFAULT_HOMEPAGE_SHOWCASE_SETTINGS };
+  }
+}
+
+export async function updateHomepageShowcaseSettings(
+  newSettings: Partial<HomepageShowcaseSettings>
+): Promise<void> {
+  const rowsToUpsert: { key: string; value: string }[] = [];
+
+  if (newSettings.mode !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_mode", value: newSettings.mode });
+  }
+  if (newSettings.videoUrl !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_video_url", value: newSettings.videoUrl.trim() });
+  }
+  if (newSettings.videoTitle !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_video_title", value: newSettings.videoTitle.trim() });
+  }
+  if (newSettings.videoDescription !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_video_description", value: newSettings.videoDescription.trim() });
+  }
+  if (newSettings.thumbnailUrl !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_thumbnail_url", value: newSettings.thumbnailUrl.trim() });
+  }
+  if (newSettings.ctaText !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_cta_text", value: newSettings.ctaText.trim() });
+  }
+  if (newSettings.ctaUrl !== undefined) {
+    rowsToUpsert.push({ key: "homepage_showcase_cta_url", value: newSettings.ctaUrl.trim() });
+  }
+  if (newSettings.showLatestUpdatesBelow !== undefined) {
+    rowsToUpsert.push({
+      key: "homepage_show_latest_updates_below",
+      value: newSettings.showLatestUpdatesBelow ? "true" : "false",
+    });
+  }
+
+  if (rowsToUpsert.length === 0) return;
+
+  const { error } = await supabase
+    .from("settings")
+    .upsert(rowsToUpsert, { onConflict: "key" });
+
+  if (error) {
+    throw new Error(`Failed to save homepage showcase settings: ${error.message}`);
+  }
+}
+
 
 

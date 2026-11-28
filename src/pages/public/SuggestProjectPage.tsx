@@ -90,7 +90,7 @@ const SuggestProjectPage = () => {
 
       toast({
         title: "Project suggestion submitted",
-        description: "Your proposal is now in BIH's admin review queue and a confirmation email has been sent.",
+        description: "Your proposal is now in the BIH's admin review queue and a confirmation email has been sent.",
       });
     } catch (error) {
       toast({

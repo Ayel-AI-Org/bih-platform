@@ -145,8 +145,8 @@ const PendingPage = () => {
               bridgeforimpacthub@gmail.com
             </a>{" "}
             or call{" "}
-            <a href="tel:+233578809478" className="text-[#1E3A5F] underline font-medium">
-              +233 (0) 57 880 9478
+            <a href="tel:+233530110924" className="text-[#1E3A5F] underline font-medium">
+              +233 (0) 53 011 0924
             </a>{" "}
             (Accra, Ghana).
           </p>

@@ -164,7 +164,7 @@ serve(async (req: Request) => {
           <p>Thank you for your interest in joining Bridge for Impact Hub as a ${payload.role.toLowerCase()}.</p>
           <p>After careful review of your application by our team, we regret to inform you that your registration could not be approved at this time.</p>
           ${reasonSection}
-          <p>If you believe this action was taken in error or require further clarification, please contact us through our official communication channels at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 57 880 9478</strong>.</p>
+          <p>If you believe this action was taken in error or require further clarification, please contact us through our official communication channels at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 53 011 0924</strong>.</p>
           <p style="margin-top: 24px; font-size: 13px; color: #64748b;">
             Regards,<br/>
             <strong>Bridge for Impact Hub</strong>

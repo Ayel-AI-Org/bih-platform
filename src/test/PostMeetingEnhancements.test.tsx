@@ -47,9 +47,9 @@ describe("Post-Meeting Enhancements & Configuration", () => {
       </MemoryRouter>
     );
 
-    // Phone number should be +233 (0) 57 880 9478 with clickable tel: link
-    const phoneLink = screen.getByRole("link", { name: /\+233 \(0\) 57 880 9478/i });
-    expect(phoneLink).toHaveAttribute("href", "tel:+233578809478");
+    // Phone number should be +233 (0) 53 011 0924 with clickable tel: link
+    const phoneLink = screen.getByRole("link", { name: /\+233 \(0\) 53 011 0924/i });
+    expect(phoneLink).toHaveAttribute("href", "tel:+233530110924");
 
     // Email link
     const emailLink = screen.getByRole("link", { name: /bridgeforimpacthub@gmail\.com/i });

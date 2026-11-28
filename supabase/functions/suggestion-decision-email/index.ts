@@ -72,7 +72,7 @@ serve(async (req) => {
           <p>Thank you for submitting your project proposal, <strong>${payload.title}</strong>, to Bridge for Impact Hub.</p>
           <p>After thorough review against our current operational focus and resource allocation guidelines, we regret to inform you that this proposal cannot be accepted for active platform mobilization at this time.</p>
           ${reasonSection}
-          <p>If you believe this proposal requires further clarification or if you would like to explore alternative ways to engage, please do not hesitate to contact us at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 57 880 9478</strong>.</p>
+          <p>If you believe this proposal requires further clarification or if you would like to explore alternative ways to engage, please do not hesitate to contact us at <a href="mailto:bridgeforimpacthub@gmail.com" style="color: #1E3A5F;">bridgeforimpacthub@gmail.com</a> or call <strong>+233 (0) 53 011 0924</strong>.</p>
           <p style="margin-top: 24px; font-size: 13px; color: #64748b;">
             Regards,<br/>
             <strong>Bridge for Impact Hub</strong>

@@ -96,7 +96,7 @@ VERIFIED ORGANIZATION FACTS:
 - Mission: Connecting passionate volunteers, forward-thinking NGOs, and visionary donors to transform Ghanaian communities through impactful, sustainable community development projects.
 - Location: Accra, Ghana
 - Official Contact: bridgeforimpacthub@gmail.com
-- Official Phone: +233 (0) 57 880 9478
+- Official Phone: +233 (0) 53 011 0924
 
 PUBLIC CAPABILITIES & PATHWAYS:
 1. Volunteer Registration (/register/volunteer):
@@ -123,7 +123,7 @@ FORMATTING RULES:
 - Keep answers concise, actionable, and warm.`;
 
 const localFallbackReply =
-  "I am here to help you learn about Bridge for Impact Hub! You can ask about volunteer registration, NGO partnerships, project proposals, donating via Paystack, or contacting our team in Accra, Ghana at +233 (0) 57 880 9478.";
+  "I am here to help you learn about Bridge for Impact Hub! You can ask about volunteer registration, NGO partnerships, project proposals, donating via Paystack, or contacting our team in Accra, Ghana at +233 (0) 53 011 0924.";
 
 const normalizeMessagesForGemini = (messages: ChatMessage[]) => {
   const sanitized = messages

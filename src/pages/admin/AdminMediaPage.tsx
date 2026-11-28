@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/database/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StandardFilterTabs } from "@/components/admin/StandardFilterTabs";
+import { HomepageShowcaseManager } from "@/components/admin/HomepageShowcaseManager";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -40,6 +41,8 @@ import {
   MoreHorizontal,
   Globe,
   FileEdit,
+  Video,
+  Newspaper,
 } from "lucide-react";
 import { type UpdateType } from "@/database/types";
 import { VideoEmbed } from "@/components/common/VideoEmbed";
@@ -68,6 +71,21 @@ interface AdminMediaItem {
 
 const AdminMediaPage = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") === "showcase" ? "showcase" : "feed";
+
+  const handleTabChange = (val: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val === "showcase") {
+        next.set("tab", "showcase");
+      } else {
+        next.delete("tab");
+      }
+      return next;
+    });
+  };
+
   const [articles, setArticles] = useState<AdminMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -350,8 +368,26 @@ const AdminMediaPage = () => {
         </div>
       </div>
 
-      {/* Type Tabs & Filter Bar */}
-      <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-3 shadow-xs">
+      {/* Main Section Navigation Tabs */}
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList className="bg-slate-100 p-1 border border-slate-200">
+          <TabsTrigger
+            value="feed"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#1E3A5F] data-[state=active]:shadow-xs text-xs font-semibold px-4 py-2 gap-1.5"
+          >
+            <Newspaper className="w-3.5 h-3.5" /> Updates & Events Feed
+          </TabsTrigger>
+          <TabsTrigger
+            value="showcase"
+            className="data-[state=active]:bg-white data-[state=active]:text-[#1E3A5F] data-[state=active]:shadow-xs text-xs font-semibold px-4 py-2 gap-1.5"
+          >
+            <Video className="w-3.5 h-3.5 text-[#D4A017]" /> Homepage Showcase
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="feed" className="space-y-6 mt-0">
+          {/* Type Tabs & Filter Bar */}
+          <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-3 shadow-xs">
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
           {/* Type Filter Tabs with Gold Underline */}
           <StandardFilterTabs
@@ -752,6 +788,12 @@ const AdminMediaPage = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="showcase" className="mt-0">
+          <HomepageShowcaseManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

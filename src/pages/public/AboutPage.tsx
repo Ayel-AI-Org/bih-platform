@@ -127,7 +127,7 @@ const AboutPage = () => {
               </div>
 
               <p className="text-slate-700 leading-relaxed text-base sm:text-lg">
-                Bridge for Impact Hub (BIH) is a social impact startup committed to strengthening
+                Bridge for Impact Hub (BIH) is a social enterprise committed to strengthening
                 the effectiveness, sustainability, and reach of NGOs, social enterprises,
                 community initiatives, and humanitarian actors.
               </p>
@@ -300,7 +300,7 @@ const AboutPage = () => {
                 icon: Compass,
                 title: "Project Ideation & Design",
                 description:
-                  "Helping organizations turn ideas into well-structured projects through planning, design, and development of actionable project frameworks.",
+                  "Helping humanitarian organizations turn ideas into well-structured projects through planning, design, and development of actionable project frameworks.",
                 details:
                   "From defining problem scope and setting measurable indicators to structuring budgets and delivery timelines, we build the initial blueprint for execution.",
               },

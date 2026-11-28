@@ -132,3 +132,17 @@ export interface Session {
   name: string;
   email: string;
 }
+
+export type HomepageShowcaseMode = "updates" | "video";
+
+export interface HomepageShowcaseSettings {
+  mode: HomepageShowcaseMode;
+  videoUrl: string;
+  videoTitle: string;
+  videoDescription: string;
+  thumbnailUrl: string;
+  ctaText: string;
+  ctaUrl: string;
+  showLatestUpdatesBelow: boolean;
+}
+
