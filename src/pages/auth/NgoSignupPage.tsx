@@ -121,7 +121,7 @@ const NgoSignupPage = () => {
 
       toast({
         title: "Registration submitted",
-        description: "Your NGO application is pending admin approval.",
+        description: "Your NGO application is pending admin approval. Kindly check you mailbox and confirm your email to enable login. Thank you",
       });
 
       await supabase.auth.signOut();

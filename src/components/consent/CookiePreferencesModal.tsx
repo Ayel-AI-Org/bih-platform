@@ -90,8 +90,7 @@ export const CookiePreferencesModal: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Required for the website to function securely and reliably. These include authentication tokens (Supabase
-              session storage), security protections, donation checkout readiness, and functional UI settings like
+              Required for the website to function securely and reliably. These include authentication tokens, security protections, donation checkout readiness, and functional UI settings like
               sidebar layout and completed onboarding prompts.
             </p>
           </div>
@@ -122,7 +121,7 @@ export const CookiePreferencesModal: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Enables privacy-focused usage metrics (via Vercel Web Analytics) to help us measure aggregate traffic,
+              Enables privacy-focused usage metrics to help us measure aggregate traffic,
               monitor system health, and improve loading speeds. No cross-site advertising, individual tracking, or
               personal identifiers are collected.
             </p>
